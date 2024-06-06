@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Turbo.net Image Tester</title>
+    <hta:application
+        id="folderSelector"
+    />
+    <style>
+        table {
+            width: 700px;
+            table-layout: fixed;
+        }
+	tr {
+	    width: 350px;
+	}
+        td {
+            font-family: Arial, sans-serif;
+	        padding: 3px;
+	        width: 65%; 
+            height: 25px;
+            vertical-align: middle;
+        }
+        .hidden {
+            display: none;
+        }
+        .visible {
+            display: block;
+        }
+    </style>
+<script language="VBScript">
+   
+   Sub Window_onLoad
+    window.resizeTo 900,1080
+   End Sub
+
+   Sub RunScript()
+        selectedFolder = folderSelect.value
+        resourcesPath = folder &"\scripts\" & selectedFolder & "\resources"
+        commonSecretsFile = commonfolder & "\secrets.txt"
+        appSecretsFile = resourcesPath & "\secrets.txt"
+
+        If selectedFolder <> "" Then
+            scriptPath = folder & "\TestPS.ps1"
+	        sPushURL = document.getElementById("pushURL").value
+    	    sPushApiKey = document.getElementById("pushApiKey").value
+            sPushVersion = document.getElementById("pushVersion").value
+            sDomain = "Domain," & document.getElementById("domain").value
+            sApiKey = "APIKey," & document.getElementById("apikey").value
+            sUser = "username," & document.getElementById("username").value
+            sPass = "password," & document.getElementById("password").value
+
+            DeleteSecretsFile commonSecretsFile
+            DeleteSecretsFile appSecretsFile
+
+            WriteSecretsFile sDomain,commonSecretsFile
+            WriteSecretsFile sApiKey,commonSecretsFile
+
+            If InStr(sDomain, "https://turbo.net") = 0 And InStr(sDomain, "https://hub.turbo.net") = 0 Then ' If the domain is not turbo.net an API Key is required
+                If document.getElementById("apikey").value = "" Then
+                    MsgBox "You must provide a Turbo Server URL and API Key." & vbCrlf, vbOKOnly + vbCritical, "Error"
+                    Exit Sub
+                End If
+            End If
+
+            If document.getElementById("appSecretsSection").style.display = "block" Then
+                If document.getElementById("username").value = "" or document.getElementById("password").value = "" Then
+                    MsgBox "Vendor Username and/or Password is blank!" & vbCrlf, vbOKOnly + vbCritical, "Error"
+                    Exit Sub
+                Else
+                    WriteSecretsFile sUser,appSecretsFile
+                    WriteSecretsFile sPass,appSecretsFile
+                End If
+            End If
+
+            'Build powershell command arguments
+            sArgs = "-NoProfile -ExecutionPolicy Bypass -File " & chr(34) & scriptPath & chr(34)
+            sArgs = sArgs &" -App " &selectedFolder
+            sArgs = sArgs &" -ServerURL " &document.getElementById("domain").value
+            If document.getElementById("apikey").value <> "" Then sArgs = sArgs &" -APIKey " &document.getElementById("apikey").value
+            If bPublish=True Then sArgs = sArgs &" -Publish " &chr(34) &"true" &chr(34)
+            If bPublish=True And sPushVersion <> "" Then sArgs = sArgs &" -PushVersion " &sPushVersion
+            If bPublish=True And sPushURL <> "" Then sArgs = sArgs &" -PushURL " &sPushURL
+            If bPublish=True And sPushApiKey <> "" Then sArgs = sArgs &" -PushAPIKey " &sPushApiKey
+                        
+            'Run the Powershell TestPS Script
+            Set objShell = CreateObject("Shell.Application")
+	        If bPublish=True Then
+                If sPushURL = "" Or sPushApiKey = "" Or sPushVersion = "" Then
+                    MsgBox "The following must be provided to publish the image:" &vbCrlf &"-- Turbo Server URL" &vbCrlf &"-- API Key" &vbCrlf &"-- Version" & vbCrlf, vbOKOnly + vbCritical, "Error"
+                    Exit Sub
+                End If
+		        If LCase(Left(sPushURL, 4)) = "http" Then
+                    objShell.ShellExecute "powershell", sArgs,,,1
+                Else
+                    MsgBox "The Server URL must start with http." & vbCrlf, vbOKOnly + vbCritical, "Error"
+                    Exit Sub
+                End If
+	        Else
+		        objShell.ShellExecute "powershell", sArgs,,,1
+	        End If
+            window.close
+        End If
+    End Sub
+
+
+    Sub DeleteSecretsFile(secretsFilePath) 
+        If fso.FileExists(secretsFilePath) Then  'Wipe out the secrets.txt file if it already exists
+            Set secretsFile = fso.OpenTextFile(secretsFilePath, 2, True) 'for writing
+            secretsFile.Close
+        End If
+    End Sub
+
+    Sub WriteSecretsFile(secretValue,secretsFilePath) 
+        Set secretsFile = fso.OpenTextFile(secretsFilePath, 8, True) 'for appending
+        secretsFile.WriteLine secretValue
+        secretsFile.Close
+    End Sub
+
+    Function ReadSecretsFile(secretValue,secretsFilePath)
+    On Error Resume Next
+        If fso.FileExists(secretsFilePath) Then
+            Set secretsFile = fso.OpenTextFile(secretsFilePath, 1, True) 'for reading
+            Do Until secretsFile.AtEndOfStream
+            strLine = secretsFile.ReadLine
+                ' Check if the line begins with the secretValue
+                If Left(strLine, Len(secretValue) + 1) = secretValue & "," Then
+                    ' Return the substring after secretValue and ","
+                    result = Mid(strLine, Len(secretValue) + 2)
+                    ReadSecretsFile = result
+                    Exit Do
+                End If
+            Loop
+            secretsFile.Close
+        Else
+            ReadSecretsFile= ""
+        End If
+    End Function
+
+    Function GetHTAPath()
+      Dim fso, scriptPath
+      Set fso = CreateObject("Scripting.FileSystemObject")
+      scriptPath = fso.GetParentFolderName(document.location.href)
+      GetHTAPath = Replace(Replace(scriptPath,"/","\"),"file:\\\","")
+    End Function
+
+    Sub DisplayLicenseTip()
+        document.write updateLicense()
+        window.setTimeout "ClearText()", 5000
+    End Sub
+
+    Sub ClearText()
+        document.getElementById("licenseApplied").innerHTML = ""
+    End Sub
+
+    Sub CheckForAppSecrets()
+        selectedFolder = folderSelect.value
+	    resourcesPath = folder &"\scripts\" & selectedFolder & "\resources"
+	    secretsFilePath = resourcesPath & "\secrets.txt"
+        If fso.FileExists(secretsFilePath) Then
+            document.getElementById("appSecretsSection").style.display = "block"
+            secretsUser = ReadSecretsFile("username",secretsFilePath)
+            document.getElementById("username").value = secretsUser
+            secretsPass = ReadSecretsFile("password",secretsFilePath)
+            document.getElementById("password").value = secretsPass
+        Else
+            document.getElementById("appSecretsSection").style.display = "none"
+        End If
+    End Sub
+
+    Sub CheckForCommonSecrets()
+	    secretsFilePath = commonfolder & "\secrets.txt"
+        If fso.FileExists(secretsFilePath) Then
+            secretsDomain = ReadSecretsFile("Domain",secretsFilePath)
+            document.getElementById("domain").value = secretsDomain
+            secretsApikey = ReadSecretsFile("APIKey",secretsFilePath)
+            document.getElementById("apikey").value = secretsApikey
+        End If
+    End Sub
+
+</script>
+
+<script type="text/javascript">
+    var bPublish = false;
+
+    function onLoadFunctions() {
+        CheckForCommonSecrets();
+    }
+    function updatePublish() {
+    var checkbox = document.getElementById('publishCheckbox');
+    bPublish = checkbox.checked;
+    }
+</script>
+
+</head>
+
+<body onload="onLoadFunctions()">
+<table>
+   <tr><td style="text-align: center;"><h1><font face="Arial">Turbo.net Image Tester</font></h1></td></tr>
+   <tr>
+    <td style="text-align: center;"><label for="folderSelect""><font face="Arial">Select an application to test:</font></label>
+    <select id="folderSelect" style="width: 350px;" onchange="CheckForAppSecrets()">
+        <option value="">-- Select an application folder--</option>
+        <script language="VBScript">
+            Dim fso, folder, subfolder
+            Set fso = CreateObject("Scripting.FileSystemObject")
+            Set folder = fso.GetFolder(GetHTAPath)
+	        Set scriptsfolder = fso.GetFolder(folder &"\Scripts")
+            Set commonfolder = fso.GetFolder(scriptsfolder &"\Common")
+            For Each subfolder In scriptsfolder.SubFolders
+                parts = Split(subfolder.Name, "_")
+                If UBound(parts) = 1 And Left(subfolder.Name,1) <> "_" Then
+                    document.write "<option value='" & subfolder.Name & "'>" & subfolder.Name & "</option>"
+                End If
+            Next
+        </script>
+    </select></td>
+   </tr>
+</table>
+<br>
+<br>
+<table id="commonSecretsSection" style="border: 1px solid black; border-collapse: collapse;">
+   <tr>
+    <td style="text-align: left; width: 60px; font-style: italic;">Hub Server Info:</td>
+    <td style="text-align: right; width: 140px;"><label for="domain">Turbo Server URL:</label></td>
+    <td style="text-align: left;"><input type="text" id="domain" name="domain" style="width: 350px;"></td>
+   </tr>
+   <tr>
+    <td style="text-align: left; width: 60px;"></td>
+    <td style="text-align: right; width: 140px;"><label for="apikey">API Key:</label></td>
+    <td style="text-align: left;"><input type="text" id="apikey" name="apikey" style="width: 350px;"></td>
+   </tr>
+</table>
+<br>
+<table id="appSecretsSection" class="hidden" style="border: 1px solid black; border-collapse: collapse;">
+   <tr>
+    <td style="text-align: left; width: 60px; font-style: italic;">Required vendor info:</td>
+    <td style="text-align: right; width: 140px;"><label for="username">Vendor username:</label></td>
+    <td style="text-align: left;"><input type="text" id="username" name="username" style="width: 350px;"></td>
+   </tr>
+   <tr>
+    <td style="text-align: left; width: 60px;"></td>
+    <td style="text-align: right; width: 140px;"><label for="password">Vendor password:</label></td>
+    <td style="text-align: left;"><input type="text" id="password" name="password" style="width: 350px;"></td>
+   </tr>
+</table>
+<br>
+<table style="border: 1px solid black;border-collapse: collapse;">
+   <tr>
+    <td style="text-align: left; width: 60px; font-style: italic;">Optional:</td>
+    <td style="text-align: right; width: 140px;"><label for="publishCheckbox">Publish After Test:</label></td>
+    <td style="text-align: left;"><input type="checkbox" id="publishCheckbox" onchange="updatePublish()"></td>
+   </tr>
+   <tr>
+    <td style="width: 60px;"></td>
+    <td style="text-align: right; width: 140px;"><label for="pushURL">Turbo Server URL:</label></td>
+    <td style="text-align: left;"><input type="text" id="pushURL" name="pushURL" style="width: 350px;" value="eg. https://example.turbo.net"></td>
+   </tr>
+   <tr>
+    <td style="width: 60px;"></td>
+    <td style="text-align: right; width: 140px;"><label for="pushapiKey">API Key:</label></td>
+    <td style="text-align: left;"><input type="text" id="pushapiKey" name="pushapiKey" style="width: 350px;"></td>
+   </tr>
+   <tr>
+    <td style="width: 60px;"></td>
+    <td style="text-align: right; width: 140px;"><label for="pushVersion">Version:</label></td>
+    <td style="text-align: left;"><input type="text" id="pushVersion" name="pushVersion" style="width: 350px;"></td>
+   </tr>
+</table>
+<table>
+   <tr>
+    <td style="width: 60px;"></td>
+    <td style="text-align: right; width: 140px;">Notes:</td>
+    <td style="text-align: left; width: 400px;">Resolution must be 1080p (1920x1080) to test this image.</td>
+   </tr>
+   <tr>
+    <td style="width: 60px;"></td>
+    <td style="text-align: right; width: 140px;"></td>
+    <td style="text-align: left; width: 400px;">Test should be performed on Windows 10.</td>
+   </tr>
+   <tr>
+    <td style="width: 60px;"></td>
+    <td style="text-align: right; width: 140px;"></td>
+    <td style="text-align: left; width: 400px;">Close all other windows before running the test.</td>
+   </tr>
+   <tr>
+    <td style="width: 60px;"></td>
+    <td style="text-align: right; width: 140px;"></td>
+    <td style="text-align: left; width: 400px;"><button onclick="RunScript()">Test Image</button></td>
+   </tr>
+</table>
+</body>
+</html>
