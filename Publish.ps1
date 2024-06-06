@@ -134,7 +134,7 @@ Function CheckForError($ErrMessage, $ExpectedValue, $ResultValue, $ShouldTermina
       }
 }
 
-# Function to display the Yes/No dialog box
+# Function to display the result dialog
 function Show-Dialog {
 param (
     [string]$message,
@@ -154,7 +154,7 @@ param (
     $form.Dispose()
 }
 
-# Pushes the image to Turbo.net Hub
+# Pushes the image to the provided Turbo server
 Function TurboPublish($App,$Version,$ApiKey,$ServerURL) {
     $Repo = $App -replace '_','/'
     $Turbo = "C:\Program Files (x86)\Turbo\Cmd\turbo.exe"
@@ -162,10 +162,13 @@ Function TurboPublish($App,$Version,$ApiKey,$ServerURL) {
     CheckForError "Checking process exit code:" 0 $ProcessExitCode $True # Fail on turbo config failure
     $ProcessExitCode = RunProcess $Turbo "login --api-key $ApiKey" $True
     CheckForError "Checking process exit code:" 0 $ProcessExitCode $True # Fail on turbo login failure
+    # If no version parameter was passed just push without a version
+    # If this script was launched by the HTA, this should not be possible
     if ([string]::IsNullOrWhiteSpace($Version)) {
         $ProcessExitCode = RunProcess $Turbo "push $Repo" $True
         CheckForError "Checking process exit code:" 0 $ProcessExitCode $True # Fail on turbo push failure
         WriteLog "Published=$Repo"
+    # If a version parameter was passed, include the version in the push
     } else {
         $ProcessExitCode = RunProcess $Turbo "push $Repo $Repo`:$Version" $True
         CheckForError "Checking process exit code:" 0 $ProcessExitCode $True # Fail on turbo push failure
@@ -179,12 +182,16 @@ Function TurboPublish($App,$Version,$ApiKey,$ServerURL) {
 try {
     WriteLog "#################### $App #########################"
     WriteLog "Publishing $App version $AppVer to $ServerURL"
+
+    # Run the function to push the image to the Turbo server
     TurboPublish -App $App -Version $AppVer -APIKey $APIKey -ServerURL $ServerURL
 
-    # Read the result of the test log file for error
+    # Read the result of the publish log file for error
     $testLogFile = "$LocalLogsDir\!Publish.log"
     $fileContent = Get-Content $testLogFile
+    # Find the line with "Published="
     $ErrorResultLine = $fileContent | Select-String "Published="
+    # The result of the publish is the string after Published=
     $PublishResult = ($ErrorResultLine -split "=")[-1]
    
     if (($PublishResult -eq "Fail") -or (-not $fileContent)) {
