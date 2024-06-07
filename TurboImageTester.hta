@@ -82,6 +82,12 @@
             If bPublish=True And sPushURL <> "" Then sArgs = sArgs &" -PushURL " &sPushURL
             If bPublish=True And sPushApiKey <> "" Then sArgs = sArgs &" -PushAPIKey " &sPushApiKey
                         
+            'Give a final confirmation prompt before running the test.  Return to the HTA if No is clicked.
+            response = MsgBox("Ensure that all other windows are closed." & vbCrlf &"Ensure that resolution is 1080p (1920x1080)." & vbCrlf & vbCrlf &"Ready to start the test?", vbYesNo + vbQuestion, "Confirmation")
+            If response = vbNo Then
+                Exit Sub
+            End If
+            
             'Run the Powershell TestPS Script
             Set objShell = CreateObject("Shell.Application")
 	        If bPublish=True Then
