@@ -18,11 +18,11 @@ The repository also contains an HTA tool that makes it easy to run indivdual tes
 
 1. Launch the `TurboImageTester.hta`.
 
-2. Input your Turbo Server URL and API key (no API key needed if using Turbo.net Hub). The test script will pull the supporting images from Turbo.net Hub and the images to be tested from your Turbo Server. This information will be saved to `.\Scripts\Common\secrets.txt`.
+2. Input your Turbo Server URL and API key (no API key needed if using Turbo.net Hub). The test script will pull the supporting images from Turbo.net Hub and the images to be tested from your Turbo Server. This information will be saved to `.\!include\secrets.txt`.
 
 3. Choose an image that you wish to test from the dropdown box.
 
-4. If you select an image that requires additional information, like login credentials, a "Required vendor info" panel will appear where you can provide these details. The information will be saved to `.\Scripts\<image>\resources\secrets.txt`.  For example, many of the Adobe applications require that you supply credentials for an Adobe account that has a valid license to launch the application.
+4. If you select an image that requires additional information, like login credentials, a "Required vendor info" panel will appear where you can provide these details. The information will be saved to `.\<image>\resources\secrets.txt`.  For example, many of the Adobe applications require that you supply credentials for an Adobe account that has a valid license to launch the application.
 
 5. Publish (optional): check the "Publish After Test" box if you want the image to be published to a Turbo Server after a successful test. You will need to fill in the Server URL and API Key for the Turbo server you are pushing the image to as well as the Version you wish the package to be pushed as.  At the end of a successful test you will get a dialog confirming that you want to publish the image.
 
@@ -36,8 +36,7 @@ The tests are created using [SikuliX](http://sikulix.com/), a GUI-based automati
 
 ```
 .
-└── Scripts/
-    ├── Common/
+└── ├── !include/
     │   └── ...
     ├── 7-zip_7-zip/
     │   ├── Executor.ps1
@@ -55,7 +54,7 @@ The tests are created using [SikuliX](http://sikulix.com/), a GUI-based automati
     └── ...
 ```
 
-The `Common` folder contains common code and shared resources utilized by all test scripts. Within each image test's folder, `Executor.ps1` is a PowerShell script that controls the test. It can be run standalone for debugging purpose. Inside `test.sikuli` folder there's a `test.py`: this is the test script. In certain image tests, you may also find `resources` folders.
+The `!include` folder contains common code and shared resources utilized by all test scripts. Within each image test's folder, `Executor.ps1` is a PowerShell script that controls the test. It can be run standalone for debugging purpose. Inside `test.sikuli` folder there's a `test.py`: this is the test script. In certain image tests, you may also find `resources` folders.
 
 ## Build your own tests or modify ours
 

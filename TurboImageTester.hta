@@ -35,7 +35,7 @@
 
    Sub RunScript()
         selectedFolder = folderSelect.value
-        resourcesPath = folder &"\scripts\" & selectedFolder & "\resources"
+        resourcesPath = folder &"\" & selectedFolder & "\resources"
         commonSecretsFile = commonfolder & "\secrets.txt"
         appSecretsFile = resourcesPath & "\secrets.txt"
 
@@ -160,7 +160,7 @@
 
     Sub CheckForAppSecrets()
         selectedFolder = folderSelect.value
-	    resourcesPath = folder &"\scripts\" & selectedFolder & "\resources"
+	    resourcesPath = folder &"\" & selectedFolder & "\resources"
 	    secretsFilePath = resourcesPath & "\secrets.txt"
         If fso.FileExists(secretsFilePath) Then
             document.getElementById("appSecretsSection").style.display = "block"
@@ -210,8 +210,8 @@
             Dim fso, folder, subfolder
             Set fso = CreateObject("Scripting.FileSystemObject")
             Set folder = fso.GetFolder(GetHTAPath)
-	        Set scriptsfolder = fso.GetFolder(folder &"\Scripts")
-            Set commonfolder = fso.GetFolder(scriptsfolder &"\Common")
+	        Set scriptsfolder = fso.GetFolder(folder)
+            Set commonfolder = fso.GetFolder(scriptsfolder &"\!include")
             For Each subfolder In scriptsfolder.SubFolders
                 parts = Split(subfolder.Name, "_")
                 If UBound(parts) = 1 And Left(subfolder.Name,1) <> "_" Then
