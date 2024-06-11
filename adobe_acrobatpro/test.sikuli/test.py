@@ -80,5 +80,5 @@ if exists("get-started.png"):
 type(Key.F4, Key.ALT)
 wait(30)
 
-# Check if the container terminates after closing the app.
+# Check if the session terminates after closing the app.
 util.check_running()
