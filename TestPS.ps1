@@ -34,7 +34,6 @@ if ($Publish -eq "true") {
 }
 
 # Path constants
-$!includeDir = Join-Path $PSScriptRoot -ChildPath "!include"
 $AppDir = Join-Path $PSScriptRoot -ChildPath $App
 $Executor = "executor.ps1"
 $AppLog = Join-Path $LocalLogsDir -ChildPath ($App + "-log.txt")
