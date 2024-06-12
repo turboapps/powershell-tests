@@ -60,5 +60,5 @@ assert(util.file_exists(os.path.join(zip_folder, "util.sikuli"), 3))
 type(Key.F4, Key.ALT)
 type(Key.F4, Key.ALT) # Close the Explorer window.
 
-# Check if the container terminates after closing the app.
+# Check if the session terminates after closing the app.
 util.check_running()
