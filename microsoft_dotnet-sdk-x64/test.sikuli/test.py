@@ -18,4 +18,4 @@ run("turbo stop test")
 wait(10)
 
 # Check if the session terminates.
-assert("test" not in run("turbo containers"))
+assert("test" not in run("turbo sessions"))

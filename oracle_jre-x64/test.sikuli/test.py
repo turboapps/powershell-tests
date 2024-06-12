@@ -28,4 +28,4 @@ type(Key.F4, Key.ALT)
 wait(10)
 
 # Check if the session terminates.
-assert("Running" not in run("turbo containers -l"))
+util.check_running()

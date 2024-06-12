@@ -23,4 +23,4 @@ type(Key.F4, Key.ALT)
 wait(30)
 
 # Check if the session terminates.
-assert("test" not in run("turbo containers"))
+assert("test" not in run("turbo sessions"))
