@@ -17,7 +17,7 @@ wait("vlc_window.png")
 run("turbo stop test")
 
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "VideoLAN", "VLC", "VLC media player.lnk"))
+run("explorer " + os.path.join(util.start_menu, "VideoLAN", "VLC media player.lnk"))
 wait("vlc_window.png")
 
 # Basic operations and check help.
@@ -41,9 +41,9 @@ wait(10)
 type(Key.F4, Key.ALT)
 
 # Other start up items should wock.
-run("explorer " + os.path.join(util.start_menu, "VideoLAN", "VLC", "Reset VLC media player preferences and cache files.lnk"))
+run("explorer " + os.path.join(util.start_menu, "VideoLAN", "VLC media player - reset preferences and cache files.lnk"))
 wait(15) # It should not cause error.
-run("explorer " + os.path.join(util.start_menu, "VideoLAN", "VLC", "VLC media player skinned.lnk"))
+run("explorer " + os.path.join(util.start_menu, "VideoLAN", "VLC media player skinned.lnk"))
 wait("vlc_skinned_window.png")
 type("q", Key.CTRL)
 
