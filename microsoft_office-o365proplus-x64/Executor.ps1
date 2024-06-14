@@ -7,5 +7,6 @@ $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 
 $image = "microsoft_office-o365proplus-x64"
 $isolate = "merge-user"
+$extra = "--enable=disablefontpreload"
 
-StandardTest -image $image -isolate $isolate -localLogsDir $localLogsDir
+StandardTest -image $image -isolate $isolate -localLogsDir $localLogsDir -extra $extra
