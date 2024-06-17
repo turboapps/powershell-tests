@@ -395,6 +395,7 @@ click(Pattern("publisher_saved_file.png").targetOffset(-202,130))
 
 type("p", Key.CTRL)
 wait("publisher_print.png")
+wait(15) # Wait for the preview to load.
 type(Key.ESC)
 wait("publisher_saved_file.png")
 
@@ -417,6 +418,7 @@ click(Pattern("outlook_add_account_2.png").targetOffset(-182,-12))
 click(Pattern("outlook_add_account_2.png").targetOffset(1,16))
 click(Pattern("outlook_outlook_window.png").similar(0.90).targetOffset(26,-43))
 wait("outlook_compose.png")
+wait(15) # For the task bar popup.
 type(username + Key.TAB + Key.TAB + Key.TAB)
 type("subject" + Key.TAB)
 type("content")
