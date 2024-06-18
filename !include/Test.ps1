@@ -158,6 +158,41 @@ function TryTurboApp {
     }
 }
 
+# Run `turbo run` command for the app (image).
+function RunTurboApp {
+    param (
+        [string]$image,
+        [string]$using,
+        [string]$isolate,
+		[string]$extra,
+        [bool]$detached = $True
+    )
+
+    $command = "run $image"
+
+	# Construct the Turbo command.
+    if (-not [string]::IsNullOrWhiteSpace($using)) {
+        $command += " --using=$using"
+    }
+    
+    if (-not [string]::IsNullOrWhiteSpace($isolate)) {
+        $command += " --isolate=$isolate"
+    }
+	
+	if (-not [string]::IsNullOrWhiteSpace($extra)) {
+		$command = $command + " " + $extra
+	}
+
+	# In detached mode, this function should not blocking the program from running.
+    if ($detached) {
+        $command += " -d"
+        RunProcess -path "turbo.exe" -arguments $command
+    }
+    else {
+        RunProcess -path "turbo.exe" -arguments $command -shouldWait $True
+    }
+}
+
 # Hide the PowerShell prompt window.
 function HidePowerShellWindow {
 # Define a type that includes the necessary Windows API functions.
