@@ -1,0 +1,1 @@
+curl -X PUT "localhost:9200/_snapshot/cve_backup" -H "Content-Type: application/json" -d "{\"type\": \"fs\", \"settings\": {\"location\": \"C:/opensearch/snapshots\"}}"
