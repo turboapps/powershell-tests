@@ -11,7 +11,7 @@ $isolate = "merge-user"
 
 PrepareTest -image $image -localLogsDir $localLogsDir
 
-# Run SQL Server Express to test Azure Data Studio.
+# Run SQL Server Express to test Microsoft SQL Server Management Studio.
 PullTurboImages -image "sqlserver/sqlserver-express" -using "microsoft/dotnet" -isolate "merge-user"
 RunTurboApp -image "sqlserver/sqlserver-express" -using "microsoft/dotnet" -isolate "merge-user" -detached $True
 
