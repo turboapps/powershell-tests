@@ -162,11 +162,18 @@
         selectedFolder = folderSelect.value
 	    resourcesPath = folder &"\" & selectedFolder & "\resources"
 	    secretsFilePath = resourcesPath & "\secrets.txt"
+        secretsPlaceholder = resourcesPath & "\secrets.placeholder.txt"
         If fso.FileExists(secretsFilePath) Then
             document.getElementById("appSecretsSection").style.display = "block"
             secretsUser = ReadSecretsFile("username",secretsFilePath)
             document.getElementById("username").value = secretsUser
             secretsPass = ReadSecretsFile("password",secretsFilePath)
+            document.getElementById("password").value = secretsPass
+        ElseIf fso.FileExists(secretsPlaceholder) Then
+            document.getElementById("appSecretsSection").style.display = "block"
+            secretsUser = ReadSecretsFile("username",secretsPlaceholder)
+            document.getElementById("username").value = secretsUser
+            secretsPass = ReadSecretsFile("password",secretsPlaceholder)
             document.getElementById("password").value = secretsPass
         Else
             document.getElementById("appSecretsSection").style.display = "none"
@@ -175,10 +182,16 @@
 
     Sub CheckForCommonSecrets()
 	    secretsFilePath = commonfolder & "\secrets.txt"
+        secretsPlaceholder = commonfolder & "\secrets.placeholder.txt"
         If fso.FileExists(secretsFilePath) Then
             secretsDomain = ReadSecretsFile("Domain",secretsFilePath)
             document.getElementById("domain").value = secretsDomain
             secretsApikey = ReadSecretsFile("APIKey",secretsFilePath)
+            document.getElementById("apikey").value = secretsApikey
+        ElseIf fso.FileExists(secretsPlaceholder) Then
+            secretsDomain = ReadSecretsFile("Domain",secretsPlaceholder)
+            document.getElementById("domain").value = secretsDomain
+            secretsApikey = ReadSecretsFile("APIKey",secretsPlaceholder)
             document.getElementById("apikey").value = secretsApikey
         End If
     End Sub
