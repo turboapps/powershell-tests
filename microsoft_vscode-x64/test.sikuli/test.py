@@ -78,6 +78,23 @@ wait(2)
 type("w", Key.CTRL) # Java Extension window.
 wait("code_window_2.png")
 
+# Extension for C#.
+type("o", Key.CTRL)
+wait("open_location.png")
+type(os.path.join(script_path, os.pardir, "resources", "hello_world.cs") + Key.ENTER)
+wait("extension_c_sharp.png")
+wait(2)
+click(Pattern("extension_c_sharp.png").targetOffset(27,23))
+wait("install_complete_c_sharp.png", 240)
+if exists("no_c_sharp.png"):
+    click(Pattern("no_c_sharp.png").targetOffset(206,-13))
+click("tag_c_sharp.png")
+wait("code_c_sharp.png")
+type("w", Key.CTRL) # C# window.
+wait(2)
+type("w", Key.CTRL) # C# Extension window.
+wait("code_window_2.png")
+
 # Extension for JavaScript/TypeScript.
 type("o", Key.CTRL)
 wait("open_location.png")
