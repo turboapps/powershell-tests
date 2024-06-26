@@ -5,7 +5,7 @@ import util
 reload(util)
 addImagePath(include_path)
 
-setAutoWaitTimeout(20)
+setAutoWaitTimeout(40)
 util.pre_test()
 
 # Read credentials from the secrets file.
@@ -15,6 +15,8 @@ password = credentials.get("password")
 
 # Test of `turbo run`.
 wait("agreement.png")
+wait(5)
+click("agreement.png")
 type(Key.ENTER)
 wait(10)
 type(Key.F4, Key.ALT)
@@ -25,6 +27,8 @@ wait(10)
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.desktop, "Bluebeam Revu"))
 wait("agreement.png")
+wait(5)
+click("agreement.png")
 type(Key.ENTER)
 wait("sign-in-box.png")
 click("sign-in-box.png")
