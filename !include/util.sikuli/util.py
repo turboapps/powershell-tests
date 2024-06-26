@@ -8,6 +8,10 @@ start_menu = os.path.join((os.environ["APPDATA"]), "Microsoft", "Windows", "Star
 
 # Operations before running app test.
 def pre_test():
+    # Workaround for the bug that when Num-Lock is on, Key.SHIFT doesn't work with arrow keys: https://answers.launchpad.net/sikuli/+question/143874.
+    if Env.isLockOn(Key.NUM_LOCK):
+        type(Key.NUM_LOCK)
+
     # OneDrive shortcut should not be captured.
     assert(not os.path.exists(os.path.join(start_menu, "OneDrive (2).lnk")))
 
