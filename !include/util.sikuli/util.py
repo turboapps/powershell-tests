@@ -82,6 +82,11 @@ def close_firewall_alert():
     wait("firewall.png", 60)
     click(Pattern("firewall.png").targetOffset(212,67))
 
+# Close the Windows firewall alert prompt. Continue if not prompted after 60 seconds.
+def close_firewall_alert_continue():
+    if exists("firewall.png", 60):
+        click(Pattern("firewall.png").targetOffset(212,67))
+
 # Check if the most recently created Turbo session is terminated.
 # It is usually the session for the app to be tested.
 def check_running():
