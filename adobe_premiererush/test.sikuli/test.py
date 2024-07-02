@@ -19,7 +19,7 @@ username = credentials.get("username")
 password = credentials.get("password")
 
 # Test of `turbo run`.
-util.adobe_cc_login(username, password, False)
+util.adobe_cc_login(username, password)
 if exists("cc_discontinued_top.png"):
     click(Pattern("cc_discontinued_top.png").targetOffset(52,-19)) # To gain focus
     click(Pattern("cc_discontinued.png").targetOffset(173,30))

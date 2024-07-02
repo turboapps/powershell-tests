@@ -16,7 +16,7 @@ username = credentials.get("username")
 password = credentials.get("password")
 
 # Test of `turbo run`.
-util.adobe_cc_login(username, password, False)
+util.adobe_cc_login(username, password)
 wait("me_window.png")
 type("q", Key.CTRL)
 run("turbo stop test")
