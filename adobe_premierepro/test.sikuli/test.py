@@ -28,7 +28,8 @@ type("o", Key.CTRL)
 wait("location.png")
 type(os.path.join(script_path, os.pardir, "resources", "create-project-import-media", "create-project-import-media-step1.prproj") + Key.ENTER)
 click(Pattern("convert_prompt.png").targetOffset(190,50))
-click(Pattern("no_output_device.png").targetOffset(126,40))
+if exists("no_output_device.png"):
+    click(Pattern("no_output_device.png").targetOffset(126,40))
 wait("timeline.png")
 
 # Check "help".
