@@ -17,7 +17,7 @@ password = credentials.get("password")
 
 # Test of `turbo run`.
 wait(120)
-util.adobe_cc_login(username, password, False)
+util.adobe_cc_login(username, password)
 wait("incopy_window.png")
 run("turbo stop test")
 

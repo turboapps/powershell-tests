@@ -17,7 +17,7 @@ password = credentials.get("password")
 
 # Test of `turbo run`.
 wait(180) # It's a bug that InDesign Launch is super slow.
-util.adobe_cc_login(username, password, False)
+util.adobe_cc_login(username, password)
 wait("indesign_window.png")
 run("turbo stop test")
 

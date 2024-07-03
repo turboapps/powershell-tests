@@ -22,7 +22,7 @@ click(Pattern("adobe-login.png").targetOffset(62,100))
 wait(10)
 
 # Launch the app.
-run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Illustrator"))#util.adobe_cc_login(username, password)
+run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Illustrator"))
 util.adobe_cc_login(username, password)
 if exists("whats_new.png"):
     type(Key.ESC)
