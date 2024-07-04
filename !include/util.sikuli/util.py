@@ -79,7 +79,7 @@ def file_exists(path, try_limit):
 
 # Close the Windows firewall alert prompt.
 def close_firewall_alert():
-    wait("firewall.png", 60)
+    wait("firewall.png", 90)
     click(Pattern("firewall.png").targetOffset(212,67))
 
 # Close the Windows firewall alert prompt. Continue if not prompted after 60 seconds.
