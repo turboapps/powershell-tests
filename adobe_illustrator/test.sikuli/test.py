@@ -18,7 +18,7 @@ password = credentials.get("password")
 
 # Test of `turbo run`.
 wait("adobe_login.png")
-click(Pattern("adobe_login.png").targetOffset(62,100))
+run("turbo stop test")
 wait(10)
 
 # Launch the app.
