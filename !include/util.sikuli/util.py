@@ -77,14 +77,26 @@ def file_exists(path, try_limit):
         time.sleep(10)
     return False
 
+# Activate app window named (windowName) - will attempt for (numAttempts) seconds
+def activate_app_window(windowName, numAttempts):
+    for attempt in range(numAttempts):
+        app_window = App().focus(windowName)
+        if app_window.isValid():
+            return True
+        else:
+            wait(1)
+
 # Close the Windows firewall alert prompt.
 def close_firewall_alert():
-    wait("firewall.png", 200)
+    activate_app_window("Windows Security Alert",200)
+    wait("firewall.png")
+
     click(Pattern("firewall.png").targetOffset(212,67))
 
 # Close the Windows firewall alert prompt. Continue if not prompted after 60 seconds.
 def close_firewall_alert_continue():
-    if exists("firewall.png", 60):
+    activate_app_window("Windows Security Alert",200)
+    if exists("firewall.png"):
         click(Pattern("firewall.png").targetOffset(212,67))
 
 # Check if the most recently created Turbo session is terminated.
