@@ -90,6 +90,7 @@ def activate_app_window(windowName, numAttempts):
 def close_firewall_alert():
     activate_app_window("Windows Security Alert",200)
     wait("firewall.png")
+
     click(Pattern("firewall.png").targetOffset(212,67))
 
 # Close the Windows firewall alert prompt. Continue if not prompted after 60 seconds.
