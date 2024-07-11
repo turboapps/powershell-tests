@@ -13,21 +13,36 @@ import_path = os.path.join(script_path, os.pardir, "resources", "HelloWorld.exe"
 util.pre_test()
 
 # `turbo run` should launch the app.
+if exists("agreement.png"):
+    click(Pattern("agreement.png").targetOffset(-52,212))
+if exists("tips.png"):
+    click(Pattern("tips.png").targetOffset(-122,-19))
+    click(Pattern("tips.png").targetOffset(92,23))
 wait("ghidra_window.png")
+wait("help.png")
+wait(5)
+click(Pattern("help.png").targetOffset(130,-24))
+type(Key.F4, Key.ALT)
 run("turbo stop test")
+wait(10)
 
 # Launch the app by Start menu shortcut.
 run("explorer " + os.path.join(util.start_menu, "Ghidra.lnk"))
+if exists("agreement.png"):
+    click(Pattern("agreement.png").targetOffset(-52,212))
+if exists("tips.png"):
+    click(Pattern("tips.png").targetOffset(-122,-19))
+    click(Pattern("tips.png").targetOffset(92,23))
 wait("ghidra_window.png")
 
-# Check the "help" of the app.
-type(Key.F1)
+# Check the "help" of the app. In the new version, the first launch opens the help automatically.
 wait("help.png")
 wait(5)
-click(Pattern("help.png").targetOffset(125,-47))
+click(Pattern("help.png").targetOffset(130,-24))
 type(Key.F4, Key.ALT)
 
 # Basic operations.
+click("ghidra_window.png") # To gain focus.
 type("n", Key.CTRL)
 wait("new_project_1.png")
 click("new_project_next.png")
