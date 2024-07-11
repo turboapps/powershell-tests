@@ -33,7 +33,7 @@ type(Key.F4, Key.ALT)
 run("turbo stop test")
 
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "Project Online Desktop Client.lnk"))
+run("explorer " + os.path.join(util.start_menu, "Project.lnk"))
 if exists("office_signin.png"):
     click(Pattern("office_signin.png").targetOffset(-113,128))
     wait("office_signin_email.png")
