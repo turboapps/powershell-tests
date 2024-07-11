@@ -33,7 +33,7 @@ def get_credentials(path):
     return credentials
 
 # Log in for Adobe Creative Cloud.
-def adobe_cc_login(username, password, optional = False):
+def adobe_cc_login(username, password):
     wait("adobe_login.png",90)
     click(Pattern("adobe_login.png").targetOffset(-167,32))
     type(username)
