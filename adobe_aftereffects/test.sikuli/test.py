@@ -15,7 +15,7 @@ username = credentials.get("username")
 password = credentials.get("password")
 
 # Test of `turbo run`.
-if not exists("adobe-login.png"):
+if not exists("adobe_login.png"):
     wait("warning.png")
 run("turbo stop test")
 
