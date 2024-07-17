@@ -1,6 +1,7 @@
-﻿# The directory to store logs.
+﻿# The extra parameters for `turbo run` and `turbo installi` and the directory to store logs.
 param (
-        [string]$localLogsDir        
+        [string]$extra,
+        [string]$localLogsDir
     )
 
 # Import test related functions.
@@ -14,4 +15,4 @@ $image = "7-zip/7-zip"
 $isolate = "merge-user"
 
 # Run the standard app tests.
-StandardTest -image $image -isolate $isolate -localLogsDir $localLogsDir
+StandardTest -image $image -isolate $isolate -extra $extra -localLogsDir $localLogsDir

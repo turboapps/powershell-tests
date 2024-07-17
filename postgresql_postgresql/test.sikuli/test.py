@@ -13,6 +13,10 @@ credentials = util.get_credentials(os.path.join(include_path, os.pardir, "secret
 domain = credentials.get("Domain")
 api_key = credentials.get("APIKey")
 
+# Read extra parameters from the extra.txt.
+with open(os.path.join(script_path, os.pardir, "extra.txt"), "r") as file:
+    extra = file.read().replace("\n", "")
+
 # Setup.
 click("runas_password.png")
 type("password" + Key.ENTER)
@@ -20,7 +24,7 @@ wait("runas_ready.png")
 type("turbo config --domain=" + domain + Key.ENTER)
 if api_key:
     type("turbo login --api-key=" + api_key + Key.ENTER)
-type('turbo run postgresql/postgresql --startup-file=cmd --working-dir=C:\pgsql --mount C:\pg-data --name="test"' + Key.ENTER)
+type('turbo run postgresql/postgresql --startup-file=cmd --working-dir=C:\pgsql --mount C:\pg-data --name="test" ' + extra + Key.ENTER)
 wait(10)
 wait("pgsql_ready.png",90)
 click("pgsql_ready.png")
