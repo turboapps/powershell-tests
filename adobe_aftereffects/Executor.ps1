@@ -1,5 +1,6 @@
 ﻿param (
-        [string]$localLogsDir        
+        [string]$extra,
+        [string]$localLogsDir
     )
 
 $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
@@ -9,4 +10,4 @@ $image = "adobe/aftereffects"
 $using = "adobe/creativeclouddesktop,turbobuild/isolate-edge-wc,microsoft/vcredist"
 $isolate = "merge-user"
 
-StandardTest -image $image -using $using -isolate $isolate -localLogsDir $localLogsDir
+StandardTest -image $image -using $using -isolate $isolate -extra $extra -localLogsDir $localLogsDir

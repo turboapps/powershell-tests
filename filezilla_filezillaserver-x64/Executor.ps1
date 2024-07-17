@@ -1,5 +1,6 @@
 ﻿param (
-        [string]$localLogsDir        
+        [string]$extra,
+        [string]$localLogsDir
     )
 
 $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
@@ -10,4 +11,4 @@ $isolate = "merge-user"
 
 RunProcess -path "cmd.exe"
 
-StandardTest -image $image -isolate $isolate -localLogsDir $localLogsDir
+StandardTest -image $image -isolate $isolate -extra $extra -localLogsDir $localLogsDir

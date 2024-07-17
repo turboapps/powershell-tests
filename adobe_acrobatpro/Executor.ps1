@@ -1,6 +1,7 @@
-﻿# The directory to store logs.
+﻿# The extra parameters for `turbo run` and `turbo installi` and the directory to store logs.
 param (
-        [string]$localLogsDir        
+        [string]$extra,
+        [string]$localLogsDir
     )
 
 # Import test related functions.
@@ -17,7 +18,7 @@ $using = "adobe/creativeclouddesktop,microsoft/office-o365proplus-x64,turbobuild
 $isolate = "merge-user"
 
 # Extra parameters of `turbo run` and `turbo installi`.
-$extra = "--enable=disablefontpreload"
+$extra = "--enable=disablefontpreload " + $extra
 
 # Run the standard app tests.
 StandardTest -image $image -using $using -isolate $isolate -extra $extra -localLogsDir $localLogsDir
