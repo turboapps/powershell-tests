@@ -1,5 +1,6 @@
 ﻿param (
-        [string]$localLogsDir        
+        [string]$extra,
+        [string]$localLogsDir
     )
 
 $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
@@ -7,6 +8,6 @@ $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 
 $image = "microsoft/office-o365business-x64"
 $isolate = "merge-user"
-$extra = "--enable=disablefontpreload"
+$extra = "--enable=disablefontpreload " + $extra
 
-StandardTest -image $image -isolate $isolate -localLogsDir $localLogsDir -extra $extra
+StandardTest -image $image -isolate $isolate -extra $extra -localLogsDir $localLogsDir

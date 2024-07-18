@@ -1,5 +1,6 @@
 ﻿param (
-        [string]$localLogsDir        
+        [string]$extra,
+        [string]$localLogsDir
     )
 
 $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
@@ -12,4 +13,4 @@ $isolate = "merge-user"
 New-Item -Path "C:\opensearch" -ItemType Directory
 New-Item -Path "C:\opensearch\snapshots" -ItemType Directory
 
-StandardTest -image $image -using $using -isolate $isolate  -shouldInstall $False -localLogsDir $localLogsDir
+StandardTest -image $image -using $using -isolate $isolate -extra $extra -shouldInstall $False -localLogsDir $localLogsDir
