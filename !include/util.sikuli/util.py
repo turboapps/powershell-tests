@@ -8,7 +8,7 @@ start_menu = os.path.join((os.environ["APPDATA"]), "Microsoft", "Windows", "Star
 
 # Operations before running app test.
 def pre_test():
-    # Workaround for the bug that when Num-Lock is on, Key.SHIFT doesn't work with arrow keys: https://answers.launchpad.net/sikuli/+question/143874.
+    # Workaround for the bug that when Num-Lock is on, Key.SHIFT does not work with arrow keys: https://answers.launchpad.net/sikuli/+question/143874.
     if Env.isLockOn(Key.NUM_LOCK):
         type(Key.NUM_LOCK)
 
@@ -35,15 +35,15 @@ def get_credentials(path):
 # Log in for Adobe Creative Cloud.
 def adobe_cc_login(username, password):
     wait("adobe_login.png",90)
-    click(Pattern("adobe_login.png").targetOffset(-167,32))
+    click(Pattern("adobe_login.png").targetOffset(-186,32))
     type(username)
-    click("adobe_login_continue.png")
+    click(Pattern("adobe_login_continue.png").similar(0.90))
     wait("adobe_login_pass.png")
     type(password)
-    click("adobe_login_continue.png")
+    click(Pattern("adobe_login_continue.png").similar(0.90))
     if exists("adobe_login_signout_others.png",15):
         click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
-        click("adobe_login_continue.png")
+        click(Pattern("adobe_login_continue.png").similar(0.90))
 
 # Get the path of the shortcut for the apps that have different shortcut names for different versions.
 # Assume there is only one match inside the folder.

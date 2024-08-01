@@ -15,8 +15,8 @@ username = credentials.get("username")
 password = credentials.get("password")
 
 # Test of `turbo run`.
-wait("adobe-login.png")
-click(Pattern("adobe-login.png").targetOffset(62,100))
+wait("adobe_login.png")
+click(Pattern("adobe_login.png").targetOffset(62,100))
 wait(10)
 
 # Launch the app.
