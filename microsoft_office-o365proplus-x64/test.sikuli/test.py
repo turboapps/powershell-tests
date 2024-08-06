@@ -417,7 +417,7 @@ util.check_running()
 
 
 # Outlook.
-run("explorer " + os.path.join(util.start_menu, "Outlook.lnk"))
+run("explorer " + os.path.join(util.start_menu, "Outlook (classic).lnk"))
 click(Pattern("outlook_add_account_1.png").targetOffset(-4,138))
 click(Pattern("outlook_add_account_2.png").targetOffset(-200,16)) # Get focus.
 click(Pattern("outlook_add_account_2.png").targetOffset(-182,-12))
