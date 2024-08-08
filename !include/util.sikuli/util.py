@@ -34,11 +34,11 @@ def get_credentials(path):
 
 # Log in for Adobe Creative Cloud.
 def adobe_cc_login(username, password):
-    wait("adobe_login.png",90)
-    click(Pattern("adobe_login.png").targetOffset(-186,32))
+    wait("adobe_login.png", 90)
+    click(Pattern("adobe_login.png").targetOffset(-193,13))
     type(username)
     click(Pattern("adobe_login_continue.png").similar(0.90))
-    wait("adobe_login_pass.png")
+    click(Pattern("adobe_login_pass.png").targetOffset(-184,8))
     type(password)
     click(Pattern("adobe_login_continue.png").similar(0.90))
     if exists("adobe_login_signout_others.png",15):
