@@ -9,11 +9,15 @@ setAutoWaitTimeout(50)
 util.pre_test()
 
 # Test of `turbo run`.
+if exists("survey.png"):
+    click(Pattern("survey.png").targetOffset(42,0))
 wait("fiddler_window.png")
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Fiddler Classic.lnk"))
+if exists("survey.png"):
+    click(Pattern("survey.png").targetOffset(42,0))
 wait("fiddler_window.png")
 
 # Basic operations.
