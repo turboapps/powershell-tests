@@ -1,3 +1,5 @@
+# The tests for nodejs/nodejs and nodejs/nodejs-lts are the same.
+
 script_path = os.path.dirname(os.path.abspath(sys.argv[0])) 
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
@@ -8,7 +10,7 @@ addImagePath(include_path)
 setAutoWaitTimeout(20)
 util.pre_test()
 
-# Test cpp nodejs project
+# Test cpp nodejs project.
 type('npm install -g node-gyp' + Key.ENTER)
 wait(10)
 type('cd my-node-cpp-app' + Key.ENTER)
@@ -20,10 +22,10 @@ wait(45)
 type('node-gyp build' + Key.ENTER)
 wait(15)
 type('node index.js' + Key.ENTER)
-wait(5)
+wait(10)
 wait("indexjs-result.png")
 
-# Test standard nodejs project
+# Test standard nodejs project.
 type('node ..\my-node-app\\app.js' + Key.ENTER)
 util.close_firewall_alert_continue()
 wait("server-running.png")
