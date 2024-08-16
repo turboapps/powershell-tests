@@ -11,14 +11,14 @@ util.pre_test()
 save_location = os.path.join(util.desktop, "print.pdf")
 
 # Test of `turbo run`.
-util.close_firewall_alert()
+util.close_firewall_alert_continue()
 wait("new-tab.png")
 run("turbo stop test")
 wait(10)
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Microsoft Edge.lnk"))
-util.close_firewall_alert()
+util.close_firewall_alert_continue()
 wait("new-tab.png")
 
 # Activate and maximize the app window.
@@ -48,6 +48,7 @@ type("i", Key.WIN)
 wait("windows_setting_window.png")
 type("Default apps")
 click("windows_setting_default.png")
+click(Pattern("maximize_default_window.png").targetOffset(-2,-4))
 wait(5)
 click("windows_setting_default_browser.png")
 wait(2)

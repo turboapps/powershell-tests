@@ -8,6 +8,10 @@ start_menu = os.path.join((os.environ["APPDATA"]), "Microsoft", "Windows", "Star
 
 # Operations before running app test.
 def pre_test():
+    # Workaround for the bug that when Num-Lock is on, Key.SHIFT does not work with arrow keys: https://answers.launchpad.net/sikuli/+question/143874.
+    if Env.isLockOn(Key.NUM_LOCK):
+        type(Key.NUM_LOCK)
+
     # OneDrive shortcut should not be captured.
     assert(not os.path.exists(os.path.join(start_menu, "OneDrive (2).lnk")))
 
@@ -29,17 +33,17 @@ def get_credentials(path):
     return credentials
 
 # Log in for Adobe Creative Cloud.
-def adobe_cc_login(username, password, optional = False):
-    wait("adobe_login.png",90)
-    click(Pattern("adobe_login.png").targetOffset(-167,32))
+def adobe_cc_login(username, password):
+    wait("adobe_login.png", 90)
+    click(Pattern("adobe_login.png").targetOffset(-193,13))
     type(username)
-    click("adobe_login_continue.png")
-    wait("adobe_login_pass.png")
+    click(Pattern("adobe_login_continue.png").similar(0.90))
+    click(Pattern("adobe_login_pass.png").targetOffset(-184,8))
     type(password)
-    click("adobe_login_continue.png")
+    click(Pattern("adobe_login_continue.png").similar(0.90))
     if exists("adobe_login_signout_others.png",15):
         click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
-        click("adobe_login_continue.png")
+        click(Pattern("adobe_login_continue.png").similar(0.90))
 
 # Get the path of the shortcut for the apps that have different shortcut names for different versions.
 # Assume there is only one match inside the folder.
@@ -73,10 +77,27 @@ def file_exists(path, try_limit):
         time.sleep(10)
     return False
 
+# Activate app window named (windowName) - will attempt for (numAttempts) seconds
+def activate_app_window(windowName, numAttempts):
+    for attempt in range(numAttempts):
+        app_window = App().focus(windowName)
+        if app_window.isValid():
+            return True
+        else:
+            wait(1)
+
 # Close the Windows firewall alert prompt.
 def close_firewall_alert():
-    wait("firewall.png", 60)
+    activate_app_window("Windows Security Alert",200)
+    wait("firewall.png")
+
     click(Pattern("firewall.png").targetOffset(212,67))
+
+# Close the Windows firewall alert prompt. Continue if not prompted after 60 seconds.
+def close_firewall_alert_continue():
+    activate_app_window("Windows Security Alert",200)
+    if exists("firewall.png"):
+        click(Pattern("firewall.png").targetOffset(212,67))
 
 # Check if the most recently created Turbo session is terminated.
 # It is usually the session for the app to be tested.

@@ -62,8 +62,10 @@ type("q", Key.CTRL + Key.SHIFT)
 run('explorer "https://turbo.net/"')
 wait("turbo_webpage.png")
 click("turbo_webpage.png") # To gain focus.
-wait(5)
-type("p", Key.CTRL)
+wait(10)
+app_window = App().focus("Firefox")
+if app_window.isValid():
+    type("p", Key.CTRL)
 wait("print_window.png")
 click("print_print.png")
 wait("print_location.png")

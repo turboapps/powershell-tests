@@ -1,5 +1,6 @@
 ﻿param (
-        [string]$localLogsDir        
+        [string]$extra,
+        [string]$localLogsDir
     )
 
 $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
@@ -9,7 +10,6 @@ $image = "microsoft/edgewebview2"
 $app = "powerbi/powerbi"
 $using = "turbobuild/isolate-edge-wc,microsoft/edgewebview2"
 $isolate = "merge-user"
-$extra = "--mount=$($env:TEMP)\Turbo"
 
 PrepareTest -image $image -localLogsDir $localLogsDir
 PullTurboImages -image $app -using $using
