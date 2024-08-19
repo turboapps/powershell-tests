@@ -155,12 +155,21 @@ click(Pattern("extensions_search_rust.png").targetOffset(-43,12))
 type("a", Key.CTRL)
 type("@id:rust-lang.rust-analyzer")
 click(Pattern("extension_rust.png").similar(0.90).targetOffset(81,4))
-wait(Pattern("install_complete_2.png").similar(0.95), 240)
+if exists(Pattern("no_rust_1.png").similar(0.90)):
+    wait(2)
+    click(Pattern("no_rust_1.png").similar(0.90).targetOffset(205,-23))
+if exists("no_rust_2.png"):
+    wait(2)
+    click(Pattern("no_rust_2.png").targetOffset(205,-29))
+if not exists(Pattern("install_complete_1.png").similar(0.85), 60):
+    click("extension_rust.png")
+    wait(Pattern("install_complete_1.png").similar(0.85))
+    type("w", Key.CTRL) # Rust Extension window.
 click("tab_rust.png")
 wait("code_rust.png")
 type("w", Key.CTRL) # Rust window.
 wait(2)
-type("w", Key.CTRL) # Rust Extension window.
+type("w", Key.CTRL) # Rust Extension window or Rust Welcome window.
 wait("code_window_2.png")
 
 # Extension for Ruby.
