@@ -53,7 +53,7 @@ util.close_firewall_alert()
 wait("help_url.png")
 closeApp("Edge")
 wait(10)
-type(q, Key.CTRL)
+type("q", Key.CTRL)
 wait(10)
 
 # Check if the session terminates.

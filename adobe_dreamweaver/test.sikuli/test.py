@@ -16,8 +16,9 @@ username = credentials.get("username")
 password = credentials.get("password")
 
 # Test of `turbo run`.
-click("introducing.png")
-type(Key.ESC)
+if exists("introducing.png"):
+    click("introducing.png")
+    type(Key.ESC)
 util.close_firewall_alert()
 util.adobe_cc_login(username, password)
 click(Pattern("sync_settings.png").targetOffset(-12,59))
@@ -29,8 +30,9 @@ run("turbo stop test")
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Dreamweaver"))
 
 # Basic operations.
-click("introducing.png")
-type(Key.ESC)
+if exists("introducing.png"):
+    click("introducing.png")
+    type(Key.ESC)
 util.close_firewall_alert()
 click(Pattern("sync_settings.png").targetOffset(-12,59)) # To gain the focus.
 click(Pattern("sync_settings.png").targetOffset(-12,59))
