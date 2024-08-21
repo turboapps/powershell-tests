@@ -70,7 +70,8 @@ if app_window.isValid():
 wait("print_window.png")
 click("print_print.png")
 wait("print_location.png")
-type(save_location + Key.ENTER)
+type(save_location)
+click(Pattern("print_save.png").targetOffset(-49,-1))
 assert(util.file_exists(save_location, 5))
 
 type(Key.ESC)
