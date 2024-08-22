@@ -16,7 +16,8 @@ def pre_test():
     assert(not os.path.exists(os.path.join(start_menu, "OneDrive (2).lnk")))
 
     # Hide the SikuliX java window.
-    java_cmd = App().focus("java")
+    App().focus("java.exe")
+    java_cmd = App().focus("java.exe") # Try this twice to gain the focus of the java window.
     if java_cmd.isValid():
         type(Key.DOWN, Key.WIN)
 
