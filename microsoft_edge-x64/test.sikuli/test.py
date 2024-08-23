@@ -12,14 +12,14 @@ save_location = os.path.join(util.desktop, "print.pdf")
 
 # Test of `turbo run`.
 util.close_firewall_alert_continue()
-wait("new-tab.png")
+wait("new_tab.png")
 run("turbo stop test")
 wait(10)
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Microsoft Edge.lnk"))
 util.close_firewall_alert_continue()
-wait("new-tab.png")
+wait("new_tab.png")
 
 # Activate and maximize the app window.
 app_window = App().focus("Edge")
