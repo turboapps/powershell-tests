@@ -24,7 +24,7 @@ click(Pattern("menu.png").targetOffset(12,2))
 click(Pattern("restart_capture.png").targetOffset(39,37))
 wait(5)
 click(Pattern("menu.png").targetOffset(-11,2))
-wait("captured.png")
+wait(Pattern("captured.png").similar(0.60))
 
 # Check "help".
 type(Key.F1)
