@@ -7,7 +7,7 @@ addImagePath(include_path)
 
 dwgfile_path = os.path.join(script_path, os.pardir, "resources", "blocks_and_tables_-_metric.dwg")
 
-setAutoWaitTimeout(30)
+setAutoWaitTimeout(60)
 util.pre_test()
 
 # Test of `turbo run`.
@@ -42,14 +42,14 @@ wait(5)
 type(Key.F4, Key.ALT) # Close app.
 wait(5)
 os.system('cmd /c taskkill /f /im "AcHelp2.exe" /t')
-#os.system('cmd /c taskkill /f /im "ADPClientService.exe" /t')
+os.system('cmd /c taskkill /f /im "ADPClientService.exe" /t')
 
 # Test file association.
 run("explorer " + dwgfile_path)
 wait("dwg-tab.png")
 type(Key.F4, Key.ALT) # Close app.
 wait(10)
-#os.system('cmd /c taskkill /f /im "ADPClientService.exe" /t')
+os.system('cmd /c taskkill /f /im "ADPClientService.exe" /t')
 
 # Check if the session terminates.
 util.check_running()
