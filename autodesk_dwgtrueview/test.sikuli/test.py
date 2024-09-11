@@ -28,7 +28,8 @@ if app_window.isValid():
     type(Key.UP, Key.WIN)
     type(Key.UP, Key.WIN)
 wait(3)
-type("o", Key.CTRL)
+click("app-loaded.png") # To gain focus.
+click(Pattern("app-loaded.png").targetOffset(-51,49))
 wait("file-open.png")
 click("file-open.png")
 type(dwgfile_path + Key.ENTER)
@@ -50,6 +51,7 @@ wait("dwg-tab.png")
 type(Key.F4, Key.ALT) # Close app.
 wait(10)
 os.system('cmd /c taskkill /f /im "ADPClientService.exe" /t')
+wait(20)
 
 # Check if the session terminates.
 util.check_running()
