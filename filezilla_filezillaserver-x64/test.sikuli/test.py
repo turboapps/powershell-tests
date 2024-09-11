@@ -25,7 +25,7 @@ util.close_firewall_alert()
 # Basic operations.
 click("connect_button.png")
 click(Pattern("connect_port.png").targetOffset(11,92))
-click(Pattern("connect_fingerprint.png").targetOffset(-14,12))
+click(Pattern("connect_fingerprint.png").targetOffset(226,6))
 wait("server_window.png")
 type("i", Key.CTRL)
 wait("file_location.png")
