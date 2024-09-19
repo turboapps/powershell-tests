@@ -6,10 +6,17 @@
 $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 . $IncludePath
 
-$image = "mongodb/compass"
+$image = "mongodb/communityserver"
+$app = "mongodb/compass"
 $extra = "-n=mongodbserver"
 
-PullTurboImages -image "mongodb/communityserver"
-TryTurboApp -image "mongodb/communityserver" -extra $extra -detached $True
+PrepareTest -image $image -localLogsDir $localLogsDir
+PullTurboImages -image $app
+PullTurboImages -image $image
+InstallTurboApp -image $app
+TryTurboApp -image $image -extra $extra -detached $True
+TryTurboApp -image $app -detached $True
+HidePowerShellWindow
+$TestResult = StartTest -image $image -localLogsDir $localLogsDir
 
-StandardTest -image $image -using $using -extra $extra -localLogsDir $localLogsDir
+exit $TestResult
