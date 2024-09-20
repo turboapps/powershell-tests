@@ -1,4 +1,4 @@
-# mongodb/communityserver and mongodb/compass use the same test.py script
+# mongodb/communityserver and mongodb/compass use the same test.py script.
 
 script_path = os.path.dirname(os.path.abspath(sys.argv[0])) 
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
