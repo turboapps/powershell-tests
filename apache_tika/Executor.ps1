@@ -7,7 +7,7 @@ $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 . $IncludePath
 
 $image = "apache/tika"
-$using = "eclipse/temurinjre-lts"
+$using = "eclipse/temurin-lts"
 
 PrepareTest -image $image -localLogsDir $localLogsDir
 PullTurboImages -image $image -using $using
