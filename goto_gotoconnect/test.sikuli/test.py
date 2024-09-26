@@ -15,24 +15,21 @@ run("turbo stop test")
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "GoTo.lnk"))
 wait("goto_window.png")
-
-# Check "help".
-click(Pattern("menu.png").targetOffset(108,0))
-wait(2)
-click(Pattern("menu_help.png").targetOffset(-19,49))
-wait("about.png")
-type(Key.ESC) # For the "about" window.
+wait(5)
 
 # There is an issue that when the app is not fully closed (taskbar tray is on),
 # URL handler will not work. It is a native behavior.
 click(Pattern("menu.png").targetOffset(-113,0))
 wait(2)
 click("menu_file.png")
-wait(5)
+wait(10)
 
 # URL handler.
 run('explorer "https://global.gotomeeting.com/join/750803053"')
-click(Pattern("url_handler.png").targetOffset(138,47))
+wait("join-from-desktop.png")
+click("join-from-desktop.png")
+wait(Pattern("url-prompt.png").targetOffset(90,45))
+click(Pattern("url-prompt.png").targetOffset(90,45))
 closeApp("Edge")
 wait("join_meeting.png")
 type(Key.F4, Key.ALT)
