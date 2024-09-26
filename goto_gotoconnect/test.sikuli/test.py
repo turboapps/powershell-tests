@@ -26,10 +26,11 @@ wait(10)
 
 # URL handler.
 run('explorer "https://global.gotomeeting.com/join/750803053"')
-wait("join-from-desktop.png")
-click("join-from-desktop.png")
+if exists("join-from-desktop.png",10):
+    click("join-from-desktop.png")
 wait(Pattern("url-prompt.png").targetOffset(90,45))
 click(Pattern("url-prompt.png").targetOffset(90,45))
+wait(5)
 closeApp("Edge")
 wait("join_meeting.png")
 type(Key.F4, Key.ALT)
