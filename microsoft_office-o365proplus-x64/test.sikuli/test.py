@@ -431,11 +431,12 @@ click(Pattern("outlook_add_account_2.png").targetOffset(-198,13)) # Get focus.
 click(Pattern("outlook_add_account_2.png").targetOffset(-182,-14))
 click(Pattern("outlook_add_account_2.png").targetOffset(0,14))
 
-wait(30)
-if exists("outlook_got_it.png"):
+if exists("outlook_got_it.png",30):
+    click("outlook_got_it.png")
+if exists("outlook_got_it.png",15):
     click("outlook_got_it.png")
 click("outlook_new_email.png")
-if exists("outlook_got_it.png"):
+if exists("outlook_got_it.png",15):
     click("outlook_got_it.png")
 wait("outlook_compose.png")
 wait(15) # For the task bar popup.
