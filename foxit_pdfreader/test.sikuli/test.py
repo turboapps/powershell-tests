@@ -25,15 +25,15 @@ wait("pdf_sample.png")
 
 doubleClick(Pattern("pdf_sample.png").targetOffset(-182,-63))
 doubleClick(Pattern("pdf_sample.png").targetOffset(-182,-63)) # Need to do this twice.
-click(Pattern("text_sample_original.png").targetOffset(124,-13))
-click(Pattern("text_sample_highlighted.png").targetOffset(104,-10)) # Need to do this twice.
-wait("result_1.png")
+click("highlight-tool.png")
+click(Pattern("text_sample_highlighted.png").similar(0.60).targetOffset(104,-10)) # Need to do this twice.
+wait(Pattern("result_1.png").similar(0.60))
 type("n", Key.CTRL + Key.SHIFT)
 wait("comment_ready.png")
-click(Pattern("result_1.png").targetOffset(79,-16))
+click(Pattern("result_1.png").similar(0.60).targetOffset(79,-16))
 click(Pattern("comment_box.png").targetOffset(-1,10))
 type("test" + Key.ESC)
-wait("result_2.png")
+wait(Pattern("result_2.png").similar(0.60))
 type("s", Key.CTRL + Key.SHIFT)
 wait("save_location.png")
 type(save_path + Key.ENTER)
@@ -44,10 +44,10 @@ run("explorer " + save_path)
 click(Pattern("default_dialog.png").targetOffset(-160,129))
 click(Pattern("default_dialog.png").targetOffset(-94,-17))
 type(Key.ENTER)
-wait("foxit_opened.png")
+wait(Pattern("foxit_opened.png").similar(0.60))
 type(Key.F4, Key.ALT)
 run("explorer " + save_path)
-wait("foxit_opened.png")
+wait(Pattern("foxit_opened.png").similar(0.60))
 
 # Check "help".
 type(Key.F1)
