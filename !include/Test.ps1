@@ -14,7 +14,7 @@ function PrepareTest {
     }
 
     # Get the name string for the log file.
-    $name = $image -replace '[./]', '_'
+    $name = $image -replace '[/]', '_'
     Start-Transcript -Path "$localLogsDir\$name-executor.log"
 
     # Parse the secrets file.
@@ -143,18 +143,16 @@ function TryTurboApp {
         $command += " --isolate=$isolate"
     }
 
+    # In detached mode, this function should not blocking the program from running.
+    if ($detached) {
+        $command += " -d"
+    }
+
     if (-not [string]::IsNullOrWhiteSpace($extra)) {
         $command = $command + " " + $extra
     }
 
-    # In detached mode, this function should not blocking the program from running.
-    if ($detached) {
-        $command += " -d"
-        RunProcess -path "turbo.exe" -arguments $command
-    }
-    else {
-        RunProcess -path "turbo.exe" -arguments $command -shouldWait $True
-    }
+    RunProcess -path "turbo.exe" -arguments $command -shouldWait (-not $detached)
 }
 
 # Run `turbo run` command for the app (image).
@@ -178,18 +176,16 @@ function RunTurboApp {
         $command += " --isolate=$isolate"
     }
 
+    # In detached mode, this function should not blocking the program from running.
+    if ($detached) {
+        $command += " -d"
+    }
+
     if (-not [string]::IsNullOrWhiteSpace($extra)) {
         $command = $command + " " + $extra
     }
 
-    # In detached mode, this function should not blocking the program from running.
-    if ($detached) {
-        $command += " -d"
-        RunProcess -path "turbo.exe" -arguments $command
-    }
-    else {
-        RunProcess -path "turbo.exe" -arguments $command -shouldWait $True
-    }
+    RunProcess -path "turbo.exe" -arguments $command -shouldWait (-not $detached)
 }
 
 # Hide the PowerShell prompt window.
@@ -229,7 +225,7 @@ function StartTest {
     }
 
     # Get the name string for the log file.
-    $name = $image -replace '[./]', '_'
+    $name = $image -replace '[/]', '_'
 
     # Clear any error before running the sikulix test.
     $Error.Clear()
