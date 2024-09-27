@@ -15,16 +15,19 @@ username = credentials.get("username")
 password = credentials.get("password")
 
 # Test of `turbo run`.
+if exists("dont-send.png",45):
+    click("dont-send.png")
 if not exists("adobe_login.png"):
     wait("warning.png")
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe After Effects"))
+if exists("dont-send.png",45):
+    click("dont-send.png")
 util.adobe_cc_login(username, password)
 
 # Basic operations.
-wait(45) # Slow launch.
 click("warning.png")
 type(Key.ENTER)
 wait("new-file-button.png")
