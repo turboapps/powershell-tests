@@ -25,11 +25,15 @@ run("turbo stop test")
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe After Effects"))
 if exists("dont-send.png",45):
     click("dont-send.png")
+if exists("warning.png",15):
+    click("warning.png")
+    type(Key.ENTER)
 util.adobe_cc_login(username, password)
 
 # Basic operations.
-click("warning.png")
-type(Key.ENTER)
+if exists("warning.png",15):
+    click("warning.png")
+    type(Key.ENTER)
 wait("new-file-button.png")
 type("i",Key.CTRL)
 wait(5)
