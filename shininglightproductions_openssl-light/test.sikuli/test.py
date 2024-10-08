@@ -34,5 +34,16 @@ with open(certOutFile, 'r') as file:
 type("exit" + Key.ENTER)
 wait(5)
 
+# Test headless trigger
+certOutFile = os.path.join(util.desktop, "headless_cert.pem")
+headlessCmd = "turbo run openssl-light --isolate=merge-user --trigger headless -- pkcs12 -in " + certInFile + " -out " + certOutFile + " -nodes -password pass:thisismycertpassword"
+run(headlessCmd)
+wait(5)
+assert(util.file_exists(certOutFile, 10))
+with open(certOutFile, 'r') as file:
+    content = file.read()
+    assert("-----END PRIVATE KEY-----" in content)
+
+
 # Check if the session terminates.
 util.check_running()
