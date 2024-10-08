@@ -24,7 +24,7 @@ wait(5)
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Microsoft Power BI Desktop", "Power BI Desktop.lnk"))
-wait("home_button.png",40)
+wait("home_button.png",60)
 click("sign_in.png")
 wait("sign_in_email.png")
 type(username)
@@ -49,6 +49,8 @@ if exists(Pattern("collaborate_prompt.png").targetOffset(174,-36)):
 # Basic operations.
 setAutoWaitTimeout(60)
 click("excel-data.png")
+if exists("dark-mode-prompt.png", 15):
+    click(Pattern("dark-mode-prompt.png").targetOffset(247,-250))
 wait("import_file_name.png")
 type("C:\\Program Files\\Microsoft Power BI Desktop\\bin\\SampleData\\Financial Sample.xlsx")
 type(Key.ENTER)
