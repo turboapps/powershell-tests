@@ -13,7 +13,7 @@ wait("office-launched.png")
 run("turbo stop test")
 wait(10)
 
-# Test Help
+# Test help.
 run("explorer " + os.path.join(util.start_menu, "LibreOffice", "LibreOffice Writer.lnk"))
 wait("help-menu.png")
 type(Key.F1)
@@ -25,11 +25,11 @@ closeApp("Edge")
 type(Key.F4, Key.ALT)
 wait(5)
 
-# Test Office
+# Test Office.
 run("explorer " + os.path.join(util.start_menu, "LibreOffice", "LibreOffice.lnk"))
 wait("office-launched.png")
 
-# Test Writer
+# Test Writer.
 click("writer-document.png")
 wait("blank-page.png")
 type("Test document")
@@ -48,7 +48,8 @@ run("explorer " + save_path)
 wait("test-doc-open.png")
 wait(3)
 type(Key.F4, Key.ALT)
-# Test Base
+
+# Test Base.
 run("explorer " + os.path.join(util.start_menu, "LibreOffice", "LibreOffice Base.lnk"))
 wait("create-new-db.png")
 click(Pattern("create-new-db.png").targetOffset(105,258))
@@ -63,7 +64,8 @@ run("explorer " + save_path)
 wait("test-db-open.png")
 wait(3)
 type(Key.F4, Key.ALT)
-# Test Calc
+
+# Test Calc.
 run("explorer " + os.path.join(util.start_menu, "LibreOffice", "LibreOffice Calc.lnk"))
 wait("new-sheet.png")
 click(Pattern("new-sheet.png").targetOffset(-74,-17))
@@ -92,7 +94,8 @@ run("explorer " + save_path)
 wait("test-sheet-open.png")
 wait(3)
 type(Key.F4, Key.ALT)
-# Test Draw
+
+# Test Draw.
 run("explorer " + os.path.join(util.start_menu, "LibreOffice", "LibreOffice Draw.lnk"))
 wait("shape-tool.png")
 click("shape-tool.png")
@@ -110,7 +113,8 @@ run("explorer " + save_path)
 wait("test-drawing-open.png")
 wait(3)
 type(Key.F4, Key.ALT)
-# Test Impress
+
+# Test Impress.
 run("explorer " + os.path.join(util.start_menu, "LibreOffice", "LibreOffice Impress.lnk"))
 wait("new-presentation.png")
 doubleClick("new-presentation.png")
@@ -130,7 +134,8 @@ run("explorer " + save_path)
 wait("test-presentation-open.png")
 wait(3)
 type(Key.F4, Key.ALT)
-# Test Math
+
+# Test Math.
 run("explorer " + os.path.join(util.start_menu, "LibreOffice", "LibreOffice Math.lnk"))
 wait("elements.png")
 click(Pattern("elements.png").targetOffset(135,12))
@@ -148,7 +153,7 @@ run("explorer " + save_path)
 wait("test-formula-open.png")
 wait(3)
 type(Key.F4, Key.ALT)
-# Check if the session terminates.
 
+# Check if the session terminates.
 wait(20)
 util.check_running()

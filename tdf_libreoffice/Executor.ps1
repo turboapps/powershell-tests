@@ -8,7 +8,7 @@ $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 
 $image = "tdf/libreoffice"
 $using = "eclipse/temurinjre-lts,turbobuild/isolate-edge-wc"
-$extra = "--enable=disablefontpreload"
 $isolate = "merge-user"
+$extra = "--enable=disablefontpreload"
 
-StandardTest -image $image -isolate $isolate -using $using -extra $extra -localLogsDir $localLogsDir
+StandardTest -image $image -using $using -isolate $isolate -extra $extra -localLogsDir $localLogsDir
