@@ -15,6 +15,10 @@ run("turbo stop test")
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Visual Studio Code", "Visual Studio Code.lnk"))
 wait("code_window_1.png")
+# Activate and maximize the app window.
+app_window = App().focus("Visual Studio Code")
+if app_window.isValid():
+    type(Key.UP, Key.WIN)
 
 # Extension for Python and shell extension.
 python_save_path = os.path.join(util.desktop, "hello_world.py")
@@ -77,15 +81,21 @@ type(os.path.join(script_path, os.pardir, "resources", "hello_world.java") + Key
 wait("extension_java.png")
 wait(2)
 click(Pattern("extension_java.png").targetOffset(32,22))
-wait(Pattern("install_complete_2.png").similar(0.95), 240)
+wait("install_complete_2.png", 240)
+wait("tab_java.png",240)
 click("tab_java.png")
 wait("code_java.png")
+wait("java-tab.png",240)
+click("java-tab.png")
+wait(Pattern("run_1.png").targetOffset(-28,0))
 click(Pattern("run_1.png").targetOffset(-28,0))
 util.close_firewall_alert()
 wait(Pattern("result.png").similar(0.80))
 type("w", Key.CTRL) # Jave window.
 wait(2)
 type("w", Key.CTRL) # Java Extension window.
+wait(2)
+type("w", Key.CTRL) # JDK window
 wait("code_window_2.png")
 
 # Extension for C#.
@@ -191,7 +201,6 @@ type("w", Key.CTRL) # Ruby Extension window.
 wait("code_window_2.png")
 
 # Check "help".
-click(Pattern("menu.png").targetOffset(22,0))
 click("menu_help.png")
 click("menu_help_doc.png")
 wait(30) # Firewall alert might be slow.
