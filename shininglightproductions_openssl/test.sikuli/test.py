@@ -1,3 +1,5 @@
+# The tests for shininglightproductions/openssl and shininglightproductions/openssl-light are basically the same.
+
 script_path = os.path.dirname(os.path.abspath(sys.argv[0])) 
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
@@ -34,7 +36,7 @@ with open(certOutFile, 'r') as file:
 type("exit" + Key.ENTER)
 wait(5)
 
-# Test headless trigger
+# Test headless trigger.
 certOutFile = os.path.join(util.desktop, "headless_cert.pem")
 headlessCmd = "turbo run openssl --isolate=merge-user --trigger headless -- pkcs12 -in " + certInFile + " -out " + certOutFile + " -nodes -password pass:thisismycertpassword"
 run(headlessCmd)
