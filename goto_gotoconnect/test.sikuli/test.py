@@ -19,7 +19,7 @@ wait(5)
 
 # There is an issue that when the app is not fully closed (taskbar tray is on),
 # URL handler will not work. It is a native behavior.
-click(Pattern("menu.png").targetOffset(-113,0))
+click(Pattern("menu.png").targetOffset(-96,1))
 wait(2)
 click("menu_file.png")
 wait(10)
