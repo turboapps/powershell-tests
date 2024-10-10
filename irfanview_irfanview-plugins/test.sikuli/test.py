@@ -1,3 +1,5 @@
+# The tests for irfanview/irfanview-plugins and irfanview/irfanview-plugins-x64 are the same except for the shortcut.
+
 script_path = os.path.dirname(os.path.abspath(sys.argv[0])) 
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
@@ -27,7 +29,8 @@ type("o")
 wait("file-open.png")
 type(os.path.join(script_path, os.pardir, "resources", "red fox.jpg") + Key.ENTER)
 wait("fox-open.png")
-# Test adobe plugin
+
+# Test adobe plugin.
 click("image-menu.png")
 hover("adobe-plugin-menu.png")
 click("popart-plugin.png")
@@ -58,7 +61,7 @@ type("a", Key.CTRL)
 type("177")
 click("ok-button.png")
 wait("effect-applied.png")
-type(Key.F4, Key.ALT) # close app
+type(Key.F4, Key.ALT) # Close app.
 wait(10)
 
 # Check if the session terminates.

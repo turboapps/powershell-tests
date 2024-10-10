@@ -1,3 +1,5 @@
+# The tests for irfanview/irfanview and irfanview/irfanview-x64 are the same except for the shortcut.
+
 script_path = os.path.dirname(os.path.abspath(sys.argv[0])) 
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
@@ -28,7 +30,7 @@ type("o")
 wait("file-open.png")
 type(os.path.join(script_path, os.pardir, "resources", "red fox.jpg") + Key.ENTER)
 wait("fox-open.png")
-type("g", Key.CTRL) # invert greyscale
+type("g", Key.CTRL) # Invert greyscale.
 wait("grey-fox.png")
 type("s")
 wait(3)
