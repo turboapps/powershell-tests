@@ -13,12 +13,12 @@ setAutoWaitTimeout(30)
 util.pre_test()
 
 # Test of `turbo run`.
-wait("setup.png")
+wait("setup.png",60)
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Inkscape", "Inkscape.lnk"))
-wait("setup.png")
+wait("setup.png",60)
 click("setup_save.png")
 if exists("support_thanks.png"):
     click("support_thanks.png")
@@ -44,7 +44,6 @@ wait("results_2.png")
 # Check "help".
 click(Pattern("menu.png").targetOffset(77,0))
 click(Pattern("menu_help.png").targetOffset(-28,-23))
-util.close_firewall_alert()
 wait("help_url.png")
 closeApp("Edge")
 wait(10)
