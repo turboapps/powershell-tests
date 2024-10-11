@@ -16,11 +16,12 @@ wait(3)
 type(Key.F4, Key.ALT) # Close app.
 run("turbo stop test")
 
-# Test basic app functions
+# Test basic app functions.
 run("explorer " + os.path.join(util.desktop, "GitHub Desktop.lnk"))
 wait("welcome.png")
 wait(3)
 click("skip-link.png")
+click(Pattern("configure.png").targetOffset(-84,-23))
 type("test"+ Key.TAB)
 type("test@git.com" + Key.ENTER)
 wait("clone-repo.png")
@@ -31,8 +32,9 @@ type(repo_path + Key.ENTER)
 wait("current-repo.png")
 click("show-explorer.png")
 wait("explorer-window.png")
-type(Key.F4, Key.ALT) # Close explorer
-# Test Help
+type(Key.F4, Key.ALT) # Close explorer.
+
+# Test Help.
 click("help-menu.png")
 click("show-user-guides.png")
 util.close_firewall_alert()
@@ -40,7 +42,7 @@ wait("help-url.png")
 closeApp("Edge")
 type(Key.F4, Key.ALT) # Close app.
 
-wait(60) # wait for session to close
+wait(60) # Wait for session to close.
 
 # Check if the session terminates.
 util.check_running()
