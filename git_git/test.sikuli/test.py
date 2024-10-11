@@ -18,7 +18,7 @@ type("exit")
 type(Key.ENTER)
 run("turbo stop test")
 
-# Test headless trigger
+# Test headless trigger.
 headlessCmd = os.path.join(script_path, os.pardir, "resources", "headless_cmd.bat")
 repo = os.path.join(util.desktop, "Hello-World")
 readme = os.path.join(repo, "README")
@@ -26,7 +26,7 @@ run("explorer " + headlessCmd)
 wait(5)
 assert(util.file_exists(readme, 10))
 
-# Test Git GUI
+# Test Git GUI.
 run("explorer " + os.path.join(util.start_menu, "Git", "Git GUI.lnk"))
 wait("git-gui.png")
 click("git-gui.png")
@@ -40,10 +40,10 @@ click("remote.png")
 hover("fetch-from.png")
 click("origin.png")
 wait("fetch-success.png")
-type(Key.F4, Key.ALT) # Close fetch window
-type(Key.F4, Key.ALT) # Close app
+type(Key.F4, Key.ALT) # Close fetch window.
+type(Key.F4, Key.ALT) # Close app.
 
-wait(20) # wait for session to close
+wait(20) # wait for session to close.
 
 # Check if the session terminates.
 util.check_running()
