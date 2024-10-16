@@ -1,3 +1,5 @@
+# The tests for powerbi/powerbi and powerbi/powerbirs are the same except for the test file path.
+
 script_path = os.path.dirname(os.path.abspath(sys.argv[0])) 
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
@@ -23,7 +25,7 @@ if exists(Pattern("red_x_click.png").targetOffset(42,1)):
 wait(5)
 
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "Microsoft Power BI Desktop", "Power BI Desktop.lnk"))
+run("explorer " + util.get_shortcut_path_by_prefix(util.desktop, "Power BI Desktop"))
 wait("home_button.png",60)
 click("sign_in.png")
 wait("sign_in_email.png")

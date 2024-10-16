@@ -1,3 +1,5 @@
+# The tests for powerbi/powerbi and powerbi/powerbirs are the same except for the test file path.
+
 script_path = os.path.dirname(os.path.abspath(sys.argv[0])) 
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
@@ -14,9 +16,8 @@ username = credentials.get("username")
 password = credentials.get("password")
 
 # Test of `turbo run`.
-wait("powerbi-welcome.png")
-wait(5)
-type(Key.ESC)
+wait("home_button.png",60)
+wait(10)
 click(Pattern("close_pbi.png").targetOffset(42,-1))
 wait(5)
 if exists(Pattern("red_x_click.png").targetOffset(42,1)):
@@ -25,9 +26,7 @@ wait(5)
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.desktop, "Power BI Desktop"))
-wait("powerbi-welcome.png")
-wait(5)
-type(Key.ESC)
+wait("home_button.png",60)
 click("sign_in.png")
 wait("sign_in_email.png")
 type(username)
@@ -51,7 +50,9 @@ if exists(Pattern("collaborate_prompt.png").targetOffset(174,-36)):
 
 # Basic operations.
 setAutoWaitTimeout(60)
-click("import-from-excel.png")
+click("excel-data.png")
+if exists("dark-mode-prompt.png", 15):
+    click(Pattern("dark-mode-prompt.png").targetOffset(247,-250))
 wait("import_file_name.png")
 type("C:\\Program Files\\Microsoft Power BI Desktop RS\\bin\\SampleData\\Financial Sample.xlsx")
 type(Key.ENTER)
@@ -62,7 +63,7 @@ click(Pattern("data_details.png").targetOffset(-45,-14))
 click(Pattern("data_details.png").targetOffset(-45,10))
 wait(5)
 click("menu_file.png")
-click("export-btn.png")
+click("export_button.png")
 click("export_pdf.png")
 util.close_firewall_alert()
 setAutoWaitTimeout(10)

@@ -440,8 +440,11 @@ if exists("outlook_got_it.png",15):
     click("outlook_got_it.png")
 wait("outlook_compose.png")
 wait(15) # For the task bar popup.
-type(username + Key.TAB + Key.TAB + Key.TAB)
+type(username + Key.TAB)
+wait(1)
+type(Key.TAB + Key.TAB)
 type("subject" + Key.TAB)
+wait(1)
 type("content")
 click("outlook_send.png")
 

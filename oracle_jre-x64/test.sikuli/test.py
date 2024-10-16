@@ -1,4 +1,4 @@
-# The tests for oracle/jre and oracle/jre-x64 are almost the same except for the shortcut name.
+# The tests for oracle/jre and oracle/jre-x64 are the same.
 
 script_path = os.path.dirname(os.path.abspath(sys.argv[0])) 
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
@@ -15,7 +15,7 @@ wait("jre_cmd.png")
 run("turbo stop test")
 
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "Java Runtime 64-bit.lnk"))
+run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Java Runtime"))
 
 # Basic operations.
 click("jre_cmd.png")
