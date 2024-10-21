@@ -31,19 +31,21 @@ if exists("new_feature.png"): # Not sure which one appears first.
 
 # Basic operations.
 wait("lightroom_window.png")
-click("add_photos.png")
+wait("cloud_photo.png")
+click(Pattern("lightroom_window.png").targetOffset(43,-134))
+if exists("got_it.png"):
+    click(Pattern("got_it.png").targetOffset(0,9))
+click(Pattern("local.png").targetOffset(35,0))
+click("local_open.png")
 wait("import_location.png")
 type(os.path.join(script_path, os.pardir, "resources", "Nikon-D3500-Shotkit.NEF") + Key.ENTER)
-wait("cloud_sync.png")
-click("cloud_sync_ok.png")
-click("add_photos_add.png")
-doubleClick("photo.png")
+wait("local_photo.png")
 click("edit.png")
 wait(2) # Wait for Edit panel to load.
-click(Pattern("exposure.png").targetOffset(107,-12))
+click(Pattern("exposure.png").targetOffset(112,11))
 wait(2)
 type("5" + Key.ENTER)
-wait("photo_edited_thumbnail.png")
+wait("local_photo_edited.png")
 click("export.png")
 click("export_jpg.png")
 wait("export_location.png")
@@ -56,14 +58,6 @@ util.close_firewall_alert()
 wait("help_url.png")
 closeApp("Edge")
 wait(10)
-
-# Clean up for the next test.
-click("photo_edited_thumbnail.png")
-type(Key.DELETE)
-click("delete.png")
-wait(10)
-click(Pattern("creative_cloud.png").targetOffset(65,-1))
-wait("delete_synced.png")
 type(Key.F4, Key.ALT)
 wait(10)
 
