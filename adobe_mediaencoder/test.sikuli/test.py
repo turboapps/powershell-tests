@@ -16,6 +16,8 @@ username = credentials.get("username")
 password = credentials.get("password")
 
 # Test of `turbo run`.
+if exists("GPUSniffer_error.png"):
+    click(Pattern("GPUSniffer_error_close.png").targetOffset(-49,4))
 util.adobe_cc_login(username, password)
 wait("me_window.png")
 type("q", Key.CTRL)
@@ -23,6 +25,8 @@ run("turbo stop test")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Media Encoder"))
+if exists("GPUSniffer_error.png"):
+    click(Pattern("GPUSniffer_error_close.png").targetOffset(-49,4))
 
 # Basic operations.
 wait("me_window.png")
