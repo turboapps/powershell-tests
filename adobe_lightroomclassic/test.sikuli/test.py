@@ -15,17 +15,17 @@ username = credentials.get("username")
 password = credentials.get("password")
 
 # Test of `turbo run`.
-click("adobe_login.png")
 if exists("share_data.png"):
     click(Pattern("share_data.png").targetOffset(194,72))
 if exists("whats_new.png"):
     click("whats_new_close.png")
 if exists(Pattern("welcome.png").targetOffset(71,3)):
     click(Pattern("welcome.png").targetOffset(71,3))
-click(Pattern("getting_started.png").targetOffset(186,-18))
-util.adobe_cc_login(username, password)
-type("q", Key.CTRL)
-click(Pattern("quit.png").targetOffset(101,28))
+if exists("getting_started.png"):
+    click(Pattern("getting_started.png").targetOffset(186,-18))
+click("adobe_login.png")
+type(Key.F4, Key.ALT)
+wait(15)
 run("turbo stop test")
 
 # Launch the app.
@@ -36,7 +36,9 @@ if exists("whats_new.png"):
     click("whats_new_close.png")
 if exists(Pattern("welcome.png").targetOffset(71,3)):
     click(Pattern("welcome.png").targetOffset(71,3))
-click(Pattern("getting_started.png").targetOffset(186,-18))
+if exists("getting_started.png"):
+    click(Pattern("getting_started.png").targetOffset(186,-18))
+util.adobe_cc_login(username, password)
 
 # Basic operations.
 wait("lightroomcc_window.png")
@@ -52,8 +54,10 @@ click("import_import.png")
 wait("import_done.png")
 type("d")
 wait(2) # Wait for Edit panel to load.
-click(Pattern("develop_mode.png").targetOffset(181,-96))
-click(Pattern("point_color.png").targetOffset(219,-54))
+if exists("develop_mode.png"):
+    click(Pattern("develop_mode.png").targetOffset(181,-96))
+if exists("point_color.png"):
+    click(Pattern("point_color.png").targetOffset(219,-54))
 type("r")
 wait(2)
 type("x")
