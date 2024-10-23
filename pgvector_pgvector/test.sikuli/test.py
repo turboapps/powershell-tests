@@ -24,7 +24,7 @@ wait("runas_ready.png")
 type("turbo config --domain=" + domain + Key.ENTER)
 if api_key:
     type("turbo login --api-key=" + api_key + Key.ENTER)
-type('turbo try postgresql/postgresql --using=pgvector/pgvector --startup-file=cmd --working-dir=C:\pgsql --mount C:\pg-data --name="test" ' + extra + Key.ENTER)
+type('turbo try postgresql/postgresql:16 --using=pgvector/pgvector --startup-file=cmd --working-dir=C:\pgsql --mount C:\pg-data --name="test" ' + extra + Key.ENTER)
 wait(10)
 setAutoWaitTimeout(60)
 wait("pgsql_ready.png")
