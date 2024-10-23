@@ -21,7 +21,8 @@ type(Key.F4, Key.ALT)
 
 # URL handler.
 run('explorer "https://turbo-net.zoom.us/j/81128361870"')
-click(Pattern("url_handler.png").targetOffset(132,50))
+wait("URL_handler_1.png")
+click(Pattern("URL_handler_2.png").targetOffset(-40,0))
 closeApp("Edge")
 click(Pattern("invalid_meeting.png").targetOffset(130,137))
 type(Key.F4, Key.ALT)
