@@ -5,7 +5,7 @@ import util
 reload(util)
 addImagePath(include_path)
 
-setAutoWaitTimeout(75)
+setAutoWaitTimeout(90)
 
 util.pre_test()
 
@@ -17,21 +17,20 @@ password = credentials.get("password")
 # Test of `turbo run`.
 if exists("dont-send.png",45):
     click("dont-send.png")
-if not exists("adobe_login.png"):
-    wait("warning.png")
+wait("adobe_login.png")
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe After Effects"))
 if exists("dont-send.png",45):
     click("dont-send.png")
-if exists("warning.png",45):
+if exists("warning.png"):
     click("warning.png")
     type(Key.ENTER)
 util.adobe_cc_login(username, password)
 
 # Basic operations.
-if exists("warning.png",15):
+if exists("warning.png"):
     click("warning.png")
     type(Key.ENTER)
 wait("new-file-button.png")
@@ -43,8 +42,11 @@ doubleClick(Pattern("sample-mp4.png").targetOffset(-6,7))
 
 # Check "Help".
 type(Key.F1)
+util.close_firewall_alert()
+wait("help_url.png")
+closeApp("Edge")
 type("q",Key.CTRL)
-click("dont-save-button.png")
+click("save_no.png")
 wait(10)
 
 # Check if the session terminates.
