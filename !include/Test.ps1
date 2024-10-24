@@ -245,6 +245,7 @@ function StandardTest {
         [string]$isolate,
         [string]$extra,
         [bool]$shouldInstall = $true,
+        [bool]$shouldTry = $true,
         [bool]$detached = $true,
         [string]$localLogsDir
     )
@@ -255,8 +256,9 @@ function StandardTest {
     if ($shouldInstall) {
         InstallTurboApp -image $image -using $using -isolate $isolate -extra $extra
     }
-
+    if ($shouldTry) {
     TryTurboApp -image $image -using $using -isolate $isolate -extra $extra -detached $detached
+    }
     HidePowerShellWindow
     $TestResult = StartTest -image $image -localLogsDir $localLogsDir
 
