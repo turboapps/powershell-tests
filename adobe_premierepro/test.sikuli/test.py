@@ -14,28 +14,30 @@ credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resourc
 username = credentials.get("username")
 password = credentials.get("password")
 
-# Test of `turbo run`.
-if exists("GPUSniffer_error.png"):
-    click(Pattern("GPUSniffer_error_close.png").targetOffset(-49,4))
-util.adobe_cc_login(username, password)
-wait("pr_window.png")
+# Login to Adobe Creative Cloud Desktop
+util.launch_adobe_cc(username, password)
+
+# Test turbo run
+run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
+wait(5)
+type('turbo run premierepro --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+type(Key.ENTER)
+wait("pr_window.png",180)
 run("turbo stop test")
+closeApp("Command Prompt")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Premiere Pro"))
-if exists("GPUSniffer_error.png"):
-    click(Pattern("GPUSniffer_error_close.png").targetOffset(-49,4))
 
 # Basic operations.
-wait("pr_window.png")
+wait("pr_window.png",180)
 type("o", Key.CTRL)
 wait("location.png")
 type(os.path.join(script_path, os.pardir, "resources", "create-project-import-media", "create-project-import-media-step1.prproj") + Key.ENTER)
-click(Pattern("convert_prompt.png").targetOffset(192,15))
-if exists("no_output_device.png"):
-    click(Pattern("no_output_device.png").targetOffset(135,55))
-if exists("renamed.png"):
-    click(Pattern("renamed.png").targetOffset(274,-25))
+wait("convert_prompt.png")
+click("ok-button.png")
+if exists("no_output_device.png",30):
+    click(Pattern("no_output_device.png").targetOffset(126,40))
 wait("timeline.png")
 
 # Check "help".
@@ -45,10 +47,10 @@ App("Edge").focus() # Edge will lose focus after closing the firewall alert.
 wait("help_url.png")
 closeApp("Edge")
 wait(10)
-if exists("renamed.png"):
-    click(Pattern("renamed.png").targetOffset(274,-25))
 click("timeline.png") # Gain focus.
 type(Key.F4, Key.ALT)
+if exists("dont-save.png",10):
+    click("dont-save.png")
 wait(10)
 
 # Check if the session terminates.

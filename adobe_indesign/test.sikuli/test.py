@@ -15,29 +15,37 @@ credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resourc
 username = credentials.get("username")
 password = credentials.get("password")
 
-# Test of `turbo run`.
-wait(180) # It's a bug that InDesign Launch is super slow.
-util.adobe_cc_login(username, password)
-wait("indesign_window.png")
+# Login to Adobe Creative Cloud Desktop
+util.launch_adobe_cc(username, password)
+
+# Test turbo run
+run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
+wait(5)
+type('turbo run indesign --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+type(Key.ENTER)
+wait("indesign_window.png",300)
 run("turbo stop test")
+closeApp("Command Prompt")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe InDesign"))
-wait(180) # It's a bug that InDesign Launch is super slow.
+#wait(180) # It's a bug that InDesign Launch is super slow.
 
 # Basic operations.
-wait("indesign_window.png")
+wait("indesign_window.png",300)
 type("n", Key.CTRL)
 wait("new_project.png")
 type(Key.ENTER)
-wait("welcome.png")
-type(Key.ESC)
+if exists("welcome.png", 15):
+    type(Key.ESC)
 wait("new_file.png")
+wait(15)
 type("s", Key.CTRL)
 wait("save_location.png")
 type(save_path + Key.ENTER)
 assert(util.file_exists(save_path, 5))
 run("explorer " + os.path.join(script_path, os.pardir, "resources", "Save.indd"))
+wait("missing_fonts.png",120)
 click(Pattern("missing_fonts.png").targetOffset(205,155))
 wait("open-doc.png")
 
