@@ -14,19 +14,23 @@ credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resourc
 username = credentials.get("username")
 password = credentials.get("password")
 
-# Test of `turbo run`.
+# Login to Adobe Creative Cloud Desktop
+util.launch_adobe_cc(username, password)
+
+# Test turbo run
+run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
+wait(5)
+type('turbo run lightroom --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+type(Key.ENTER)
+if exists("new_feature.png"):
+    click(Pattern("new_feature.png").targetOffset(485,-3))
 wait("lightroom_window.png")
 run("turbo stop test")
+closeApp("Command Prompt")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Adobe Lightroom.lnk"))
-click("adobe_login.png") # To gain focus.
-util.adobe_cc_login(username, password)
 if exists("new_feature.png"):
-    click(Pattern("new_feature.png").targetOffset(485,-3))
-if exists("splash.png"):
-    click(Pattern("splash.png").targetOffset(408,-178))
-if exists("new_feature.png"): # Not sure which one appears first.
     click(Pattern("new_feature.png").targetOffset(485,-3))
 
 # Basic operations.
