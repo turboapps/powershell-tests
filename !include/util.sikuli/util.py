@@ -1,5 +1,4 @@
 # Common operations used in app test scripts.
-
 from sikuli import *
 
 # Useful paths.
@@ -32,6 +31,19 @@ def get_credentials(path):
             credentials[key] = value
 
     return credentials
+
+# Launch Adobe Creative Cloud
+def launch_adobe_cc(username, password):
+    run("explorer " + os.path.join(start_menu,"System Tools","Command Prompt.lnk"))
+    wait(5)
+    type('turbo try creativeclouddesktop --offline --name=ccd --startup-file="@PROGRAMFILES@\\Adobe\\Adobe Creative Cloud\\ACC\\Creative Cloud.exe"')
+    type(Key.ENTER)
+    wait(10)
+    activate_app_window("Creative Cloud Desktop",30)
+    adobe_cc_login(username, password)
+    wait(15)
+    run("turbo stop ccd")
+    closeApp("Command Prompt")
 
 # Log in for Adobe Creative Cloud.
 def adobe_cc_login(username, password):
