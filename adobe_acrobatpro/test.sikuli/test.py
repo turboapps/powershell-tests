@@ -21,12 +21,19 @@ password = credentials.get("password")
 # The location to save a file in the test.
 save_location = os.path.join(util.desktop, "Special_Offers_Deck.pdf")
 
-# `turbo run` should launch the app.
-util.adobe_cc_login(username, password)
+# Login to Adobe Creative Cloud Desktop
+util.launch_adobe_cc(username, password)
+
+# Test turbo run
+run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
+wait(5)
+type('turbo run acrobatpro --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+type(Key.ENTER)
 if exists("get-started.png"):
     type(Key.ESC)
 wait("pdf_window.png")
 run("turbo stop test")
+closeApp("Command Prompt")
 
 # Launch the app by Start menu shortcut.
 run("explorer " + os.path.join(util.start_menu, "Adobe Acrobat Pro.lnk"))

@@ -21,4 +21,4 @@ $isolate = "merge-user"
 $extra = "--enable=disablefontpreload " + $extra
 
 # Run the standard app tests.
-StandardTest -image $image -using $using -isolate $isolate -extra $extra -localLogsDir $localLogsDir
+StandardTest -image $image -using $using -isolate $isolate -extra $extra -localLogsDir $localLogsDir -shouldTry $false
