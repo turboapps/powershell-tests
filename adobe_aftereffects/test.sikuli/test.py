@@ -14,25 +14,32 @@ credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resourc
 username = credentials.get("username")
 password = credentials.get("password")
 
-# Test of `turbo run`.
+# Login to Adobe Creative Cloud Desktop
+util.launch_adobe_cc(username, password)
+
+# Test turbo run
+run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
+wait(5)
+type('turbo run aftereffects --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+type(Key.ENTER)
 if exists("dont-send.png",45):
     click("dont-send.png")
-wait("adobe_login.png")
+if exists("warning.png",180):
+    click("warning.png")
+    type(Key.ENTER)
+wait("new-file-button.png",180)
 run("turbo stop test")
+closeApp("Command Prompt")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe After Effects"))
 if exists("dont-send.png",45):
     click("dont-send.png")
-if exists("warning.png"):
+if exists("warning.png",180):
     click("warning.png")
     type(Key.ENTER)
-util.adobe_cc_login(username, password)
 
 # Basic operations.
-if exists("warning.png"):
-    click("warning.png")
-    type(Key.ENTER)
 wait("new-file-button.png")
 type("i",Key.CTRL)
 wait(5)
