@@ -14,29 +14,39 @@ credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resourc
 username = credentials.get("username")
 password = credentials.get("password")
 
-# Test of `turbo run`.
-wait(60)
-wait("adobe_login.png")
+# Login to Adobe Creative Cloud Desktop
+util.launch_adobe_cc(username, password)
+
+# Test turbo run
+run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
+wait(5)
+type('turbo run animate --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+type(Key.ENTER)
+wait("animate-launched.png",120)
 run("turbo stop test")
+closeApp("Command Prompt")
 
 # Launch the app.
-wait(30)
 run("explorer " + os.path.join(util.start_menu, "Adobe Animate 2024.lnk"))
-wait(60)
-util.adobe_cc_login(username, password)
-wait("animate-launched.png")
+wait("animate-launched.png",120)
 if exists("new-to-animate.png"):
     click(Pattern("new-to-animate.png").targetOffset(-50,12))
 
 # Basic operations.
 wait("canvas.png")
+wait("home.png")
+click("home.png")
+wait(5)
 type("n",Key.CTRL+Key.SHIFT)
 wait("html5-canvas.png")
 click("html5-canvas.png")
 type(Key.ENTER)
+wait(10)
 type("s",Key.CTRL+Key.ALT+Key.SHIFT)
+wait(5)
 type("%USERPROFILE%\\Desktop\\Test.gif")
 type(Key.TAB)
+wait(3)
 type("g")
 type(Key.ENTER)
 type(Key.ENTER)
