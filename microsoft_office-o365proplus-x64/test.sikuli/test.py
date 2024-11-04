@@ -124,7 +124,7 @@ if exists("ppt_choose_theme.png"):
 if exists("ppt_got_it.png"):
     click("ppt_got_it.png")
 if exists("ppt_designer.png"):
-    click(Pattern("ppt_designer.png").targetOffset(120,-13))
+    click(Pattern("ppt_designer.png").targetOffset(152,-14))
 
 click("ppt_title_subtitle_1.png")
 type("Title")
