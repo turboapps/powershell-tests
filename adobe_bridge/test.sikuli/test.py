@@ -14,14 +14,21 @@ credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resourc
 username = credentials.get("username")
 password = credentials.get("password")
 
-# Test of `turbo run`.
+# Login to Adobe Creative Cloud Desktop
+util.launch_adobe_cc(username, password)
+
+# Test turbo run
+run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
+wait(5)
+type('turbo run bridge --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+type(Key.ENTER)
 if exists("gpu_warning.png"):
     click(Pattern("gpu_warning.png").targetOffset(179,88))
 if exists("bridge_new.png"):
     type(Key.ESC)
-if not exists("adobe_login.png"):
-    wait("bridge_window.png")
+wait("bridge_window.png")
 run("turbo stop test")
+closeApp("Command Prompt")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Bridge"))
@@ -29,7 +36,7 @@ if exists("gpu_warning.png"):
     click(Pattern("gpu_warning.png").targetOffset(179,88))
 if exists("bridge_new.png"):
     type(Key.ESC)
-util.adobe_cc_login(username, password)
+wait("bridge_window.png")
 
 # Basic operations.
 click(Pattern("bridge_window.png").targetOffset(-119,27))
