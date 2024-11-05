@@ -22,8 +22,6 @@ run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.ln
 wait(5)
 type('turbo run aftereffects --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
 type(Key.ENTER)
-if exists("dont-send.png",45):
-    click("dont-send.png")
 if exists("warning.png",180):
     click("warning.png")
     type(Key.ENTER)
@@ -33,8 +31,6 @@ closeApp("Command Prompt")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe After Effects"))
-if exists("dont-send.png",45):
-    click("dont-send.png")
 if exists("warning.png",180):
     click("warning.png")
     type(Key.ENTER)
