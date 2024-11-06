@@ -9,13 +9,13 @@ setAutoWaitTimeout(20)
 
 util.pre_test()
 
-sample_file = os.path.join(script_path, os.pardir, "resources", "MANUAL.txt")
+sample_file = os.path.join(util.desktop, "MANUAL.txt")
 
 # Test turbo run
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
 wait(5)
 # Convert website to text file
-type('turbo run pandoc --offline --isolate=merge-user -- -s -r html https://turbo.net -o "%userprofile%\\desktop\\turbonet.txt"')
+type('turbo run pandoc --offline --isolate=merge-user -- -s -r html https://pandoc.org/MANUAL.html -o "%userprofile%\\desktop\\MANUAL.txt"')
 type(Key.ENTER)
 wait(10)
 # Convert text file to HTML
