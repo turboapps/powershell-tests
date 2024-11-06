@@ -34,7 +34,7 @@ if exists("install_from_sources.png"):
  
 wait("rstudio_package_installed.png", 120)
 type("library(tidyverse)" + Key.ENTER)
-wait("rstudio_package_imported.png")
+wait("rstudio_package_imported.png",60)
 type("1 + 2" + Key.ENTER)
 wait("math.png")
 
