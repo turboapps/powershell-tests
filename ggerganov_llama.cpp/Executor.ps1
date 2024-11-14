@@ -11,8 +11,6 @@ $image = "ggerganov/llama.cpp"
 $using = "microsoft/vcredist"
 $extra = '/C "C:\llama-avx2\llama-server.exe" -m ' + $gguf + ' -n 50 --port 8180 --chat-template llama2' + $extra
 
-RunProcess -path "cmd.exe"
-
 # Download llama GGUF file.
 if (-Not (Test-Path $gguf)) {
     Write-Host "Downloading llama GGUF..."
@@ -20,4 +18,4 @@ if (-Not (Test-Path $gguf)) {
     Invoke-WebRequest -Uri "https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf" -OutFile $gguf -UseBasicParsing
     }
 
-StandardTest -image $image -using $using -extra $extra -shouldInstall $False -localLogsDir $localLogsDir
+StandardTest -image $image -using $using -extra $extra -shouldInstall $False -localLogsDir $localLogsDir -shouldTry $false
