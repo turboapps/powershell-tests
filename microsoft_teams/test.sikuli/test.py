@@ -29,7 +29,7 @@ if app_window.isValid():
 
 type("l", Key.CTRL)
 type("https://teams.microsoft.com/l/meetup-join/19%3ameeting_MWE2YzViZDItM2NjNi00MzJjLWI3YjAtMDlkYmRmNGYzN2Jl%40thread.v2/0?context=%7b%22Tid%22%3a%2247c7235b-376c-4598-a69c-3614fd25ceed%22%2c%22Oid%22%3a%22db4f93b1-ee86-47b7-993e-f1e338809450%22%7d" + Key.ENTER)
-click(Pattern("url-handler.png").targetOffset(98,46))
+click(Pattern("url_handler.png").targetOffset(129,47))
 closeApp("Edge")
 click(Pattern("meeting.png").targetOffset(69,176))
 type(Key.F4, Key.ALT)
