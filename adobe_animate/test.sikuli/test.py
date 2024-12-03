@@ -35,6 +35,7 @@ if exists("new-to-animate.png"):
 # Basic operations.
 wait("canvas.png")
 wait("home.png")
+wait(5)
 click("home.png")
 wait(5)
 type("n",Key.CTRL+Key.SHIFT)
