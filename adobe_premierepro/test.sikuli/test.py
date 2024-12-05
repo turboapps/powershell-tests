@@ -37,7 +37,9 @@ type(os.path.join(script_path, os.pardir, "resources", "create-project-import-me
 wait("convert_prompt.png")
 click("ok-button.png")
 if exists("no_output_device.png",30):
-    click(Pattern("no_output_device.png").targetOffset(126,40))
+    click(Pattern("no_output_device.png").targetOffset(137,53))
+if exists("panel_rename.png"):
+    click(Pattern("panel_rename.png").targetOffset(266,-20))
 wait("timeline.png")
 
 # Check "help".
