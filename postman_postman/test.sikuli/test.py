@@ -17,7 +17,8 @@ run("explorer " + os.path.join(util.start_menu, "Postman", "Postman.lnk"))
 
 # Basic operations.
 wait("login-prompt.png")
-click(Pattern("login-prompt.png").targetOffset(-1,111))
+wait(3) # Wait for the animation to finish.
+click(Pattern("login-prompt.png").targetOffset(2,203))
 wait("open-api-client.png")
 click("open-api-client.png")
 wait("get-url.png")

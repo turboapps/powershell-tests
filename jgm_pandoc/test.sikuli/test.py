@@ -29,8 +29,8 @@ wait(10)
 closeApp("Command Prompt")
 
 # Open the converted documents
-run("explorer " + os.path.join(util.desktop, "turbonet.txt"))
-wait("turbonet-text.png")
+run("explorer " + sample_file)
+wait("txt-sample.png")
 closeApp("Notepad")
 run("explorer " + os.path.join(util.desktop, "manual.html"))
 wait("html-sample.png")
