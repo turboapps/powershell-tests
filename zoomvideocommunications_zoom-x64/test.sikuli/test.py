@@ -13,6 +13,7 @@ util.pre_test()
 # Test of `turbo run`.
 wait("zoom_window.png")
 run("turbo stop test")
+wait(10)
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Zoom", "Zoom Workplace.lnk"))
@@ -23,7 +24,13 @@ click("down-arrow.png")
 wait("zoomgov-com.png")
 click("zoomgov-com.png")
 type(Key.F4, Key.ALT)
-
+wait(10)
+if exists("systray-arrow.png"):
+    click("systray-arrow.png")
+    wait(5)
+    if exists("zoom-systray.png"):
+        hover("zoom-systray.png")
+        
 # URL handler.
 run('explorer "https://zoom.us/test"')
 wait("join-test-button.png")
@@ -42,6 +49,7 @@ closeApp("Edge")
 util.close_firewall_alert_continue()
 if exists("systray-arrow.png"):
     click("systray-arrow.png")
+    wait(5)
     rightClick("zoom-systray.png")
     click("exit-zoom.png")
 wait(20)
