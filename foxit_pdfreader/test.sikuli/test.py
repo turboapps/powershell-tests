@@ -20,7 +20,8 @@ run("explorer " + os.path.join(util.start_menu, "Foxit PDF Reader", "Foxit PDF R
 wait("foxit_window.png")
 type("o", Key.CTRL)
 click(Pattern("open_location.png").targetOffset(20,-4))
-type(pdf_path + Key.ENTER)
+type(pdf_path)
+type("o", Key.ALT)
 wait("pdf_sample.png")
 
 doubleClick(Pattern("pdf_sample.png").targetOffset(-182,-63))
