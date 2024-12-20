@@ -16,26 +16,26 @@ password = credentials.get("password")
 
 # Test of `turbo run`.
 if exists("grafx-warning.png"):
-    click(Pattern("grafx-warning.png").targetOffset(260,143))
+    click(Pattern("grafx-warning.png").targetOffset(255,11))
 wait("adobe_login.png")
 click(Pattern("adobe_login.png").targetOffset(60,64))
 if exists("grafx-warning.png"):
-    click(Pattern("grafx-warning.png").targetOffset(260,143))
+    click(Pattern("grafx-warning.png").targetOffset(255,11))
 wait(10)
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Photoshop"))
 if exists("grafx-warning.png"):
-    click(Pattern("grafx-warning.png").targetOffset(-302,138))
-    click(Pattern("grafx-warning.png").targetOffset(260,143))
+    click(Pattern("grafx-warning.png").targetOffset(-298,9))
+    click(Pattern("grafx-warning.png").targetOffset(255,11))
 util.adobe_cc_login(username, password)
 wait("photoshop-menu-bar.png")
 
 # Basic operations.
 setAutoWaitTimeout(20)
 if exists("grafx-warning.png"):
-    click(Pattern("grafx-warning.png").targetOffset(-302,138))
-    click(Pattern("grafx-warning.png").targetOffset(260,143))
+    click(Pattern("grafx-warning.png").targetOffset(-298,9))
+    click(Pattern("grafx-warning.png").targetOffset(255,11))
 type("o", Key.CTRL)
 if exists("on-your-computer.png"):
     click("on-your-computer.png")
