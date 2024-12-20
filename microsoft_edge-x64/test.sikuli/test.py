@@ -76,7 +76,7 @@ wait("setting_page.png")
 type(Key.F1)
 wait("help_url.png")
 type(Key.F4, Key.ALT)
-sleep(5)
+wait(20)
 
 # Check if the session terminates.
 util.check_running()
