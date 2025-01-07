@@ -25,7 +25,7 @@ run("turbo stop test")
 run("explorer " + os.path.join(util.desktop, "Slack.lnk"))
 wait("slack-sign-in.png")
 click("slack-sign-in.png")
-util.close_firewall_alert_continue(wait_time=20)
+util.close_firewall_alert_continue(wait_time = 30)
 
 # Activate and maximize the app window.
 app_window = App().focus("Edge")
@@ -40,7 +40,7 @@ wait("one-time-code-box.png")
 
 # Get the Slack one-time login code from Outlook
 run('explorer "https://outlook.office.com/mail/"')
-util.close_firewall_alert_continue(wait_time=20)
+util.close_firewall_alert_continue(wait_time = 20)
 
 # Activate and maximize the app window.
 app_window = App().focus("Edge")
