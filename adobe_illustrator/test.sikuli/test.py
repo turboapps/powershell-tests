@@ -49,6 +49,7 @@ wait("tshirt.png")
 type(Key.F1)
 wait("help.png")
 type(Key.ESC)
+wait(3)
 type("q",Key.CTRL)
 wait(10)
 
