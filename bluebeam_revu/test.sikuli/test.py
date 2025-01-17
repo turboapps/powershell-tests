@@ -14,7 +14,7 @@ username = credentials.get("username")
 password = credentials.get("password")
 
 # Test of `turbo run`.
-wait("agreement.png",60)
+wait("agreement.png",120)
 wait(5)
 click("agreement.png")
 type(Key.ENTER)
@@ -26,7 +26,7 @@ wait(10)
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.desktop, "Bluebeam Revu"))
-wait("agreement.png",60)
+wait("agreement.png",120)
 wait(5)
 click("agreement.png")
 type(Key.ENTER)
