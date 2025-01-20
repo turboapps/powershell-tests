@@ -25,6 +25,7 @@ type('turbo run indesign --using=isolate-edge-wc,creativeclouddesktop --offline 
 type(Key.ENTER)
 wait("indesign_window.png",300)
 run("turbo stop test")
+wait(20)
 closeApp("Command Prompt")
 
 # Launch the app.
@@ -33,6 +34,8 @@ run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe InDes
 
 # Basic operations.
 wait("indesign_window.png",300)
+if exists("close-blue-banner.png",20):
+    click("close-blue-banner.png")
 type("n", Key.CTRL)
 wait("new_project.png")
 type(Key.ENTER)
