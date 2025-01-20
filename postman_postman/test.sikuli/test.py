@@ -9,15 +9,20 @@ setAutoWaitTimeout(30)
 util.pre_test()
 
 # Test of `turbo run`.
-wait("light-client.png")
+if exists("light-client.png",20):
+    click("light-client.png")
+if exists("continue-without-account.png",20):
+    click("continue-without-account.png")
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Postman", "Postman.lnk"))
 
 # Basic operations.
-wait("light-client.png")
-click("light-client.png")
+if exists("light-client.png",20):
+    click("light-client.png")
+if exists("continue-without-account.png",20):
+    click("continue-without-account.png")
 wait("open-api-client.png")
 click("open-api-client.png")
 wait("get-url.png")
