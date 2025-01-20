@@ -11,14 +11,14 @@ util.pre_test()
 save_location = os.path.join(util.desktop, "print.pdf")
 
 # Test of `turbo run`.
-util.close_firewall_alert_continue()
+util.close_firewall_alert_continue(wait_time = 30)
 wait("new_tab.png")
 run("turbo stop test")
 wait(10)
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Microsoft Edge.lnk"))
-util.close_firewall_alert_continue()
+util.close_firewall_alert_continue(wait_time = 30)
 wait("new_tab.png")
 
 # Activate and maximize the app window.
@@ -68,7 +68,7 @@ wait("print_location.png")
 type(save_location + Key.ENTER)
 assert(util.file_exists(save_location, 5))
 
-click(Pattern("menu.png").targetOffset(90,0))
+click("menu.png")
 click(Pattern("menu_content.png").targetOffset(0,-14))
 wait("setting_page.png")
 
