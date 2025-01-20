@@ -31,6 +31,9 @@ wait("office-launched.png")
 
 # Test Writer.
 click("writer-document.png")
+if exists("1736815817737.png"):
+    click("tip_show_startup.png")
+    click("tip_ok.png")
 wait("blank-page.png")
 type("Test document")
 type(Key.HOME, Key.SHIFT)

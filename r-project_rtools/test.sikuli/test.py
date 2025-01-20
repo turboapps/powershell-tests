@@ -15,7 +15,7 @@ wait("r_source.png")
 run("turbo stop test")
 
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "RStudio", "RStudio.lnk"))
+run("explorer " + os.path.join(util.start_menu, "RStudio.lnk"))
 
 # Basic operations.
 click(Pattern("r_source.png").targetOffset(90,158))

@@ -13,7 +13,7 @@ $ggml = "C:\ggml-tiny-q5_1.bin"
 $image = "ggerganov/whisper.cpp"
 $using = "ffmpeg/ffmpeg,microsoft/vcredist"
 $isolate = "merge-user"
-$extra = '--startup-file=powershell -- "C:\whisper.cpp\ConvertAndRun.ps1" -f ' + $in + ' -otxt -of ' + $out + ' -m ' + $ggml + $extra
+$extra = '--startup-file=powershell -- "C:\whisper.cpp\ConvertAndRun.ps1" -f ' + $in + ' -otxt -of ' + $out + ' -m ' + $ggml + ' ' + $extra
 
 # Download whisper GGML file.
 if (-Not (Test-Path $ggml)) {

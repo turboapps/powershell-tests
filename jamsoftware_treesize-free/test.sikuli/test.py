@@ -22,6 +22,7 @@ wait("select-directory.png")
 type("f", Key.ALT)
 type("d")
 type(include_path + Key.ENTER)
+wait("location.png")
 type(Key.ENTER)
 wait("100-percent.png")
 # check that updates are disabled
