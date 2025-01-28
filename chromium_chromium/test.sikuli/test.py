@@ -27,11 +27,11 @@ if app_window.isValid():
 
 # Basic operations.
 type("l", Key.CTRL)
-type("https://turbo.net/" + Key.ENTER)
-wait("turbo_webpage.png")
+type("https://google.com/" + Key.ENTER)
+wait("webpage.png")
 wait(3)
 type("s", Key.CTRL)
-wait("save.png")
+wait("save_type.png")
 type(os.path.join(util.desktop, "name with space"))
 click("save_type.png")
 click("save_type_correct.png")
@@ -59,12 +59,12 @@ if exists("windows_setting_default_anyway.png"):
     click("windows_setting_default_anyway.png")
 type(Key.F4, Key.ALT)
 run("explorer " + os.path.join(util.desktop, "name with space.html"))
-wait("turbo_webpage.png")
+wait("webpage.png")
 type(Key.F4, Key.ALT)
-run('explorer "https://turbo.net/"')
-click("turbo_webpage.png") # To gain focus.
+run('explorer "https://google.com/"')
+click("webpage.png") # To gain focus.
 wait(2)
-wait("turbo_webpage.png")
+wait("webpage.png")
 wait(5)
 type("p", Key.CTRL)
 wait("print_window.png")
