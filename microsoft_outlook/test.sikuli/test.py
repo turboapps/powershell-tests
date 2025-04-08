@@ -15,6 +15,9 @@ password = credentials.get("password")
 
 # Test of `turbo run`.
 wait("email-prompt.png")
+wait(5)
+type(Key.F4, Key.ALT)
+wait(5)
 run("turbo stop test")
 
 # Launch the app.
@@ -26,13 +29,14 @@ type(Key.ENTER)
 wait("sign_in_password.png",120)
 type(password)
 type(Key.ENTER)
-wait("sign_in_stay_signed_in.png")
-click("sign_in_ok.png")
-if exists("sign_in_went_wrong.png"):
+wait("yes-all-apps.png")
+click("yes-all-apps.png")
+if exists("sign_in_went_wrong.png",10):
     click("sign_in_continue.png")
 else:
     wait("sign_in_all_set.png")
     click("sign_in_done.png")
+wait("not-interested.png",60)
 click("not-interested.png")
 wait("new-mail-button.png")
 click("new-mail-button.png")
@@ -58,7 +62,7 @@ wait(5)
 type(Key.ESC)
 wait(5)
 type(Key.F4, Key.ALT)
-wait(10)
+wait(30)
 
 # Check if the session terminates.
 util.check_running()

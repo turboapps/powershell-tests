@@ -11,13 +11,14 @@ setAutoWaitTimeout(20)
 util.pre_test()
 
 # Test of `turbo run`.
-wait("bc_window.png")
+wait("bc_window.png",60)
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Beyond Compare 4", "Beyond Compare 4.lnk"))
 
 # Basic operations.
+wait("bc_window.png",60)
 click(Pattern("bc_window.png").targetOffset(139,29))
 click(Pattern("source1.png").targetOffset(23,17))
 type(os.path.join(resources_path, "file1.txt") + Key.ENTER)

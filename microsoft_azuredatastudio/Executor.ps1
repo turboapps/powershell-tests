@@ -10,6 +10,11 @@ $image = "microsoft/azuredatastudio"
 $using = "turbobuild/isolate-edge-wc"
 $isolate = "merge-user"
 
+
+# Create a firewall rule to prevent the prompt
+New-NetFirewallRule -DisplayName "Allow SQL Server" -Direction Inbound -Protocol TCP -LocalPort 1433 -Action Allow -Profile Any
+New-NetFirewallRule -DisplayName "Allow SQL Server" -Direction Inbound -Protocol UDP -LocalPort 1433 -Action Allow -Profile Any
+
 PrepareTest -image $image -localLogsDir $localLogsDir
 
 # Run SQL Server Express to test Azure Data Studio.

@@ -16,7 +16,7 @@ run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "FileZilla FTP Client", "FileZilla.lnk"))
-click(Pattern("filezilla_window.png").targetOffset(-327,16))
+click("filezilla_window.png")
 
 # Basic operations.
 type("ftp.adobe.com" + Key.ENTER)
@@ -40,7 +40,6 @@ assert(os.path.exists(os.path.join(os.environ["USERPROFILE"], "version.xml")))
 # Check "help".
 click(Pattern("menu.png").targetOffset(59,0))
 click("menu_help.png")
-util.close_firewall_alert()
 wait("help_url.png")
 closeApp("Edge")
 type(Key.F4, Key.ALT)

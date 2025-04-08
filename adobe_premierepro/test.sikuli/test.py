@@ -22,7 +22,7 @@ run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.ln
 wait(5)
 type('turbo run premierepro --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
 type(Key.ENTER)
-wait("pr_window.png",180)
+wait("pr_window.png", 180)
 run("turbo stop test")
 closeApp("Command Prompt")
 
@@ -30,7 +30,8 @@ closeApp("Command Prompt")
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Premiere Pro"))
 
 # Basic operations.
-wait("pr_window.png",180)
+wait("pr_window.png", 180)
+click("pr_window.png") # To gain focus.
 type("o", Key.CTRL)
 wait("location.png")
 type(os.path.join(script_path, os.pardir, "resources", "create-project-import-media", "create-project-import-media-step1.prproj") + Key.ENTER)
@@ -39,13 +40,11 @@ click("ok-button.png")
 if exists("no_output_device.png",30):
     click(Pattern("no_output_device.png").targetOffset(137,53))
 if exists("panel_rename.png"):
-    click(Pattern("panel_rename.png").targetOffset(266,-20))
+    click(Pattern("panel_rename_close.png").targetOffset(-2,-10))
 wait("timeline.png")
 
 # Check "help".
 type(Key.F1)
-util.close_firewall_alert()
-App("Edge").focus() # Edge will lose focus after closing the firewall alert.
 wait("help_url.png")
 closeApp("Edge")
 wait(10)

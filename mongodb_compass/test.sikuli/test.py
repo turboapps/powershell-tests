@@ -8,11 +8,12 @@ reload(util)
 addImagePath(include_path)
 
 setAutoWaitTimeout(30)
-util.pre_test()
+util.pre_test(no_min=True)
 
 # Test of `turbo run`.
 wait("add-connection-button.png")
 type("q", Key.CTRL)
+wait(3)
 type(Key.ENTER)
 run("turbo stop test")
 
@@ -52,9 +53,10 @@ wait(5)
 
 # Quit the app and stop the mongoserver
 type("q", Key.CTRL)
+wait(3)
 type(Key.ENTER)
 run("turbo stop mongodbserver")
-wait(10)
+wait(20)
 
 # Check if the session terminates.
 util.check_running()

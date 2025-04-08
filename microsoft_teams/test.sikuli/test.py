@@ -21,24 +21,20 @@ wait("teams_window.png")
 # Workaround for escaping % sign.
 run('explorer "https://turbo.net"')
 wait("url.png")
-
-# Activate and maximize the app window.
-app_window = App().focus("Edge")
-if app_window.isValid():
-    type(Key.UP, Key.WIN)
-
+click("url.png")
+wait(5)
 type("l", Key.CTRL)
+wait(3)
 type("https://teams.microsoft.com/l/meetup-join/19%3ameeting_MWE2YzViZDItM2NjNi00MzJjLWI3YjAtMDlkYmRmNGYzN2Jl%40thread.v2/0?context=%7b%22Tid%22%3a%2247c7235b-376c-4598-a69c-3614fd25ceed%22%2c%22Oid%22%3a%22db4f93b1-ee86-47b7-993e-f1e338809450%22%7d" + Key.ENTER)
 click(Pattern("url_handler.png").targetOffset(129,47))
 closeApp("Edge")
-click(Pattern("meeting.png").targetOffset(69,176))
+click("meeting.png")
 type(Key.F4, Key.ALT)
 
 # Quit Teams.
-if not exists("tray_icon.png"):
-    click("tray_more.png")
+click("tray_more.png")
 rightClick("tray_icon.png")
-click(Pattern("tray_menu.png").targetOffset(-41,40))
+click("tray_menu.png")
 wait(20)
 
 # Check if the session terminates.

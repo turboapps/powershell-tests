@@ -46,7 +46,6 @@ click("yes-sound.png")
 wait("end-test.png")
 click("end-test.png")
 closeApp("Edge")
-util.close_firewall_alert_continue(wait_time = 30)
 if exists("systray-arrow.png"):
     click("systray-arrow.png")
     wait(5)

@@ -18,7 +18,7 @@ $using = "adobe/creativeclouddesktop,microsoft/office-o365proplus-x64,turbobuild
 $isolate = "merge-user"
 
 # Extra parameters of `turbo run` and `turbo installi`.
-$extra = "--enable=disablefontpreload " + $extra
+
 
 # Run the standard app tests.
 StandardTest -image $image -using $using -isolate $isolate -extra $extra -localLogsDir $localLogsDir -shouldTry $false

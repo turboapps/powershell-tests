@@ -9,10 +9,12 @@ addImagePath(include_path)
 
 setAutoWaitTimeout(30)
 util.pre_test()
+util.pre_test()
 
 # Test of `turbo run`.
-wait("add-connection-button.png")
+wait("add-connection-button.png",100)
 type("q", Key.CTRL)
+wait(3)
 type(Key.ENTER)
 run("turbo stop test")
 
@@ -25,7 +27,7 @@ if app_window.isValid():
     type(Key.UP, Key.WIN)
 
 # Basic operations.
-wait("add-connection-button.png")
+wait("add-connection-button.png",100)
 click("add-connection-button.png")
 wait("connection-name.png")
 click("connection-name.png")
@@ -52,6 +54,7 @@ wait(5)
 
 # Quit the app and stop the mongoserver
 type("q", Key.CTRL)
+wait(3)
 type(Key.ENTER)
 run("turbo stop mongodbserver")
 wait(10)

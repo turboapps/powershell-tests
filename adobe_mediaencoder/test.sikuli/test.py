@@ -30,6 +30,8 @@ if exists("GPUSniffer_error.png"):
 
 # Basic operations.
 wait("me_window.png")
+wait(3)
+click("me_window.png") # To gain focus.
 type("i", Key.CTRL)
 wait("source_location.png")
 type(os.path.join(script_path, os.pardir, "resources", "create-project-import-media", "create-project-import-media-step1.prproj") + Key.ENTER)
@@ -41,9 +43,6 @@ assert(util.file_exists(os.path.join(script_path, os.pardir, "resources", "creat
 
 # Check "help".
 type(Key.F1)
-util.close_firewall_alert()
-if exists("confirm_account.png"):
-    click(Pattern("confirm_account.png").targetOffset(165,139))
 wait("help_url.png")
 closeApp("Edge")
 wait(10)

@@ -10,10 +10,14 @@ addImagePath(include_path)
 setAutoWaitTimeout(20)
 util.pre_test()
 
+# Minimize all windows then open the Turbo cmd prompt
+type("d", Key.WIN)
+wait(3)
+App().focus("C:\\WINDOWS\\system32\\cmd.exe")
+
 # Test of `turbo run`.
 wait("jre_cmd.png")
 run("turbo stop test")
-
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Temurin JRE.lnk"))

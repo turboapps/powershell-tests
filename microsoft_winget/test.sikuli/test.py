@@ -6,7 +6,7 @@ reload(util)
 addImagePath(include_path)
 
 setAutoWaitTimeout(50)
-util.pre_test()
+util.pre_test(no_min=True)
 
 # Test. Winget CMD window shows later so it is always on top.
 wait("winget.png")
@@ -26,8 +26,9 @@ wait(20)
 assert("test" not in run("turbo sessions"))
 
 # Check if wingetcreate is installed successfully by winget.
-App().focus("cmd.exe")
-click(Pattern("cmd.png").targetOffset(-71,0))
+wait(3)
+run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk")) # launch another command prompt
+click("cmd.png")
 type("wingetcreate help" + Key.ENTER)
 wait("wingetcreate_help.png")
 type("exit" + Key.ENTER)

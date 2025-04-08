@@ -17,10 +17,6 @@ credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resourc
 username = credentials.get("username")
 password = credentials.get("password")
 
-# Need to do this twice from expierence.
-App("java.exe").focus()
-type(Key.DOWN, Key.WIN)
-
 # Test of `turbo run`.
 if exists("reader_welcome.png",20):
     type(Key.ESC)
@@ -57,13 +53,13 @@ wait("here_note_added.png")
 click(Pattern("toolbar.png").targetOffset(0,-55))
 wait(10)
 click("arrow_tool.png")
-click("add_comment_selected.png")
+click("add_comment.png")
 click(Pattern("tool_comment.png").targetOffset(-5,-77))
 click("comment_location.png")
 wait("comment_1.png")
 type("test2")
 click(Pattern("comment_2.png").targetOffset(28,0))
-click("welcome_highlighted.png")
+click(Pattern("here_note_added.png").targetOffset(-55,2))
 wait("comment_result.png")
 type(Key.ESC + Key.ESC)
 click(Pattern("toolbar.png").targetOffset(0,107))
@@ -88,7 +84,6 @@ run("explorer " + save_location)
 wait("default_dialog.png")
 click("new_acrobat_reader.png")
 click("default_always.png")
-click("default_ok.png")
 wait("reader_opened.png")
 wait(10)
 type(Key.F4, Key.ALT)
@@ -98,7 +93,7 @@ wait("reader_opened.png")
 
 # Check "help".
 type(Key.F1)
-util.close_firewall_alert()
+util.close_firewall_alert_continue(60)
 wait("reader_help_url.png")
 closeApp("Edge")
 

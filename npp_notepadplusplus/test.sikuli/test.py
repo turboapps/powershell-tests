@@ -35,11 +35,10 @@ type(Key.ESC)
 # Check "help".
 click("menu.png")
 click("menu_help.png")
-util.close_firewall_alert()
 wait("npp_help_url.png")
 closeApp("Edge")
 type(Key.F4, Key.ALT)
 type(Key.F4, Key.ALT) # Close the explorer window
-
+wait(20)
 # Check if the session terminates.
 util.check_running()

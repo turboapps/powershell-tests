@@ -16,12 +16,12 @@ username2 = credentials.get("username2")
 password2 = credentials.get("password2")
 
 # Test of `turbo run`.
-wait("login-prompt.png",60)
+wait("login-prompt.png",120)
 type(Key.F4, Key.ALT)
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Trillian.lnk"))
-wait("login-prompt.png",60)
+wait("login-prompt.png",120)
 click("username.png")
 type(username1)
 type(Key.ENTER)
@@ -34,6 +34,8 @@ wait("menu.png")
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
 wait(5)
 type('turbo try trillian --offline --name=trytrillian -d')
+type(Key.ENTER)
+wait("login-prompt.png",120)
 type(Key.ENTER)
 click("username.png")
 type(username2)

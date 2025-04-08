@@ -49,7 +49,6 @@ wait(Pattern("untitled-1.png").similar(0.85))
 
 # Check "help".
 type(Key.F1)
-util.close_firewall_alert()
 wait("help_url.png")
 closeApp("Edge")
 wait(10)

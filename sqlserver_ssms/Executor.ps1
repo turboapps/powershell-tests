@@ -6,9 +6,14 @@
 $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 . $IncludePath
 
+# Create firewall rules to prvent prompt
+New-NetFirewallRule -DisplayName "Allow SQL Server" -Direction Inbound -Protocol TCP -LocalPort 1433 -Action Allow -Profile Any
+New-NetFirewallRule -DisplayName "Allow SQL Server" -Direction Inbound -Protocol UDP -LocalPort 1433 -Action Allow -Profile Any
+
 $image = "sqlserver/ssms"
 $using = "turbobuild/isolate-edge-wc"
 $isolate = "merge-user"
+
 
 PrepareTest -image $image -localLogsDir $localLogsDir
 

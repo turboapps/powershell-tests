@@ -13,12 +13,12 @@ util.pre_test()
 save_location = os.path.join(util.desktop, "print.pdf")
 
 # Test of `turbo run`.
-wait("chrome_window.png")
+wait("chrome_window.png",120)
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Chromium.lnk"))
-wait("chrome_window.png")
+wait("chrome_window.png",120)
 
 # Activate and maximize the app window.
 app_window = App().focus("Chromium")
@@ -51,12 +51,12 @@ type(Key.F4, Key.ALT)
 type("i", Key.WIN)
 wait("windows_setting_window.png")
 type("Default apps")
+type(Key.ENTER)
 click("windows_setting_default.png")
-click(Pattern("windows_setting_default_browser.png").targetOffset(0,21))
 wait(2)
 click("windows_setting_default_browser_chrome.png")
-if exists("windows_setting_default_anyway.png"):
-    click("windows_setting_default_anyway.png")
+click("set-default.png")
+wait(5)
 type(Key.F4, Key.ALT)
 run("explorer " + os.path.join(util.desktop, "name with space.html"))
 wait("webpage.png")

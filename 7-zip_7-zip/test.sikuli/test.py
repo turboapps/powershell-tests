@@ -25,8 +25,6 @@ wait("zip_add.png")
 
 # Activate and maximize the app window.
 app_window = App().focus("7-Zip")
-if app_window.isValid():
-    type(Key.UP, Key.WIN)
 
 # Check the "help" of the app.
 type(Key.F1)
@@ -37,9 +35,13 @@ click(Pattern("address_bar.png").targetOffset(20,0))
 type(os.path.join(script_path, os.pardir, os.pardir, "!include"))
 type(Key.ENTER)
 click("folder.png")
+wait(3)
 click("zip_add.png")
+wait(3)
 click(Pattern("format.png").targetOffset(56,-3))
+wait(3)
 click(Pattern("format_selection.png").targetOffset(-57,28))
+wait(3)
 click("zip_location.png")
 zip_folder = os.path.join(util.desktop, "7-zip-test")
 zip_path = os.path.join(zip_folder, "util.sikuli.zip")
@@ -59,6 +61,7 @@ click("extract_ok.png")
 assert(util.file_exists(os.path.join(zip_folder, "util.sikuli"), 3))
 type(Key.F4, Key.ALT)
 type(Key.F4, Key.ALT) # Close the Explorer window.
+wait(20)
 
 # Check if the session terminates after closing the app.
 util.check_running()

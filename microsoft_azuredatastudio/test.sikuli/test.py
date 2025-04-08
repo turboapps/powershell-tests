@@ -8,9 +8,6 @@ addImagePath(include_path)
 setAutoWaitTimeout(30)
 util.pre_test()
 
-# close the alert for SQL Server Express.
-util.close_firewall_alert()
-
 # Test of `turbo run`.
 App().focus("Azure Data Studio")
 wait("ads_window.png")
@@ -70,10 +67,8 @@ wait("query_result_3.png")
 click(Pattern("menu.png").targetOffset(57,0))
 click("menu_help.png")
 click(Pattern("open_website.png").targetOffset(-33,46))
-util.close_firewall_alert()
 wait("help_url.png")
 closeApp("Edge")
-wait(10) # Wait for the complete close of the firewall alert.
 type(Key.F4, Key.ALT)
 wait(20)
 

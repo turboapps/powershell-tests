@@ -9,6 +9,6 @@ $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 $image = "microsoft/dotnet-aspnet-runtime"
 $using = "microsoft/dotnet-desktop-runtime,turbobuild/isolate-edge-wc"
 $isolate = "merge-user"
-$extra = "--startup-file=" + $PSScriptRoot + "\resources\MyAspNetCoreApp-x86\MyAspNetCoreApp.exe " + $extra
+$extra = $extra + " --startup-file=" + $PSScriptRoot + "\resources\MyAspNetCoreApp-x86\MyAspNetCoreApp.exe "
 
 StandardTest -image $image -using $using -isolate $isolate -extra $extra -shouldInstall $False -localLogsDir $localLogsDir

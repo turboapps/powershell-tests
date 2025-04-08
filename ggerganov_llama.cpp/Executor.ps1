@@ -9,7 +9,7 @@ $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 $gguf = Join-Path -Path ([Environment]::GetFolderPath('Desktop')) -ChildPath 'llama-2-7b-chat.Q4_K_M.gguf'
 $image = "ggerganov/llama.cpp"
 $using = "microsoft/vcredist"
-$extra = '--enable=usedllinjection /C "C:\llama-avx2\llama-server.exe" -m ' + $gguf + ' -n 50 --port 8180 --chat-template llama2' + $extra
+$extra = $extra + ' --enable=usedllinjection -- /C "C:\llama-avx2\llama-server.exe" -m ' + $gguf + ' -n 50 --port 8180 --chat-template llama2'
 
 # Download llama GGUF file.
 if (-Not (Test-Path $gguf)) {

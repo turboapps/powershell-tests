@@ -10,6 +10,11 @@ util.pre_test()
 
 output_path = os.path.join(util.desktop, "drop.mp4")
 
+# Minimize all windows then open the Turbo cmd prompt
+type("d", Key.WIN)
+wait(3)
+App().focus("C:\\WINDOWS\\system32\\cmd.exe")
+
 # Basic operations.
 wait("cmd_window.png")
 type("ffmpeg --help" + Key.ENTER)

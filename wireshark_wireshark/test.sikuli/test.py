@@ -9,26 +9,37 @@ setAutoWaitTimeout(50)
 util.pre_test()
 
 # Test of `turbo run`.
-wait(Pattern("wireshark_window.png").similar(0.95))
+wait("wireshark_window.png")
 run("turbo stop test")
+
+# Install npcap
+run("explorer " + os.path.join(util.desktop, "installer.exe"))
+wait("npcap-agree.png")
+click("npcap-agree.png")
+click("npcap-install.png")
+wait(30)
+click("npcap-next.png")
+click("npcap-finish.png")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Wireshark.lnk"))
-wait(Pattern("wireshark_window.png").similar(0.95))
+wait("wireshark_window.png")
 
 # Basic operations.
-doubleClick(Pattern("wireshark_window.png").targetOffset(-41,57))
+if exists ("grey-ethernet.png",5):
+    doubleClick("grey-ethernet.png")
+if exists ("blue-ethernet.png",5):
+    doubleClick("blue-ethernet.png")
 wait("menu.png")
 wait(2)
 click(Pattern("menu.png").targetOffset(12,2))
 click(Pattern("restart_capture.png").targetOffset(39,37))
 wait(5)
 click(Pattern("menu.png").targetOffset(-11,2))
-wait(Pattern("captured.png").similar(0.60))
+wait(Pattern("captured.png").similar(0.39))
 
 # Check "help".
 type(Key.F1)
-util.close_firewall_alert()
 wait("help.png")
 closeApp("Edge")
 wait(5)

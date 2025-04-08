@@ -11,6 +11,6 @@ $outputDir = [Environment]::GetFolderPath("Desktop")
 $image = "turbo/headless-extractor"
 $using = "google/chrome"
 $isolate = "merge-user"
-$extra = "--startup-file=powershell -- C:\extractor\Extract.ps1 -OutputDir $outputDir -Url https://turbo.net -Screenshot -DOM -ExtractLinks " + $extra
+$extra = $extra + " --startup-file=powershell -- C:\extractor\Extract.ps1 -OutputDir $outputDir -Url https://turbo.net -Screenshot -DOM -ExtractLinks "
 
 StandardTest -image $image -using $using -isolate $isolate -extra $extra -shouldInstall $False -localLogsDir $localLogsDir

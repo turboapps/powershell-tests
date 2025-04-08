@@ -12,11 +12,10 @@ $app = "mongodb/communityserver"
 PrepareTest -image $image -localLogsDir $localLogsDir
 
 # Run MongoDB to test MongoDB Compass.
-PullTurboImages -image $app
+PullTurboImages -image $image -using $app
+InstallTurboApp -image $image -extra $extra
 RunTurboApp -image $app -extra "$extra -n=mongodbserver" -detached $True
 
-PullTurboImages -image $image
-InstallTurboApp -image $image -extra $extra
 TryTurboApp -image $image -extra $extra -detached $True
 HidePowerShellWindow
 $TestResult = StartTest -image $image -localLogsDir $localLogsDir

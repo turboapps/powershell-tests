@@ -6,22 +6,18 @@ reload(util)
 addImagePath(include_path)
 
 setAutoWaitTimeout(30)
-util.pre_test()
-
-# close the alert for SQL Server Express.
-util.close_firewall_alert()
+util.pre_test(no_min=True)
 
 # Test of `turbo run`.
-wait(60)
 App().focus("Microsoft SQL Server Management Studio")
-wait("ssms_window.png")
+wait("ssms_window.png",200)
 run("turbo stop test")
 
 # Launch the app.
 folder_path = util.get_shortcut_path_by_prefix(util.start_menu, "Microsoft SQL Server Tools")
 run("explorer " + util.get_shortcut_path_by_prefix(folder_path, "SQL Server Management Studio"))
 wait(30)
-wait("ssms_window.png", 60)
+wait("ssms_window.png", 200)
 
 # Basic operations.
 click("server_name.png")
@@ -63,7 +59,6 @@ wait("query_result_3.png")
 
 # Check "help".
 type(Key.F2, Key.CTRL + Key.ALT)
-util.close_firewall_alert()
 wait("help_url.png")
 closeApp("Edge")
 wait(10)

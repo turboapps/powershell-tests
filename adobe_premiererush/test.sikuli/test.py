@@ -40,10 +40,10 @@ wait("add_resources.png")
 type("a", Key.CTRL)
 click("add_create.png")
 wait("loaded.png")
+click("loaded.png") # To gain focus.
 
 # Check "help".
 type(Key.F1)
-util.close_firewall_alert()
 wait("help_url.png")
 closeApp("Edge")
 wait(10)

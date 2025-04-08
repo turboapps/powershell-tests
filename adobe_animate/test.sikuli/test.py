@@ -44,6 +44,7 @@ click("html5-canvas.png")
 type(Key.ENTER)
 wait(10)
 type("s",Key.CTRL+Key.ALT+Key.SHIFT)
+wait("save_location.png")
 wait(5)
 type("%USERPROFILE%\\Desktop\\Test.gif")
 type(Key.TAB)
@@ -56,7 +57,6 @@ assert(util.file_exists(os.path.join(os.environ['USERPROFILE'], "Desktop\\test00
 
 # Test video.
 click("test-movie-button.png")
-util.close_firewall_alert()
 wait("movie-url.png")
 closeApp("Edge")
 type("q",Key.CTRL)

@@ -26,7 +26,7 @@ type(Key.F4, Key.ALT)
 run('explorer "https://meet361.webex.com/meet/pr26330258604"')
 click(Pattern("url_handler.png").targetOffset(129,50))
 closeApp("Edge")
-wait("join-prompt.png")
+wait("join-meet.png")
 type(Key.F4, Key.ALT)
 wait(20)
 

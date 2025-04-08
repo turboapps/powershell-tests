@@ -11,13 +11,14 @@ setAutoWaitTimeout(20)
 util.pre_test()
 
 # Test of `turbo run`.
-wait("r_source.png")
+wait("r_source.png",60)
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "RStudio.lnk"))
 
 # Basic operations.
+wait("r_source.png",60)
 click(Pattern("r_source.png").targetOffset(90,158))
 wait("rstudio_window.png")
 App("RStudio").focus()
@@ -28,11 +29,11 @@ wait(5)
 
 # There might be a prompt.
 App("Question").focus()
-type(Key.UP, Key.WIN)
 if exists("install_from_sources.png"):
     click(Pattern("install_from_sources.png").targetOffset(44,31))
  
 wait("rstudio_package_installed.png", 120)
+click("rstudio_package_installed.png")
 type("library(tidyverse)" + Key.ENTER)
 wait("rstudio_package_imported.png",60)
 type("1 + 2" + Key.ENTER)
@@ -45,7 +46,7 @@ wait(Pattern("project.png").targetOffset(-39,1))
 click(Pattern("project.png").targetOffset(-42,0))
 wait(Pattern("save_ws.png").targetOffset(-34,41))
 click(Pattern("save_ws.png").targetOffset(-34,41))
-wait("new_project.png")
+wait("new_project.png",120)
 click("new_project.png")
 wait("new_package.png")
 click("new_package.png")
@@ -55,6 +56,7 @@ click("new_package_create.png")
 wait("project_template.png")
 type("r", Key.ALT + Key.CTRL)
 wait("project_run.png")
+click("project_run.png")
 type("b", Key.CTRL + Key.SHIFT)
 wait("project_build.png")
 

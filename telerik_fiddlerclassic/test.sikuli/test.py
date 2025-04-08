@@ -5,7 +5,7 @@ import util
 reload(util)
 addImagePath(include_path)
 
-setAutoWaitTimeout(50)
+setAutoWaitTimeout(20)
 util.pre_test()
 
 # Test of `turbo run`.
@@ -19,14 +19,20 @@ run("explorer " + os.path.join(util.start_menu, "Fiddler Classic.lnk"))
 if exists("survey.png"):
     click(Pattern("survey.png").targetOffset(42,0))
 wait("fiddler_window.png")
-
+run("explorer https://turbo.net")
+wait("turbo-net-webpage.png")
+wait(5)
+closeApp("Edge")
 # Basic operations.
-doubleClick(Pattern("captured.png").targetOffset(88,29))
-wait("inspection.png")
+wait("turbo-net.png")
+doubleClick("turbo-net.png")
+click("headers.png")
+click("headers.png")
+wait("connection-est.png")
+closeApp("Edge")
 
 # Check "help".
 type(Key.F1)
-util.close_firewall_alert()
 wait("help_url.png")
 closeApp("Edge")
 wait(5)

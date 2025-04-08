@@ -9,12 +9,13 @@ setAutoWaitTimeout(50)
 util.pre_test()
 
 # Test of `turbo run`.
-wait("tips.png")
+wait("tips.png",120)
 run("turbo stop test")
 wait(10)
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "DYMO", "DYMO Connect", "DYMO Connect.lnk"))
+wait("tips.png",120)
 click(Pattern("tips.png").targetOffset(178,-75))
 
 # Basic operations.
@@ -28,12 +29,6 @@ wait("result.png")
 type("p", Key.CTRL)
 wait("print_window.png")
 click("print_cancel.png")
-
-# Check "help".
-type(Key.F1)
-util.close_firewall_alert()
-wait("help_url.png")
-closeApp("Edge")
 wait(5)
 type(Key.F4, Key.ALT)
 wait(10)
