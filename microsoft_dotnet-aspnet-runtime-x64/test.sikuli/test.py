@@ -8,7 +8,7 @@ reload(util)
 addImagePath(include_path)
 
 setAutoWaitTimeout(20)
-util.pre_test()
+util.pre_test(no_min=True)
 
 # Test.
 wait("dn_asp_rt_ready.png")

@@ -7,21 +7,23 @@ addImagePath(include_path)
 
 audio_path = os.path.join(script_path, os.pardir, "resources", "StarWars3.wav")
 
-setAutoWaitTimeout(50)
+setAutoWaitTimeout(30)
 util.pre_test()
 
 # Test of `turbo run`.
-if exists("audio-warning.png"):
+if exists("audio-warning.png",120):
+    click("audio-warning.png")
     type(Key.ENTER)
-wait("itunes-welcome.png")
+wait("itunes-welcome.png",60)
 click(Pattern("itunes-welcome.png").targetOffset(-197,115))
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.desktop, "iTunes.lnk"))
-if exists("audio-warning.png"):
+if exists("audio-warning.png",60):
+    click("audio-warning.png")
     type(Key.ENTER)
-wait("itunes-welcome.png")
+wait("itunes-welcome.png",60)
 click(Pattern("itunes-welcome.png").targetOffset(-197,115))
 wait(10)
 
@@ -40,17 +42,24 @@ wait(3)
 type(Key.F4, Key.ALT)
 
 # Set default player.
+setAutoWaitTimeout(20)
 type("i", Key.WIN)
 wait("windows_setting_window.png")
 type("Default apps")
+type(Key.ENTER)
 click("windows_setting_default.png")
+click("enter-file-type.png")
+type(".wav")
+wait(3)
+type(Key.ENTER)
 click("music-player.png")
 wait(2)
 click("itunes-default.png")
+click("set-default-button.png")
 wait(3)
 type(Key.F4, Key.ALT)
 run("explorer " + audio_path)
-if exists("audio-warning2.png"):
+if exists("audio-warning2.png",60):
     click(Pattern("audio-warning2.png").targetOffset(139,34))
 wait("starwars.png")
 wait(20)

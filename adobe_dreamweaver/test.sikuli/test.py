@@ -54,9 +54,6 @@ wait("code.png")
 
 # Check "help".
 type(Key.F1)
-util.close_firewall_alert()
-if exists("confirm_account.png"):
-    click(Pattern("confirm_account.png").targetOffset(165,139))
 wait("help_url.png")
 closeApp("Edge")
 wait(10)

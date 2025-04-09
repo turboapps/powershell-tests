@@ -13,6 +13,7 @@ assert(util.file_exists(os.path.join(util.desktop, "image.png"), 5))
 assert(util.file_exists(os.path.join(util.desktop, "domText.txt"), 5))
 assert(util.file_exists(os.path.join(util.desktop, "dom.html"), 5))
 assert(util.file_exists(os.path.join(util.desktop, "links.txt"), 5))
+wait(30)
 
 # Check if the session terminates.
 assert("test" not in run("turbo sessions"))

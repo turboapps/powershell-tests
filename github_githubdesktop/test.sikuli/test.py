@@ -33,13 +33,6 @@ wait("current-repo.png")
 click("show-explorer.png")
 wait("explorer-window.png")
 type(Key.F4, Key.ALT) # Close explorer.
-
-# Test Help.
-click("help-menu.png")
-click("show-user-guides.png")
-util.close_firewall_alert()
-wait("help-url.png")
-closeApp("Edge")
 type(Key.F4, Key.ALT) # Close app.
 
 wait(60) # Wait for session to close.

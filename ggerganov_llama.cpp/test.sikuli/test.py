@@ -16,8 +16,6 @@ type(Key.ENTER)
 
 # Test of the app.
 wait("ready.png", 120) # It takes time for the model to warm up.
-type(Key.DOWN, Key.WIN) # Hide the llama cli window.
-
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk")) # launch another command prompt
 wait(5)
 click("cmd_window.png")
@@ -25,9 +23,6 @@ curl_command = 'curl --request POST --url http://localhost:8180/v1/chat/completi
 type(curl_command + Key.ENTER)
 wait("cmd_response.png", 600) # It takes a very long time to get response if no GPU or AVX is used.
 type("exit" + Key.ENTER)
-
-App().focus("cmd.exe")
-App().focus("cmd.exe") # Make the llama cli window visable.
 wait("success.png")
 wait(5)
 run("turbo stop test")

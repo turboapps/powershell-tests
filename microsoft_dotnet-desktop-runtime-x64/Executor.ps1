@@ -10,7 +10,7 @@ $image = "microsoft/dotnet-desktop-runtime-x64"
 $app = "microsoft/dotnet-aspnet-runtime-x64"
 $using = "microsoft/dotnet-desktop-runtime-x64,turbobuild/isolate-edge-wc"
 $isolate = "merge-user"
-$extra = "--startup-file=" + $PSScriptRoot + "\resources\MyAspNetCoreApp-x64\MyAspNetCoreApp.exe " + $extra
+$extra = $extra + " --startup-file=" + $PSScriptRoot + "\resources\MyAspNetCoreApp-x64\MyAspNetCoreApp.exe "
 
 PrepareTest -image $image -localLogsDir $localLogsDir
 PullTurboImages -image $app -using $using

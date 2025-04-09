@@ -20,10 +20,7 @@ run("turbo stop test")
 # Launch the app.
 run("explorer " + os.path.join(util.desktop, "IrfanView.lnk"))
 wait("irfanview-menu.png")
-app_window = App().focus("IrfanView") # Activate and maximize the app window.
-if app_window.isValid():
-    type(Key.UP, Key.WIN)
-wait(3)
+click("irfanview-menu.png")
 
 # Basic operations.
 type("o")
@@ -43,21 +40,24 @@ util.file_exists(save_path, 5)
 type(Key.F1)
 wait("help-open.png")
 type(Key.F4, Key.ALT) # Close help.
-type(Key.F4, Key.ALT) # Close app.
+wait(3)
+type(Key.ESC) # Close app.
+wait(3)
+type(Key.ESC) # Close app.
+wait(3)
 
 # Test file association.
 run("explorer " + save_path)
-wait("openwith-irfanview.png")
-click("always-use.png")
 click("openwith-irfanview.png")
-type(Key.ENTER)
+click("always-use.png")
 wait("grey-fox.png")
-type(Key.F4, Key.ALT)
+type(Key.ESC) # Close app.
 wait(3)
 run("explorer " + save_path)
 wait("grey-fox.png")
-type(Key.F4, Key.ALT)
-wait(10)
+click("grey-fox.png")
+type(Key.ESC) # Close app
+wait(20)
 
 # Check if the session terminates.
 util.check_running()

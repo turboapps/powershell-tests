@@ -54,8 +54,6 @@ wait("open-doc.png")
 
 # Check "help".
 type(Key.F1)
-util.close_firewall_alert()
-App("Edge").focus()
 wait("help_url.png")
 closeApp("Edge")
 wait(10)

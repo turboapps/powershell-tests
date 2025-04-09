@@ -25,13 +25,7 @@ run("turbo stop test")
 run("explorer " + os.path.join(util.desktop, "Slack.lnk"))
 wait("slack-sign-in.png")
 click("slack-sign-in.png")
-util.close_firewall_alert_continue(wait_time = 30)
-
-# Activate and maximize the app window.
 app_window = App().focus("Edge")
-if app_window.isValid():
-    type(Key.UP, Key.WIN)
-    
 wait("email-prompt.png")
 click("email-prompt.png")
 type(username)
@@ -39,14 +33,11 @@ click("sign-in-with-email.png")
 wait("one-time-code-box.png")
 
 # Get the Slack one-time login code from Outlook
-run('explorer "https://outlook.office.com/mail/"')
-util.close_firewall_alert_continue(wait_time = 20)
+run('"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --start-maximized https://outlook.office.com/mail/')
+wait(5)
 
 # Activate and maximize the app window.
 app_window = App().focus("Edge")
-if app_window.isValid():
-    type(Key.UP, Key.WIN)
-
 wait("outlook-sign-in.png")
 type(username)
 type(Key.ENTER)
@@ -54,9 +45,12 @@ wait("outlook-password.png")
 click(Pattern("outlook-password.png").targetOffset(-61,18))
 type(password)
 type(Key.ENTER)
-click("stay-signed-in.png")
+if exists("stay-signed-in.png",10):
+    click("stay-signed-in.png")
+if exists("stay-signed-in-1.png",10):
+    click("stay-signed-in-1.png")
 wait("slack-code-email.png")
-click("slack-code-email.png")
+click(Pattern("slack-code-email.png").targetOffset(19,18))
 wait("slack-code-subject.png")
 dragDrop(Pattern("slack-code-subject.png").targetOffset(55,0), Pattern("slack-code-subject.png").targetOffset(135,0))
 
@@ -82,8 +76,6 @@ type("q", Key.CTRL)
 # Close the Edge browser
 # Activate and maximize the app window.
 app_window = App().focus("Edge")
-if app_window.isValid():
-    type(Key.UP, Key.WIN)
 type(Key.F4, Key.ALT)
 wait(10)
 

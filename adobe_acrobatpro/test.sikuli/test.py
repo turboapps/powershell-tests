@@ -63,29 +63,29 @@ wait("blue-print-button.png")
 type(Key.ESC)
 wait(3)
 type(Key.F4, Key.ALT)
+
 run("explorer " + save_location)
 wait("default_dialog.png")
-click("default_always.png")
 click("default_acrobat_pro.png")
-wait(3)
-type(Key.ENTER)
+click("default_always.png")
 if exists("get-started.png"):
     type(Key.ESC)
 wait("point-2-point.png")
 type(Key.F4, Key.ALT)
 wait(3)
+
 run("explorer " + save_location)
+if exists("get-started.png"):
+    type(Key.ESC)
 wait("point-2-point.png")
 
 # Check the "help" of the app.
+wait(30)
 type(Key.F1)
-util.close_firewall_alert()
+util.close_firewall_alert_continue(60)
 wait("help_url.png")
 closeApp("Edge")
-if exists("get-started.png"):
-    type(Key.ESC)
 type(Key.F4, Key.ALT)
-wait(30)
 
 # Check if the session terminates after closing the app.
 util.check_running()

@@ -9,5 +9,5 @@ $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 $image = "microsoft/winget"
 $isolate = "merge"
 
-RunProcess -path "cmd"
+#RunProcess -path "cmd"
 StandardTest -image $image -isolate $isolate -extra $extra -localLogsDir $localLogsDir

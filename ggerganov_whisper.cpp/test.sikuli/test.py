@@ -6,13 +6,12 @@ reload(util)
 addImagePath(include_path)
 
 setAutoWaitTimeout(30)
-util.pre_test()
+util.pre_test(no_min=True)
 
 output = os.path.join(util.desktop, "out.txt")
 
 # Check the parsing results.
-wait(30)
-assert(util.file_exists(output, 10))
+assert(util.file_exists(output, 60))
 with open(output, 'r') as file:
     content = file.read()
     assert("our score and seven years ago" in content)

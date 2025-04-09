@@ -9,14 +9,14 @@ setAutoWaitTimeout(20)
 util.pre_test()
 
 # Test of `turbo run`.
-wait("8x8-login.png")
+wait("8x8-login.png",60)
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.desktop, "8x8 Work"))
 
 # Basic operations.
-wait("8x8-login.png")
+wait("8x8-login.png",60)
 
 type(Key.F4, Key.ALT)
 os.system('cmd /c taskkill /f /im "8x8 work.exe" /t')

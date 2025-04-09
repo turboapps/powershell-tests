@@ -18,10 +18,10 @@ wait("winscp_window.png")
 
 # Basic operations.
 type("ftp.adobe.com")
-click(Pattern("connect_1.png").targetOffset(19,-12))
-click(Pattern("connect_2.png").targetOffset(-60,20))
+click(Pattern("connect_1.png").targetOffset(24,-13))
+click(Pattern("connect_2.png").targetOffset(-47,23))
 wait(2)
-click(Pattern("connect_3.png").targetOffset(-157,56))
+click(Pattern("connect_3.png").targetOffset(-180,53))
 type(Key.ENTER)
 
 # The server might be busy.
@@ -40,11 +40,11 @@ assert(os.path.exists(os.path.join(util.desktop, "version.xml")))
 
 # Check "help".
 type(Key.F1)
-util.close_firewall_alert()
 wait("help_url.png")
 closeApp("Edge")
+click(Pattern("winscp_menu.png").targetOffset(170,-15)) # To gain focus.
 type(Key.F4, Key.ALT)
-click(Pattern("save_workspace.png").targetOffset(-47,47))
+click(Pattern("save_workspace.png").targetOffset(-60,63))
 wait(10)
 
 # Check if the session terminates.

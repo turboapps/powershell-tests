@@ -9,21 +9,17 @@ setAutoWaitTimeout(30)
 util.pre_test()
 
 # Test of `turbo run`.
-util.close_firewall_alert()
 App("FileZilla Server").focus()
-wait("connect_button.png")
+wait("connect_button.png",60)
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "FileZilla Server", "Administer FileZilla Server.lnk"))
 
-# Alert might be hidden by other windows.
-if exists("alert_taskbar.png"):
-    click("alert_taskbar.png")
-util.close_firewall_alert()
-
 # Basic operations.
-click("connect_button.png")
+wait("app-launched.png",60)
+wait(5)
+type("c")
 click(Pattern("connect_port.png").targetOffset(11,92))
 click(Pattern("connect_fingerprint.png").targetOffset(226,6))
 wait("server_window.png")
@@ -36,6 +32,7 @@ type(Key.ENTER)
 # Test ftp.
 App().focus("cmd")
 wait("cmd_window.png")
+wait(3)
 type("ftp 127.0.0.1" + Key.ENTER)
 wait("ftp_user.png")
 type("test" + Key.ENTER)
@@ -44,7 +41,7 @@ type(Key.ENTER)
 wait("ftp_ok.png")
 type("quit" + Key.ENTER)
 
-click("server_taskbar.png")
+App("FileZilla Server").focus()
 click(Pattern("server_window.png").targetOffset(75,-10))
 type("d", Key.CTRL)
 type(Key.F4, Key.ALT)

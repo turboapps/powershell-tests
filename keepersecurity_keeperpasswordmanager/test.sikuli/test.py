@@ -51,11 +51,8 @@ if exists("login_password.png"):
 # Check "help".
 click(Pattern("menu.png").targetOffset(25,-1))
 click(Pattern("menu_help.png").targetOffset(-50,-14))
-wait(30) # Firewall alert is slow for keeper.
-util.close_firewall_alert()
 wait("help_url.png")
 closeApp("Edge")
-wait(10) # Wait for the complete close of the firewall alert.
 type(Key.F4, Key.ALT)
 click(Pattern("quit.png").targetOffset(8,49))
 wait(30)

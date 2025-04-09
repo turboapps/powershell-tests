@@ -9,6 +9,7 @@ setAutoWaitTimeout(30)
 util.pre_test()
 
 # Test of `turbo run`.
+wait("tableau_reg.png", 60)
 click(Pattern("tableau_reg.png").targetOffset(-289,0))
 type(Key.F4, Key.ALT)
 click(Pattern("tableau_reg_exit.png").targetOffset(-139,10))
@@ -51,7 +52,6 @@ wait("keep-only-result.png")
 
 # Check "help".
 type(Key.F1)
-util.close_firewall_alert()
 wait("help_url.png")
 closeApp("Edge")
 wait(10) # Wait for the complete close of the firewall alert.

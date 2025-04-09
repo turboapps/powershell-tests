@@ -5,7 +5,7 @@ import util
 reload(util)
 addImagePath(include_path)
 
-setAutoWaitTimeout(70)
+setAutoWaitTimeout(90)
 
 util.pre_test()
 

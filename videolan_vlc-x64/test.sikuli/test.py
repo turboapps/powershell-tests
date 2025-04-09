@@ -13,12 +13,13 @@ setAutoWaitTimeout(20)
 util.pre_test()
 
 # Test of `turbo run`.
-wait("vlc_window.png")
+wait("vlc_window.png",60)
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "VideoLAN", "VLC media player.lnk"))
-wait("vlc_window.png")
+wait("vlc_window.png",60)
+app_window = App().focus("VLC media player")
 
 # Basic operations and check help.
 type("o", Key.CTRL)
@@ -34,8 +35,7 @@ type(Key.F4, Key.ALT)
 # Open avi with file association.
 run("explorer " + video_path)
 click("default_vlc.png")
-click(Pattern("default_always.png").targetOffset(-130,-2))
-click("default_ok.png")
+click("default_always.png")
 wait("video.png")
 wait(10)
 type(Key.F4, Key.ALT)

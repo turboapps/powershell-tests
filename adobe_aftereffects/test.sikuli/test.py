@@ -22,6 +22,7 @@ run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.ln
 wait(5)
 type('turbo run aftereffects --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
 type(Key.ENTER)
+click("widnow.png") # To gain focus. The windos is blocked by CMD window.
 if exists("warning.png",180):
     click("warning.png")
     type(Key.ENTER)
@@ -45,7 +46,7 @@ doubleClick(Pattern("sample-mp4.png").targetOffset(-6,7))
 
 # Check "Help".
 type(Key.F1)
-util.close_firewall_alert()
+util.close_firewall_alert_continue(60)
 wait("help_url.png")
 closeApp("Edge")
 type("q",Key.CTRL)

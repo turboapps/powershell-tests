@@ -9,7 +9,7 @@ $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 $image = "adobe/dreamweaver"
 $using = "adobe/creativeclouddesktop,turbobuild/isolate-edge-wc"
 $isolate = "merge-user"
-$extra = "--enable=disablefontpreload " + $extra
+
 
 New-Item -Path "$env:USERPROFILE\Desktop\test" -ItemType Directory
 

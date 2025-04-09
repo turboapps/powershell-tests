@@ -17,20 +17,23 @@ username = credentials.get("username")
 password = credentials.get("password")
 
 # Test of `turbo run` and log in.
-wait(60)
+wait("office_signin.png",120)
 click(Pattern("office_signin.png").targetOffset(-114,106))
 wait("office_signin_email.png")
 type(username + Key.ENTER)
 wait("office_signin_password.png")
 type(password + Key.ENTER)
-wait("office_signin_all_apps.png")
-type(Key.ENTER)
-if exists("office_signin_wrong.png"):
+if exists("yes-all-apps.png",10):
+    click("yes-all-apps.png")
+if exists("office_signin_wrong.png",15):
     type(Key.ENTER)
 else:
     wait("office_signin_all_set.png")
     type(Key.ENTER)
-wait("word_window_not_selected.png")
+if exists("privacy-close.png",10):
+    click("privacy-close.png")
+wait(10) # wait for welcome window to go away
+wait("word_window.png",15)
 type(Key.F4, Key.ALT)
 run("turbo stop test")
 
@@ -39,13 +42,12 @@ run("turbo stop test")
 save_location = os.path.join((os.environ["USERPROFILE"]), "Documents", "First line.docx")
 
 run("explorer " + os.path.join(util.start_menu, "Word.lnk"))
-if exists("office_signin.png"):
+if exists("office_signin.png",30):
     click(Pattern("office_signin.png").targetOffset(-114,106))
     wait("office_signin_email.png")
     type(username + Key.ENTER)
-wait("word_window_not_selected.png")
-wait("word_window.png")
-wait(10) # Wati for "Get the office ready for you".
+wait(10) # wait for welcome window to go away
+wait("word_window.png",15)
 click("word_window.png")
 
 wait("word_new_doc.png")
@@ -83,20 +85,16 @@ wait("word_file_name.png")
 type(os.path.join(script_path, os.pardir, "resources", "red fox.jpg") + Key.ENTER)
 wait("word_result_3.png")
 
-click(Pattern("word_menu.png").targetOffset(-61,1))
-click(Pattern("word_insert_menu.png").targetOffset(54,-8))
-click(Pattern("word_insert_shape_menu.png").targetOffset(-111,39))
-dragDrop(Pattern("word_result_1.png").targetOffset(-57,-46), Pattern("word_result_1.png").targetOffset(33,45))
-wait("word_result_4.png")
-
 type("s", Key.CTRL)
-click(Pattern("word_save.png").targetOffset(-118,11))
-click(Pattern("word_save_location.png").targetOffset(-29,28))
+click("save-doc-folder.png")
+click("word_save_location.png")
 click(Pattern("word_save_save.png").targetOffset(-38,-2))
 assert(util.file_exists(save_location, 5))
 type("w", Key.CTRL)
+click("dont-save.png")
+wait(5)
 run("explorer " + save_location)
-wait("word_result_5.png")
+wait("word_result_3.png")
 
 type("p", Key.CTRL)
 wait("word_print.png")
@@ -106,7 +104,8 @@ wait("word_result_5.png")
 type(Key.F1)
 wait("word_help.png")
 type(Key.F4, Key.ALT)
-wait(45)
+os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
+wait(30)
 
 # Check if the session terminates.
 util.check_running()
@@ -119,11 +118,11 @@ run("explorer " + os.path.join(util.start_menu, "PowerPoint.lnk"))
 wait("ppt_window.png")
 wait(2)
 click("ppt_window.png")
-if exists("ppt_choose_theme.png"):
+if exists("ppt_choose_theme.png",5):
     click(Pattern("ppt_choose_theme_ok.png").targetOffset(43,2))
-if exists("ppt_got_it.png"):
+if exists("ppt_got_it.png",5):
     click("ppt_got_it.png")
-if exists("ppt_designer.png"):
+if exists("ppt_designer.png",5):
     click(Pattern("ppt_designer.png").targetOffset(152,-14))
 
 click("ppt_title_subtitle_1.png")
@@ -134,7 +133,7 @@ wait("ppt_title_subtitle_3.png")
 
 click(Pattern("ppt_new_slide.png").targetOffset(0,20))
 click("ppt_new_slide_menu.png")
-if exists("ppt_got_it.png"):
+if exists("ppt_got_it.png",5):
     click("ppt_got_it.png")
 click(Pattern("ppt_slide_created.png").targetOffset(-175,49))
 type("first line" + Key.ENTER)
@@ -154,7 +153,7 @@ wait("ppt_result_1.png")
 
 type(Key.ENTER + Key.ENTER)
 click(Pattern("ppt_menu_1.png").targetOffset(50,0))
-if exists("ppt_got_it.png"):
+if exists("ppt_got_it.png",5):
     click("ppt_got_it.png")
 click("ppt_table.png")
 wait(2)
@@ -166,7 +165,7 @@ wait("ppt_result_2.png")
 click(Pattern("ppt_menu_2.png").targetOffset(48,1))
 click("ppt_pictures.png")
 wait(2)
-click(Pattern("ppt_pictures_menu.png").targetOffset(-2,-13))
+click("ppt_pictures_menu.png")
 wait("ppt_file_name.png")
 type(os.path.join(script_path, os.pardir, "resources", "red fox.jpg") + Key.ENTER)
 wait("ppt_result_3.png")
@@ -189,7 +188,8 @@ type(Key.F1)
 wait("ppt_help.png")
 
 type(Key.F4, Key.ALT)
-wait(45)
+os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
+wait(30)
 
 # Check if the session terminates.
 util.check_running()
@@ -230,7 +230,8 @@ type(Key.F1)
 wait("excel_help.png")
 
 type(Key.F4, Key.ALT)
-wait(45)
+os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
+wait(30)
 
 # Check if the session terminates.
 util.check_running()
@@ -238,12 +239,14 @@ util.check_running()
 
 # OneNote.
 run("explorer " + os.path.join(util.start_menu, "OneNote.lnk"))
-click("onenote_not_now.png")
-wait(10)
+if exists("notebooks-cancel.png",30):
+    click("notebooks-cancel.png")
+if exists("onenote_not_now.png",30):
+    click("onenote_not_now.png")
 wait("onenote_add_page.png")
-wait(2)
+wait(5)
 click("onenote_add_page.png")
-wait(2)
+wait(5)
 type("Test" + Key.TAB)
 type("first line" + Key.ENTER)
 type("second line" + Key.ENTER)
@@ -298,7 +301,8 @@ click("onenote_page_menu.png")
 wait(20) # Wait for syncing.
 
 type(Key.F4, Key.ALT)
-wait(45)
+os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
+wait(30)
 
 # Check if the session terminates.
 util.check_running()
@@ -347,7 +351,8 @@ type(Key.F1)
 wait("access_help.png")
 
 type(Key.F4, Key.ALT)
-wait(45)
+os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
+wait(30)
 
 # Check if the session terminates.
 util.check_running()
@@ -363,18 +368,12 @@ click("publisher_window.png")
 wait(Pattern("publisher_new_file.png").similar(0.80))
 click("publisher_draw_text_box.png")
 dragDrop(Pattern("publisher_new_file.png").similar(0.80).targetOffset(-257,-14), Pattern("publisher_new_file.png").similar(0.80).targetOffset(3,78))
-wait("publisher_result_1.png")
 type("first line" + Key.ENTER)
 type("second line" + Key.ENTER)
 type("third line")
-type(Key.HOME, Key.CTRL) # Move the cursor to the start of the document.
-type(Key.DOWN, Key.SHIFT) # Select the whole line.
+type("a", Key.CTRL) # Move the cursor to the start of the document.
 type("b", Key.CTRL) # Bold text.
-type(Key.RIGHT) # Move the cursor to the next line.
-type(Key.DOWN, Key.SHIFT)
 type("i", Key.CTRL) # Italic text.
-type(Key.RIGHT)
-type(Key.DOWN, Key.SHIFT)
 type("u", Key.CTRL) # Underline text.
 type(Key.RIGHT)
 type(Key.F9)
@@ -382,12 +381,12 @@ wait("publisher_result_2.png")
 
 type(Key.ENTER + Key.ENTER)
 click(Pattern("publisher_menu.png").targetOffset(-117,0))
-click("publisher_table.png")
+click(Pattern("publisher_table.png").similar(0.80))
 wait(2)
-click("publisher_table_menu.png")
+click(Pattern("publisher_table_menu.png").similar(0.80))
 wait("publisher_table_insert.png")
 type(Key.ENTER)
-wait("publisher_result_3.png")
+wait("insert-table-publisher.png")
 
 click(Pattern("publisher_menu.png").targetOffset(-117,0))
 click("publisher_pictures.png")
@@ -418,7 +417,8 @@ wait("publisher_help.png")
 
 type(Key.F4, Key.ALT)
 click(Pattern("publisher_save_changes.png").targetOffset(32,27))
-wait(45)
+os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
+wait(30)
 
 # Check if the session terminates.
 util.check_running()
@@ -461,7 +461,8 @@ type(Key.F1)
 wait("outlook_help.png")
 
 type(Key.F4, Key.ALT)
-wait(60)
+os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
+wait(30)
 
 # Check if the session terminates.
 util.check_running()

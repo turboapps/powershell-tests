@@ -8,7 +8,7 @@ reload(util)
 addImagePath(include_path)
 
 setAutoWaitTimeout(20)
-util.pre_test()
+util.pre_test(no_min=True)
 
 # Basic operations.
 click("cmd_window.png")

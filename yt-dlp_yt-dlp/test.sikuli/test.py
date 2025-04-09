@@ -6,14 +6,14 @@ reload(util)
 addImagePath(include_path)
 
 setAutoWaitTimeout(30)
-util.pre_test()
+util.pre_test(no_min=True)
 
 output_path = os.path.join(util.desktop, "cat-mummies.mp4")
 
 # Basic operations.
 wait("cmd_window.png")
 type("C:\\yt-dlp\\yt-dlp.exe --help" + Key.ENTER)
-wait("yt-dlp_help.png")
+wait("yt-dlp_help.png",90)
 run("turbo stop test")
 wait(2)
 

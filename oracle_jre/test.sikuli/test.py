@@ -8,7 +8,7 @@ reload(util)
 addImagePath(include_path)
 
 setAutoWaitTimeout(20)
-util.pre_test()
+util.pre_test(no_min=True)
 
 # Test of `turbo run`.
 wait("jre_cmd.png")

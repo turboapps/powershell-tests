@@ -70,7 +70,6 @@ type(Key.ENTER)
 
 # Check "help".
 type(Key.F1)
-util.close_firewall_alert()
 wait("help_url.png")
 closeApp("Edge")
 wait(10)

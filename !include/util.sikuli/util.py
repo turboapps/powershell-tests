@@ -6,7 +6,7 @@ desktop = os.path.join((os.environ["USERPROFILE"]), "Desktop")
 start_menu = os.path.join((os.environ["APPDATA"]), "Microsoft", "Windows", "Start Menu", "Programs")
 
 # Operations before running app test.
-def pre_test():
+def pre_test(no_min=False):
     # Workaround for the bug that when Num-Lock is on, Key.SHIFT does not work with arrow keys: https://answers.launchpad.net/sikuli/+question/143874.
     if Env.isLockOn(Key.NUM_LOCK):
         type(Key.NUM_LOCK)
@@ -15,7 +15,7 @@ def pre_test():
     assert(not os.path.exists(os.path.join(start_menu, "OneDrive (2).lnk")))
 
     # Hide the SikuliX java window.
-    if no_min == False:    
+    if no_min == False:
         App().focus("java.exe")
         java_cmd = App().focus("java.exe") # Try this twice to gain the focus of the java window.
         if java_cmd.isValid():
@@ -105,14 +105,12 @@ def activate_app_window(windowName, numAttempts):
 def close_firewall_alert(wait_time = 200):
     activate_app_window("Windows Security Alert", wait_time)
     wait("firewall.png")
-
-    click(Pattern("firewall.png").targetOffset(212,67))
-
+    click(Pattern("firewall.png").targetOffset(95,29))
 # Close the Windows firewall alert prompt. Continue if not prompted after 60 seconds.
 def close_firewall_alert_continue(wait_time = 200):
     activate_app_window("Windows Security Alert", wait_time)
     if exists("firewall.png"):
-        click(Pattern("firewall.png").targetOffset(212,67))
+        click(Pattern("firewall.png").targetOffset(95,29))
 
 # Check if the most recently created Turbo session is terminated.
 # It is usually the session for the app to be tested.

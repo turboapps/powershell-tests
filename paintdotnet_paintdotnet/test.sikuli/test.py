@@ -33,7 +33,6 @@ click(Pattern("save_ok.png").targetOffset(-40,5))
 
 # Check "help".
 type(Key.F1)
-util.close_firewall_alert()
 wait("help_url.png")
 closeApp("Edge")
 wait(10) # Wait for the complete close of the firewall alert

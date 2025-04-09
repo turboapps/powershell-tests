@@ -16,7 +16,8 @@ password = credentials.get("password")
 
 # Test of `turbo run`.
 if exists("hardware-warning.png"):
-    click(Pattern("hardware-warning.png").targetOffset(192,55))
+    click(Pattern("hardware-warning.png").targetOffset(-173,7))
+    click(Pattern("hardware-warning.png").targetOffset(192,38))
 if exists("learn-panel.png"):
     click(Pattern("learn-panel.png").targetOffset(8,-28))
     click("close-panel.png")
@@ -25,10 +26,10 @@ wait("audition-title-bar.png")
 run("turbo stop test")
 
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "Adobe Audition 2024.lnk"))
+run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Audition"))
 if exists("hardware-warning.png"):
-    click(Pattern("hardware-warning.png").targetOffset(-171,24))
-    click(Pattern("hardware-warning.png").targetOffset(192,55))
+    click(Pattern("hardware-warning.png").targetOffset(-173,7))
+    click(Pattern("hardware-warning.png").targetOffset(192,38))
 if exists("learn-panel.png"):
     click(Pattern("learn-panel.png").targetOffset(8,-28))
     click("close-panel.png")

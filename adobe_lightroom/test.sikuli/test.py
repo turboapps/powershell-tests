@@ -36,6 +36,7 @@ if exists("new_feature.png"):
 # Basic operations.
 wait("lightroom_window.png")
 wait("cloud_photo.png")
+wait(5)
 click(Pattern("lightroom_window.png").targetOffset(43,-134))
 if exists("got_it.png"):
     click(Pattern("got_it.png").targetOffset(0,9))
@@ -51,6 +52,7 @@ wait(2)
 type("5" + Key.ENTER)
 wait("local_photo_edited.png")
 click("export.png")
+wait(15) # This can be slow.
 click("export_jpg.png")
 wait("export_location.png")
 type("%USERPROFILE%\\Desktop" + Key.ENTER)
@@ -58,7 +60,6 @@ click("export_confirm.png")
 
 # Check "help".
 type(Key.F1)
-util.close_firewall_alert()
 wait("help_url.png")
 closeApp("Edge")
 wait(10)

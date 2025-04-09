@@ -52,16 +52,14 @@ click("export-pdf.png")
 wait("save-pdf.png")
 wait(10)
 type("%userprofile%\\desktop\\fox.pdf" + Key.ENTER)
-util.close_firewall_alert()
+wait("fox-output.png")
 closeApp("Edge")
 
 # Check "help".
 type(Key.F1)
-if exists("help-signin-button.png"):
-    click("help-signin-button.png")
 wait("bridge-user-guide.png")
 closeApp("Edge")
-wait(10) # Wait for the complete close of the firewall alert.
+wait(10)
 type(Key.F4, Key.ALT)
 wait(10)
 

@@ -78,7 +78,7 @@ function InstallTurboApp {
         [string]$extra
     )
 
-    $command = "turbo installi $image --offline"
+    $command = "turbo installi $image --offline --enable=disablefontpreload,usedllinjection"
 
     #Construct the Turbo command.
     if (-not [string]::IsNullOrWhiteSpace($using)) {
@@ -132,7 +132,7 @@ function TryTurboApp {
         [bool]$detached = $True
     )
 
-    $command = "try $image --name=test"
+    $command = "try $image --name=test --enable=disablefontpreload,usedllinjection"
 
     # Construct the Turbo command.
     if (-not [string]::IsNullOrWhiteSpace($using)) {
@@ -165,7 +165,7 @@ function RunTurboApp {
         [bool]$detached = $True
     )
 
-    $command = "run $image"
+    $command = "run $image --enable=disablefontpreload,usedllinjection"
 
     # Construct the Turbo command.
     if (-not [string]::IsNullOrWhiteSpace($using)) {
@@ -212,6 +212,42 @@ Add-Type @"
 
     # Minimize the window.
     [WindowHandler]::ShowWindow($consoleHandle, $SW_MINIMIZE)
+
+    CloseStartMenu
+    ConfigureDefender
+}
+
+# Configure Windows Defender settings
+function ConfigureDefender {
+
+    # Disable Cloud-delivered protection
+    Set-MpPreference -MAPSReporting Disabled
+    # Disable Automatic sample submission
+    Set-MpPreference -SubmitSamplesConsent NeverSend
+
+}
+
+# Close the start menu
+function CloseStartMenu {
+# Define a type that includes the necessary Windows API functions.
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public class Keyboard {
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, IntPtr dwExtraInfo);
+
+    public const int KEYEVENTF_KEYDOWN = 0x0000;
+    public const int KEYEVENTF_KEYUP = 0x0002;
+    public const byte VK_ESCAPE = 0x1B;
+}
+"@ -PassThru
+
+    # Close Start Menu
+    [Keyboard]::keybd_event([Keyboard]::VK_ESCAPE, 0, [Keyboard]::KEYEVENTF_KEYDOWN, [IntPtr]::Zero)
+    [Keyboard]::keybd_event([Keyboard]::VK_ESCAPE, 0, [Keyboard]::KEYEVENTF_KEYUP, [IntPtr]::Zero)
+
 }
 
 # Start the SikuliX test for the app.

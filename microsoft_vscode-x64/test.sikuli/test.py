@@ -89,8 +89,7 @@ wait("java-tab.png",240)
 click("java-tab.png")
 wait(Pattern("run_1.png").targetOffset(-28,0))
 click(Pattern("run_1.png").targetOffset(-28,0))
-util.close_firewall_alert()
-wait(Pattern("result.png").similar(0.80))
+wait("result.png")
 type("w", Key.CTRL) # Jave window.
 wait(2)
 type("w", Key.CTRL) # Java Extension window.
@@ -116,9 +115,9 @@ click(Pattern("extension_c_sharp.png").targetOffset(27,23))
 wait(Pattern("install_complete_2.png").similar(0.95), 240)
 click("tab_c_sharp.png")
 wait("code_c_sharp.png")
+wait("get-started-csharp.png")
+click("tab_c_sharp.png")
 click(Pattern("run_1.png").targetOffset(-28,0))
-wait(10)
-type("`", Key.CTRL)
 wait(Pattern("result.png").similar(0.80), 240)
 type("k", Key.CTRL)
 type("f")
@@ -131,7 +130,7 @@ type(os.path.join(script_path, os.pardir, "resources", "hello_world.ts") + Key.E
 click("extensions_buttion.png")
 click(Pattern("extensions_search_typescript.png").targetOffset(-95,14))
 type("@id:dbaeumer.vscode-eslint")
-click(Pattern("extension_typescript.png").targetOffset(91,5))
+click(Pattern("extension_typescript.png").targetOffset(106,7))
 wait(Pattern("install_complete_1.png").similar(0.85), 240)
 click("tab_typescript.png")
 wait("code_typescript.png")
@@ -147,6 +146,7 @@ type(os.path.join(script_path, os.pardir, "resources", "hello_world.go") + Key.E
 wait("extension_go.png")
 wait(2)
 click(Pattern("extension_go.png").targetOffset(24,24))
+click("trust-publisher-install.png")
 wait(Pattern("install_complete_1.png").similar(0.85), 240)
 if exists("no_go.png"):
     click(Pattern("no_go.png").targetOffset(205,-10))
@@ -166,17 +166,16 @@ type(os.path.join(script_path, os.pardir, "resources", "hello_world.rs") + Key.E
 click(Pattern("extensions_search_rust.png").targetOffset(-43,12))
 type("a", Key.CTRL)
 type("@id:rust-lang.rust-analyzer")
-click(Pattern("extension_rust.png").similar(0.90).targetOffset(81,4))
+click("install-extension.png")
+click("trust-publisher-install.png")
 if exists(Pattern("no_rust_1.png").similar(0.90)):
     wait(2)
     click(Pattern("no_rust_1.png").similar(0.90).targetOffset(205,-23))
 if exists("no_rust_2.png"):
     wait(2)
     click(Pattern("no_rust_2.png").targetOffset(205,-29))
-if not exists(Pattern("install_complete_1.png").similar(0.85), 60):
-    click("extension_rust.png")
-    wait(Pattern("install_complete_1.png").similar(0.85))
-    type("w", Key.CTRL) # Rust Extension window.
+wait("install_complete_rust.png")
+type("w", Key.CTRL) # Rust Extension window.
 click("tab_rust.png")
 wait("code_rust.png")
 type("w", Key.CTRL) # Rust window.
@@ -191,7 +190,8 @@ type(os.path.join(script_path, os.pardir, "resources", "hello_world.rb") + Key.E
 click(Pattern("extensions_search_ruby.png").targetOffset(-97,17))
 type("a", Key.CTRL)
 type("@id:shopify.ruby-extensions-pack")
-click(Pattern("extension_ruby.png").targetOffset(64,4))
+click("install-extension.png")
+click("trust-publishers.png")
 wait(Pattern("install_complete_1.png").similar(0.85), 240)
 if exists("theme_ruby.png"):
     type(Key.ESC)
@@ -205,11 +205,8 @@ wait("code_window_2.png")
 # Check "help".
 click("menu_help.png")
 click("menu_help_doc.png")
-wait(30) # Firewall alert might be slow.
-util.close_firewall_alert()
 wait("help_url.png")
 closeApp("Edge")
-wait(10) # Wait for the complete close of the firewall alert.
 type(Key.F4, Key.ALT)
 wait(20)
 # Check if the session terminates.

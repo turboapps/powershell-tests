@@ -9,6 +9,6 @@ $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 $image = "adobe/illustrator"
 $using = "adobe/creativeclouddesktop,microsoft/vcredist"
 $isolate = "merge-user"
-$extra = "--enable=disablefontpreload " + $extra
+
 
 StandardTest -image $image -using $using -isolate $isolate -extra $extra -localLogsDir $localLogsDir

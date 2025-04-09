@@ -8,7 +8,7 @@ reload(util)
 addImagePath(include_path)
 
 setAutoWaitTimeout(30)
-util.pre_test()
+util.pre_test(no_min=True)
 
 # Warmup.
 wait(30)

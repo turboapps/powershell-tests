@@ -8,6 +8,11 @@ addImagePath(include_path)
 setAutoWaitTimeout(30)
 util.pre_test()
 
+# Minimize all windows then open the Turbo cmd prompt
+type("d", Key.WIN)
+wait(3)
+App().focus("C:\\WINDOWS\\system32\\cmd.exe")
+
 # Test of `turbo run` and command line mode.
 wait("cmd_window.png")
 type("java -jar C:\\tika\\tika-app.jar --help" + Key.ENTER)

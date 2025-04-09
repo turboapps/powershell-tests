@@ -8,7 +8,7 @@ reload(util)
 addImagePath(include_path)
 
 setAutoWaitTimeout(20)
-util.pre_test()
+util.pre_test(no_min=True)
 
 # Test cpp nodejs project.
 type('npm install -g node-gyp' + Key.ENTER)
@@ -27,7 +27,6 @@ wait("indexjs-result.png")
 
 # Test standard nodejs project.
 type('node ..\my-node-app\\app.js' + Key.ENTER)
-util.close_firewall_alert_continue()
 wait("server-running.png")
 run('explorer "http://localhost:3000"')
 wait("localhost.png")

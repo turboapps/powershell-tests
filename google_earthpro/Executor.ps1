@@ -9,6 +9,6 @@ $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 $image = "google/earthpro"
 $using = "turbobuild/isolate-edge-wc"
 $isolate = "write-copy+merge-user"
-$extra = " -setDX " + $extra
+$extra = $extra + " -setDX "
 
 StandardTest -image $image -using $using -isolate $isolate -extra $extra -localLogsDir $localLogsDir

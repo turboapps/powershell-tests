@@ -37,15 +37,10 @@ type(Key.ENTER)
 wait("sign_in_password.png")
 type(password)
 type(Key.ENTER)
-wait("sign_in_stay_signed_in.png")
-click("sign_in_ok.png")
-if exists("sign_in_went_wrong.png"):
-    click("sign_in_continue.png")
-else:
-    wait("sign_in_all_set.png")
-    click("sign_in_done.png")
+if exists("this-app-only.png",10):
+    click("this-app-only.png")
 wait(5)
-if exists(Pattern("collaborate_prompt.png").targetOffset(174,-36)):
+if exists(Pattern("collaborate_prompt.png").targetOffset(174,-36),10):
     click(Pattern("collaborate_prompt.png").targetOffset(174,-36))
 
 # Basic operations.
@@ -65,23 +60,17 @@ wait(5)
 click("menu_file.png")
 click("export_button.png")
 click("export_pdf.png")
-util.close_firewall_alert()
-setAutoWaitTimeout(10)
-if exists("edge_no_sync.png"):
-    click("edge_no_sync.png")
-setAutoWaitTimeout(60)
+wait("pdf-print.png")
 closeApp("Edge")
 wait(10)
+if exists("green-x.png", 15):
+    click("green-x.png")
 click("transform_data.png")
 click("close_apply.png")
 
 # Check "help".
 click("menu_help.png")
 click("help_support.png")
-setAutoWaitTimeout(10)
-if exists("edge_no_sync.png"):
-    click("edge_no_sync.png")
-setAutoWaitTimeout(60)
 wait("help_url.png")
 closeApp("Edge")
 wait(10)
