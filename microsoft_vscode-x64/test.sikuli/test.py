@@ -65,7 +65,7 @@ wait("extension_c.png")
 wait(2)
 click(Pattern("extension_c.png").targetOffset(28,31))
 wait(Pattern("install_complete_1.png").similar(0.85), 240)
-if exists("extensions_pre-release_c.png"):
+if exists("extensions_pre-release_c.png",15):
     click(Pattern("extensions_pre-release_c.png").targetOffset(197,27))
 click("tab_c.png")
 wait("code_c.png")
@@ -115,8 +115,9 @@ click(Pattern("extension_c_sharp.png").targetOffset(27,23))
 wait(Pattern("install_complete_2.png").similar(0.95), 240)
 click("tab_c_sharp.png")
 wait("code_c_sharp.png")
-wait("get-started-csharp.png")
-click("tab_c_sharp.png")
+if exists("get-started-csharp.png",15):
+    click("tab_c_sharp.png")
+wait("projects-helloworld.png",240)
 click(Pattern("run_1.png").targetOffset(-28,0))
 wait(Pattern("result.png").similar(0.80), 240)
 type("k", Key.CTRL)
@@ -148,7 +149,7 @@ wait(2)
 click(Pattern("extension_go.png").targetOffset(24,24))
 click("trust-publisher-install.png")
 wait(Pattern("install_complete_1.png").similar(0.85), 240)
-if exists("no_go.png"):
+if exists("no_go.png",15):
     click(Pattern("no_go.png").targetOffset(205,-10))
 click("tab_go.png")
 wait("code_go.png")
@@ -168,10 +169,10 @@ type("a", Key.CTRL)
 type("@id:rust-lang.rust-analyzer")
 click("install-extension.png")
 click("trust-publisher-install.png")
-if exists(Pattern("no_rust_1.png").similar(0.90)):
+if exists(Pattern("no_rust_1.png").similar(0.90),15):
     wait(2)
     click(Pattern("no_rust_1.png").similar(0.90).targetOffset(205,-23))
-if exists("no_rust_2.png"):
+if exists("no_rust_2.png",15):
     wait(2)
     click(Pattern("no_rust_2.png").targetOffset(205,-29))
 wait("install_complete_rust.png")
@@ -193,7 +194,7 @@ type("@id:shopify.ruby-extensions-pack")
 click("install-extension.png")
 click("trust-publishers.png")
 wait(Pattern("install_complete_1.png").similar(0.85), 240)
-if exists("theme_ruby.png"):
+if exists("theme_ruby.png",15):
     type(Key.ESC)
 click("tab_ruby.png")
 wait("code_ruby.png")
