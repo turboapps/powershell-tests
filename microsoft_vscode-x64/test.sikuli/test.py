@@ -133,6 +133,7 @@ click(Pattern("extensions_search_typescript.png").targetOffset(-95,14))
 type("@id:dbaeumer.vscode-eslint")
 click(Pattern("extension_typescript.png").targetOffset(106,7))
 wait(Pattern("install_complete_1.png").similar(0.85), 240)
+click("es-lint-logo.png")
 click("tab_typescript.png")
 wait("code_typescript.png")
 type("w", Key.CTRL) # TypeScript window.
