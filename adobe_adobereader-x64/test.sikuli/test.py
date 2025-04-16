@@ -93,7 +93,6 @@ wait("reader_opened.png")
 
 # Check "help".
 type(Key.F1)
-util.close_firewall_alert_continue(60)
 wait("reader_help_url.png")
 closeApp("Edge")
 
