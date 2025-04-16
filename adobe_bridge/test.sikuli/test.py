@@ -57,6 +57,8 @@ closeApp("Edge")
 
 # Check "help".
 type(Key.F1)
+if exists("help-sign-in.png",15):
+    click("help-sign-in.png")
 wait("bridge-user-guide.png")
 closeApp("Edge")
 wait(10)
