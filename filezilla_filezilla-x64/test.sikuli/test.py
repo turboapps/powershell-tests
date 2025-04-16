@@ -19,23 +19,22 @@ run("explorer " + os.path.join(util.start_menu, "FileZilla FTP Client", "FileZil
 click("filezilla_window.png")
 
 # Basic operations.
-type("ftp.adobe.com" + Key.ENTER)
-
-# The server might be busy.
-retry_quota = 10
-while not exists("tls_warning.png") and retry_quota > 0:
-    wait(10)
-    type("r", Key.CTRL)
-    retry_quota -= 1
-
-click(Pattern("tls_warning.png").targetOffset(45,75))
-wait(5)
-doubleClick(Pattern("ftp_download_1.png").targetOffset(0,-28))
-rightClick(Pattern("ftp_download_2.png").targetOffset(0,29))
-click(Pattern("ftp_download_3.png").targetOffset(0,-19))
+type("ftp.dlptest.com")
+type(Key.TAB)
+type("dlpuser")
+type(Key.TAB)
+type("rNrKYTX9g7z3RgJRmxWuGHbeu")
+type(Key.ENTER)
+wait("cert-ok.png")
+click("cert-ok.png")
+click("remote-file.png")
+wait(3)
+type(Key.ENTER)
 wait(Pattern("download_successful.png").similar(0.80), 40)
 wait(10)
-assert(os.path.exists(os.path.join(os.environ["USERPROFILE"], "version.xml")))
+folder = os.environ["USERPROFILE"]
+matches = [f for f in os.listdir(folder) if f.startswith("10")]
+assert matches
 
 # Check "help".
 click(Pattern("menu.png").targetOffset(59,0))
