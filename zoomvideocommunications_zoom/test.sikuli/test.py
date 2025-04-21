@@ -11,12 +11,18 @@ setAutoWaitTimeout(30)
 util.pre_test()
 
 # Test of `turbo run`.
+if exists("dont-show.png"):
+    click(Pattern("dont-show.png").targetOffset(-70,0))
+    click("ok-button.png")
 wait("zoom_window.png")
 run("turbo stop test")
 wait(10)
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Zoom", "Zoom Workplace.lnk"))
+if exists("dont-show.png"):
+    click(Pattern("dont-show.png").targetOffset(-70,0))
+    click("ok-button.png")
 wait("zoom_window.png")
 click("sign-in.png")
 wait("down-arrow.png")
