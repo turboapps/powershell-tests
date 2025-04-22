@@ -28,7 +28,11 @@ if app_window.isValid():
 # Basic operations.
 type("l", Key.CTRL)
 type("https://google.com/" + Key.ENTER)
+<<<<<<< Updated upstream
 wait(Pattern("webpage.png").similar(0.60))
+=======
+wait("google-signin.png")
+>>>>>>> Stashed changes
 wait(3)
 type("s", Key.CTRL)
 wait("save_type.png")
@@ -45,6 +49,16 @@ wait("settings_page.png")
 # Check "help".
 type(Key.F1)
 wait("help_page.png")
+
+# Check "print"
+type("p", Key.CTRL)
+wait("print_window.png")
+click(Pattern("print_print.png").targetOffset(-28,8))
+wait("print_location.png")
+type(save_location + Key.ENTER)
+assert(util.file_exists(save_location, 5))
+wait(5)
+type(Key.ESC)
 type(Key.F4, Key.ALT)
 
 # Set default browser.
@@ -59,23 +73,24 @@ click("set-default.png")
 wait(5)
 type(Key.F4, Key.ALT)
 run("explorer " + os.path.join(util.desktop, "name with space.html"))
+<<<<<<< Updated upstream
 wait(Pattern("webpage.png").similar(0.60))
 type(Key.F4, Key.ALT)
 run('explorer "https://google.com/"')
 click(Pattern("webpage.png").similar(0.60)) # To gain focus.
 wait(2)
 wait(Pattern("google-search2.png").similar(0.60))
-wait(5)
-type("p", Key.CTRL)
-wait("print_window.png")
-click(Pattern("print_print.png").targetOffset(-28,8))
-wait("print_location.png")
-type(save_location + Key.ENTER)
-assert(util.file_exists(save_location, 5))
-
-type(Key.ESC)
+=======
+wait("google-signin.png")
 type(Key.F4, Key.ALT)
+run('explorer "https://google.com/"')
+wait(2)
+wait("google-signin.png")
+>>>>>>> Stashed changes
 wait(5)
+app_window = App().focus("Chromium")
+type(Key.F4, Key.ALT)
+wait(15)
 
 # Check if the session terminates.
 util.check_running()
