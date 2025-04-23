@@ -22,8 +22,10 @@ type("o", Key.CTRL)
 click(Pattern("open_location.png").targetOffset(20,-4))
 type(pdf_path)
 type("o", Key.ALT)
+if exists("next-button.png",10):
+    click("next-button.png")
+    type(Key.ESC)
 wait("pdf_sample.png")
-
 doubleClick(Pattern("pdf_sample.png").targetOffset(-182,-63))
 doubleClick(Pattern("pdf_sample.png").targetOffset(-182,-63)) # Need to do this twice.
 click("highlight-tool.png")
