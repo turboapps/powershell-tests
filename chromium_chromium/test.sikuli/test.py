@@ -28,11 +28,7 @@ if app_window.isValid():
 # Basic operations.
 type("l", Key.CTRL)
 type("https://google.com/" + Key.ENTER)
-<<<<<<< Updated upstream
-wait(Pattern("webpage.png").similar(0.60))
-=======
 wait("google-signin.png")
->>>>>>> Stashed changes
 wait(3)
 type("s", Key.CTRL)
 wait("save_type.png")
@@ -72,21 +68,15 @@ click("windows_setting_default_browser_chrome.png")
 click("set-default.png")
 wait(5)
 type(Key.F4, Key.ALT)
+# Test FTA launch
 run("explorer " + os.path.join(util.desktop, "name with space.html"))
-<<<<<<< Updated upstream
-wait(Pattern("webpage.png").similar(0.60))
-type(Key.F4, Key.ALT)
-run('explorer "https://google.com/"')
-click(Pattern("webpage.png").similar(0.60)) # To gain focus.
-wait(2)
-wait(Pattern("google-search2.png").similar(0.60))
-=======
 wait("google-signin.png")
+wait(5)
+app_window = App().focus("Chromium")
 type(Key.F4, Key.ALT)
+# Test protocol handler launch
 run('explorer "https://google.com/"')
-wait(2)
 wait("google-signin.png")
->>>>>>> Stashed changes
 wait(5)
 app_window = App().focus("Chromium")
 type(Key.F4, Key.ALT)
