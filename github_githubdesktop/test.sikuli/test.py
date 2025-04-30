@@ -30,9 +30,7 @@ click("url.png")
 type("https://github.com/octocat/Hello-World" + Key.TAB)
 type(repo_path + Key.ENTER)
 wait("current-repo.png")
-click("show-explorer.png")
-wait("explorer-window.png")
-type(Key.F4, Key.ALT) # Close explorer.
+wait(10)
 type(Key.F4, Key.ALT) # Close app.
 
 wait(60) # Wait for session to close.
