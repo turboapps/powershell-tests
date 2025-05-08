@@ -82,10 +82,10 @@ wait("point-2-point.png")
 # Check the "help" of the app.
 wait(30)
 type(Key.F1)
-util.close_firewall_alert_continue(60)
 wait("help_url.png")
 closeApp("Edge")
 type(Key.F4, Key.ALT)
+wait(30)
 
 # Check if the session terminates after closing the app.
 util.check_running()

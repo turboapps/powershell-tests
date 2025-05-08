@@ -5,7 +5,7 @@ import util
 reload(util)
 addImagePath(include_path)
 
-setAutoWaitTimeout(90)
+setAutoWaitTimeout(30)
 save_path = include_path = os.path.join(util.desktop, "test", "test")
 
 util.pre_test()
@@ -15,12 +15,16 @@ credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resourc
 username = credentials.get("username")
 password = credentials.get("password")
 
+# Login to Adobe Creative Cloud Desktop
+util.launch_adobe_cc(username, password)
+
 # Test of `turbo run`.
-if exists("introducing.png"):
+run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
+wait(5)
+type('turbo run dreamweaver --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+if exists("introducing.png",90):
     click("introducing.png")
     type(Key.ESC)
-util.close_firewall_alert()
-util.adobe_cc_login(username, password)
 click(Pattern("sync_settings.png").targetOffset(-12,59))
 wait("dw_window.png")
 type("q", Key.CTRL)
@@ -30,10 +34,9 @@ run("turbo stop test")
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Dreamweaver"))
 
 # Basic operations.
-if exists("introducing.png"):
+if exists("introducing.png",90):
     click("introducing.png")
     type(Key.ESC)
-util.close_firewall_alert()
 click(Pattern("sync_settings.png").targetOffset(-12,59)) # To gain the focus.
 click(Pattern("sync_settings.png").targetOffset(-12,59))
 wait("dw_window.png")

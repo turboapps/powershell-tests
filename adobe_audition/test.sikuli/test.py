@@ -14,23 +14,28 @@ credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resourc
 username = credentials.get("username")
 password = credentials.get("password")
 
-# Test of `turbo run`.
-if exists("hardware-warning.png"):
-    click(Pattern("hardware-warning.png").targetOffset(-173,7))
-    click(Pattern("hardware-warning.png").targetOffset(192,38))
-if exists("learn-panel.png"):
+# Login to Adobe Creative Cloud Desktop
+util.launch_adobe_cc(username, password)
+
+# Test turbo run
+run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
+wait(5)
+type('turbo run audition --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+type(Key.ENTER)
+if exists("learn-panel.png",60):
     click(Pattern("learn-panel.png").targetOffset(8,-28))
     click("close-panel.png")
-util.adobe_cc_login(username, password)
-wait("audition-title-bar.png")
-run("turbo stop test")
+wait(5)
+type("q",Key.CTRL)
+wait(5)
+closeApp("Command Prompt")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Audition"))
 if exists("hardware-warning.png"):
     click(Pattern("hardware-warning.png").targetOffset(-173,7))
     click(Pattern("hardware-warning.png").targetOffset(192,38))
-if exists("learn-panel.png"):
+if exists("learn-panel.png",60):
     click(Pattern("learn-panel.png").targetOffset(8,-28))
     click("close-panel.png")
 wait("audition-title-bar.png")
