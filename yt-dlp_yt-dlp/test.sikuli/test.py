@@ -5,7 +5,7 @@ import util
 reload(util)
 addImagePath(include_path)
 
-setAutoWaitTimeout(30)
+setAutoWaitTimeout(60)
 util.pre_test(no_min=True)
 
 output_path = os.path.join(util.desktop, "cat-mummies.mp4")

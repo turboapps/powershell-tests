@@ -17,26 +17,27 @@ run("explorer " + os.path.join(util.start_menu, "WinSCP.lnk"))
 wait("winscp_window.png")
 
 # Basic operations.
-type("ftp.adobe.com")
-click(Pattern("connect_1.png").targetOffset(24,-13))
+click("connect_1.png")
 click(Pattern("connect_2.png").targetOffset(-47,23))
 wait(2)
-click(Pattern("connect_3.png").targetOffset(-180,53))
+type(Key.TAB)
+type(Key.TAB)
+type("ftp.dlptest.com")
+type(Key.TAB)
+type(Key.TAB)
+type("dlpuser")
+type(Key.TAB)
+type("rNrKYTX9g7z3RgJRmxWuGHbeu")
 type(Key.ENTER)
 
 # The server might be busy.
-retry_quota = 10
-while exists("connection_failed.png") and retry_quota > 0:
-    wait(30) # Wait for the auto reconnect
-    retry_quota -= 1
-
-doubleClick(Pattern("ftp_download_1.png").targetOffset(0,-28))
-click(Pattern("ftp_download_2.png").targetOffset(0,29))
+wait("ftp_download_1.png",60)
+click("ftp_download_1.png")
 type(Key.F5)
 wait("ftp_download_3.png")
-type(os.path.join(util.desktop, "*.*") + Key.ENTER)
+type(os.path.join(util.desktop, "image.jpg") + Key.ENTER)
 wait(10)
-assert(os.path.exists(os.path.join(util.desktop, "version.xml")))
+assert(os.path.exists(os.path.join(util.desktop, "image.jpg")),90)
 
 # Check "help".
 type(Key.F1)
