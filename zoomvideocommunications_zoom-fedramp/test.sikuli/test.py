@@ -11,12 +11,16 @@ setAutoWaitTimeout(30)
 util.pre_test()
 
 # Test of `turbo run`.
+if exists("upgrade-ok.png",60):
+    click("upgrade-ok.png")
 wait("zoom_window.png")
 run("turbo stop test")
 wait(10)
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Zoom", "Zoom Workplace.lnk"))
+if exists("upgrade-ok.png",60):
+    click("upgrade-ok.png")
 wait("zoom_window.png")
 click("sign-in.png")
 wait("down-arrow.png")
