@@ -15,10 +15,15 @@ credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resourc
 username = credentials.get("username")
 password = credentials.get("password")
 
+# Login to Adobe Creative Cloud Desktop
+util.launch_adobe_cc(username, password)
+
 # Test of `turbo run`.
-wait(120)
-util.adobe_cc_login(username, password)
-wait("incopy_window.png")
+run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
+wait(5)
+type('turbo run incopy --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --name=test')
+type(Key.ENTER)
+wait("incopy_window.png", 120)
 run("turbo stop test")
 
 # Launch the app.

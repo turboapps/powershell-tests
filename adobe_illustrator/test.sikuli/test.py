@@ -16,14 +16,22 @@ credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resourc
 username = credentials.get("username")
 password = credentials.get("password")
 
+# Login to Adobe Creative Cloud Desktop
+util.launch_adobe_cc(username, password)
+
 # Test of `turbo run`.
-wait("adobe_login.png")
+run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
+wait(5)
+type('turbo run illustrator --using=creativeclouddesktop,vcredist --offline --enable=disablefontpreload --name=test')
+type(Key.ENTER)
+if exists("whats_new.png"):
+    type(Key.ESC)
+wait("ai_window.png")
 run("turbo stop test")
 wait(10)
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Illustrator"))
-util.adobe_cc_login(username, password)
 if exists("whats_new.png"):
     type(Key.ESC)
 

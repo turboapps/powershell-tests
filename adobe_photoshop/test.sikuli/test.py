@@ -14,28 +14,28 @@ credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resourc
 username = credentials.get("username")
 password = credentials.get("password")
 
+# Login to Adobe Creative Cloud Desktop
+util.launch_adobe_cc(username, password)
+
 # Test of `turbo run`.
+run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
+wait(5)
+type('turbo run photoshop --using=creativeclouddesktop,isolate-edge-wc --isolate=merge-user --offline --enable=disablefontpreload --name=test')
+type(Key.ENTER)
 if exists("grafx-warning.png"):
     click(Pattern("grafx-warning.png").targetOffset(255,11))
-wait("adobe_login.png")
-click(Pattern("adobe_login.png").targetOffset(60,64))
-if exists("grafx-warning.png"):
-    click(Pattern("grafx-warning.png").targetOffset(255,11))
-wait(10)
+run("turbo stop test")
+wait(30)
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Photoshop"))
 if exists("grafx-warning.png"):
     click(Pattern("grafx-warning.png").targetOffset(-298,9))
     click(Pattern("grafx-warning.png").targetOffset(255,11))
-util.adobe_cc_login(username, password)
 wait("photoshop-menu-bar.png")
 
 # Basic operations.
 setAutoWaitTimeout(20)
-if exists("grafx-warning.png"):
-    click(Pattern("grafx-warning.png").targetOffset(-298,9))
-    click(Pattern("grafx-warning.png").targetOffset(255,11))
 type("o", Key.CTRL)
 if exists("on-your-computer.png"):
     click("on-your-computer.png")

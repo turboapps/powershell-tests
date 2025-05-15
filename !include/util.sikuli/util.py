@@ -39,7 +39,6 @@ def launch_adobe_cc(username, password):
     wait(5)
     type('turbo try creativeclouddesktop --offline --name=ccd --startup-file="@PROGRAMFILES@\\Adobe\\Adobe Creative Cloud\\ACC\\Creative Cloud.exe"')
     type(Key.ENTER)
-    #wait(10)
     activate_app_window("Creative Cloud Desktop",30)
     adobe_cc_login(username, password)
     wait(15)
@@ -64,6 +63,8 @@ def adobe_cc_login(username, password):
     type(Key.ENTER)
     if exists("adobe_login_signout_others.png", 15):
         click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
+        click(Pattern("adobe_login_continue.png").similar(0.90))
+    if exists("adobe_login_team.png"):
         click(Pattern("adobe_login_continue.png").similar(0.90))
 
 # Get the path of the shortcut for the apps that have different shortcut names for different versions.
