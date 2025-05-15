@@ -14,7 +14,14 @@ credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resourc
 username = credentials.get("username")
 password = credentials.get("password")
 
+# Login to Adobe Creative Cloud Desktop
+util.launch_adobe_cc(username, password)
+
 # Test of `turbo run`.
+run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
+wait(5)
+type('turbo run lightroomclassic --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --name=test')
+type(Key.ENTER)
 if exists("share_data.png"):
     click(Pattern("share_data.png").targetOffset(194,72))
 if exists("whats_new.png"):
@@ -23,8 +30,6 @@ if exists(Pattern("welcome.png").targetOffset(71,3)):
     click(Pattern("welcome.png").targetOffset(71,3))
 if exists("getting_started.png"):
     click(Pattern("getting_started.png").targetOffset(186,-18))
-click("adobe_login.png")
-type(Key.F4, Key.ALT)
 wait(15)
 run("turbo stop test")
 
@@ -38,7 +43,6 @@ if exists(Pattern("welcome.png").targetOffset(71,3)):
     click(Pattern("welcome.png").targetOffset(71,3))
 if exists("getting_started.png"):
     click(Pattern("getting_started.png").targetOffset(186,-18))
-util.adobe_cc_login(username, password)
 
 # Basic operations.
 wait("lightroomcc_window.png")
