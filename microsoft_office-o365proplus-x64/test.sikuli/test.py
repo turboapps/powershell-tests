@@ -51,10 +51,10 @@ wait("word_window.png",15)
 click("word_window.png")
 
 wait("word_new_doc.png")
-type("first line" + Key.ENTER)
-type("second line" + Key.ENTER)
-type("third line" + Key.ENTER)
-type("fourth line")
+type("First line" + Key.ENTER)
+type("Second line" + Key.ENTER)
+type("Third line" + Key.ENTER)
+type("Fourth line")
 type(Key.HOME, Key.CTRL) # Move the cursor to the start of the document.
 type(Key.DOWN, Key.SHIFT) # Select the whole line.
 type("b", Key.CTRL) # Bold text.
@@ -71,13 +71,17 @@ type(Key.RIGHT)
 wait("word_result_1.png")
 
 type(Key.ENTER + Key.ENTER)
-click(Pattern("word_menu.png").targetOffset(-61,1))
+type(Key.ALT)
+type("N")
+type(Key.ALT)
 click(Pattern("word_insert_menu.png").targetOffset(-53,-15))
-click(Pattern("word_insert_table_menu.png").targetOffset(-22,-53))
-click(Pattern("word_insert_table_window.png").targetOffset(-11,99))
+click(Pattern("word_insert_table_menu.png").targetOffset(-18,-55))
+click(Pattern("word_insert_table_window.png.png").targetOffset(-13,114))
 wait("word_result_2.png")
 
-click(Pattern("word_menu.png").targetOffset(-61,1))
+type(Key.ALT)
+type("N")
+type(Key.ALT)
 click(Pattern("word_insert_menu.png").targetOffset(4,-15))
 wait(2)
 click(Pattern("word_insert_picture_menu.png").targetOffset(-5,-26))
@@ -136,9 +140,9 @@ click("ppt_new_slide_menu.png")
 if exists("ppt_got_it.png",5):
     click("ppt_got_it.png")
 click(Pattern("ppt_slide_created.png").targetOffset(-175,49))
-type("first line" + Key.ENTER)
-type("second line" + Key.ENTER)
-type("third line")
+type("First line" + Key.ENTER)
+type("Second line" + Key.ENTER)
+type("Third line")
 type(Key.HOME, Key.CTRL) # Move the cursor to the start of the document.
 type(Key.DOWN, Key.SHIFT) # Select the whole line.
 type("b", Key.CTRL) # Bold text.
