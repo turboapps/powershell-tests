@@ -29,7 +29,7 @@ if app_window.isValid():
 # Basic operations.
 click(Pattern("address-bar.png").targetOffset(28,-1))
 type("https://google.com/" + Key.ENTER)
-wait("webpage.png")
+wait(Pattern("webpage.png").similar(0.60))
 wait(3)
 type("s", Key.CTRL)
 wait("save_type.png")
@@ -55,11 +55,11 @@ wait(2)
 click(Pattern("windows_setting_default_edge.png").similar(0.95))
 type(Key.F4, Key.ALT)
 run("explorer " + os.path.join(util.desktop, "name with space.html"))
-wait("webpage.png")
+wait(Pattern("webpage.png").similar(0.60))
 type(Key.F4, Key.ALT)
 run('explorer "https://google.com/"')
-wait("webpage.png")
-click("webpage.png") # To gain focus.
+wait(Pattern("webpage.png").similar(0.60))
+click(Pattern("webpage.png").similar(0.60)) # To gain focus.
 wait(5)
 type("p", Key.CTRL)
 wait("print_window.png")
