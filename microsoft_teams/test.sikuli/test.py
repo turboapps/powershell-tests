@@ -34,7 +34,7 @@ type(Key.F4, Key.ALT)
 # Quit Teams.
 click("tray_more.png")
 rightClick("tray_icon.png")
-click("tray_menu.png")
+click(Pattern("tray_menu.png").targetOffset(-28,12))
 wait(20)
 
 # Check if the session terminates.
