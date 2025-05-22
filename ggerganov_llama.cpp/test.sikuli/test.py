@@ -11,7 +11,7 @@ util.pre_test()
 # Test turbo run
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
 wait(5)
-type('turbo run ggerganov/llama.cpp --using=microsoft/vcredist --offline --name=test -- /C "C:\\llama-avx2\\llama-server.exe" -m %userprofile%\\desktop\\llama-2-7b-chat.Q4_K_M.gguf -n 50 --port 8180 --chat-template llama2')
+type('turbo run ggerganov/llama.cpp --using=microsoft/vcredist --offline --name=test -- /C "C:\\llama-cpu\\llama-server.exe" -m %userprofile%\\desktop\\llama-2-7b-chat.Q4_K_M.gguf -n 50 --port 8180 --chat-template llama2')
 type(Key.ENTER)
 
 # Test of the app.
