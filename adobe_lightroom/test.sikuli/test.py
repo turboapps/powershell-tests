@@ -52,7 +52,7 @@ wait(2)
 type("5" + Key.ENTER)
 wait("local_photo_edited.png")
 click("export.png")
-wait(15) # This can be slow.
+wait(30) # This can be slow.
 click("export_jpg.png")
 wait("export_location.png")
 type("%USERPROFILE%\\Desktop" + Key.ENTER)

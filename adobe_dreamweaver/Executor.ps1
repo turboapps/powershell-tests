@@ -13,4 +13,4 @@ $isolate = "merge-user"
 
 New-Item -Path "$env:USERPROFILE\Desktop\test" -ItemType Directory
 
-StandardTest -image $image -using $using -isolate $isolate -extra $extra -localLogsDir $localLogsDir
+StandardTest -image $image -using $using -isolate $isolate -extra $extra -localLogsDir $localLogsDir -shouldTry $false

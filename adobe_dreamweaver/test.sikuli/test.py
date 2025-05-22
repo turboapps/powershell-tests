@@ -22,6 +22,7 @@ util.launch_adobe_cc(username, password)
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
 wait(5)
 type('turbo run dreamweaver --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+type(Key.ENTER)
 if exists("introducing.png",90):
     click("introducing.png")
     type(Key.ESC)
