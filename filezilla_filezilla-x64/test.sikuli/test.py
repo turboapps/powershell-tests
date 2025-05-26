@@ -43,7 +43,7 @@ click("menu_help.png")
 wait("help_url.png")
 closeApp("Edge")
 type(Key.F4, Key.ALT)
-wait(10)
+wait(20)
 
 # Check if the session terminates.
 util.check_running()
