@@ -68,6 +68,8 @@ click("export_pdf.png")
 wait("pdf-print.png")
 closeApp("Edge")
 wait(10)
+if exists("green-x.png", 15):
+    click("green-x.png")
 click("transform_data.png")
 click("close_apply.png")
 
