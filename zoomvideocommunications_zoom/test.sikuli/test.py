@@ -26,6 +26,7 @@ if exists("dont-show.png"):
 wait("zoom_window.png")
 click("sign-in.png")
 wait("down-arrow.png")
+wait(5)
 click("down-arrow.png")
 wait("zoomgov-com.png")
 click("zoomgov-com.png")
