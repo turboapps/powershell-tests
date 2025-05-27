@@ -14,14 +14,23 @@ credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resourc
 username = credentials.get("username")
 password = credentials.get("password")
 
-# Test of `turbo run`.
-wait("adobe_login.png")
-click(Pattern("adobe_login.png").targetOffset(62,100))
+# Login to Adobe Creative Cloud Desktop
+util.launch_adobe_cc(username, password)
+
+# Test turbo run
+run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
+wait(5)
+type('turbo run characteranimator --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+type(Key.ENTER)
+wait("title-bar.png",60)
+wait("lacy_puppet.png",60)
 wait(10)
+type("q",Key.CTRL)
+wait(5)
+closeApp("Command Prompt")
 
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "Adobe Character Animator 2024.lnk"))
-util.adobe_cc_login(username, password)
+run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Character Animator"))
 wait("title-bar.png")
 
 # Basic operations.
