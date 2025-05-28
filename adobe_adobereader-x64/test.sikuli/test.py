@@ -7,6 +7,28 @@ import util
 reload(util)
 addImagePath(include_path)
 
+# Log in for Adobe Creative Cloud for Adobe Reader.
+def adobe_cc_login(username, password):
+    wait("adobe_login.png", 90)
+    wait(30)
+    click("adobe_login.png")
+    wait(3)
+    type(username)
+    wait(3)
+    type(Key.ENTER)
+    wait("adobe_login_pass.png", 90)
+    wait(3)
+    click("adobe_login_pass.png")
+    wait(3)
+    type(password)
+    wait(3)
+    type(Key.ENTER)
+    if exists("adobe_login_signout_others.png", 15):
+        click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
+        click(Pattern("adobe_login_continue.png").similar(0.90))
+    if exists("adobe_login_team.png"):
+        click(Pattern("adobe_login_continue.png").similar(0.90))
+
 save_location = os.path.join(util.desktop, "test.pdf")
 
 setAutoWaitTimeout(45)
@@ -20,7 +42,7 @@ password = credentials.get("password")
 # Test of `turbo run`.
 if exists("reader_welcome.png",20):
     type(Key.ESC)
-wait("reader_window.png")
+wait("reader_window.png",120)
 run("turbo stop test")
 
 # Launch the app.
@@ -71,6 +93,8 @@ click(Pattern("sign_before.png").targetOffset(-64,-15))
 type(Key.ESC)
 wait("sign_after.png")
 type("s", Key.CTRL + Key.SHIFT)
+if exists("cannot-save-ok.png",10):
+    click("cannot-save-ok.png")
 wait("choose_diff_folder.png")
 click("choose_diff_folder.png")
 wait("save_location.png")

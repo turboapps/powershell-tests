@@ -7,6 +7,28 @@ import util
 reload(util)
 addImagePath(include_path)
 
+# Log in for Adobe Creative Cloud for Adobe Reader.
+def adobe_cc_login(username, password):
+    wait("adobe_login.png", 90)
+    wait(30)
+    click("adobe_login.png")
+    wait(3)
+    type(username)
+    wait(3)
+    type(Key.ENTER)
+    wait("adobe_login_pass.png", 90)
+    wait(3)
+    click("adobe_login_pass.png")
+    wait(3)
+    type(password)
+    wait(3)
+    type(Key.ENTER)
+    if exists("adobe_login_signout_others.png", 15):
+        click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
+        click(Pattern("adobe_login_continue.png").similar(0.90))
+    if exists("adobe_login_team.png"):
+        click(Pattern("adobe_login_continue.png").similar(0.90))
+
 save_location = os.path.join(util.desktop, "test.pdf")
 
 setAutoWaitTimeout(45)
@@ -95,7 +117,6 @@ wait("reader_opened.png")
 
 # Check "help".
 type(Key.F1)
-util.close_firewall_alert_continue(60)
 wait("reader_help_url.png")
 closeApp("Edge")
 
