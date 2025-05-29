@@ -59,6 +59,7 @@ if exists("invalid-login.png"):
 wait("logged_in.png")
 type(Key.F4, Key.ALT)
 click(Pattern("close.png").targetOffset(23,38))
+click("telnet-exit.png")
 
 # Check if the session terminates.
 util.check_running()
