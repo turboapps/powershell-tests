@@ -12,25 +12,21 @@ util.pre_test()
 
 # Test of `turbo run`.
 wait("app-loaded.png",120)
-app_window = App().focus("Autodesk DWG TrueView 2025") # Activate and maximize the app window.
-if app_window.isValid():
-    type(Key.UP, Key.WIN)
-wait(3)
+click("app-loaded.png") # To gain focus.
+wait(10)
 type(Key.F4, Key.ALT) # Close app.
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "DWG TrueView"))
 wait("app-loaded.png",120)
-app_window = App().focus("Autodesk DWG TrueView 2025") # Activate and maximize the app window.
-if app_window.isValid():
-    type(Key.UP, Key.WIN)
-wait(3)
 click("app-loaded.png") # To gain focus.
-click(Pattern("app-loaded.png").targetOffset(-51,49))
+wait(10)
+type("o", Key.CTRL)
 wait("file-open.png")
 click("file-open.png")
-type(dwgfile_path + Key.ENTER)
+type(dwgfile_path)
+type(Key.ENTER)
 wait("dwg-tab.png")
 wait(5)
 type(Key.F1)
