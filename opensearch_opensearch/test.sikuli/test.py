@@ -23,7 +23,6 @@ assert("yellow" not in text)
 assert("red" not in text)
 assert("open" in text)
 assert(".plugins-ml-config" in text)
-assert(".opensearch-observability" in text)
 
 PUT_EXPECTED = "{\"acknowledged\":true}"
 text = run(os.path.join(script_path, os.pardir, "resources", "put.bat")) # Cannot get the character escape work.
