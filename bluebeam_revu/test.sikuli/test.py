@@ -51,14 +51,14 @@ wait("open-with.png")
 click(Pattern("open-with.png").targetOffset(-25,65))
 click("always.png")
 wait("gfx-warning.png",120)
-click(Pattern("gfx-warning.png").targetOffset(159,68))
+click("gfx-warning.png")
 wait("pdf-loaded.png")
 
 # Check "help".
 type(Key.F1)
 wait("help-window.png")
-type(Key.F4, Key.ALT)
-wait(10)
+closeApp("Revu")
+wait(20)
 
 # Check if the session terminates.
 util.check_running()
