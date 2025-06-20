@@ -15,29 +15,40 @@ credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resourc
 username = credentials.get("username")
 password = credentials.get("password")
 
+# Login to Adobe Creative Cloud Desktop
+util.launch_adobe_cc(username, password)
+
 # Test of `turbo run`.
-if exists("GPUSniffer_error.png"):
+run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
+wait(5)
+type('turbo run mediaencoder --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --name=test')
+type(Key.ENTER)
+
+# Minimize the command prompt
+App().focus("Command Prompt")
+type(Key.DOWN, Key.WIN)
+
+if exists("GPUSniffer_error.png",60):
     click(Pattern("GPUSniffer_error_close.png").targetOffset(-49,4))
-util.adobe_cc_login(username, password)
-wait("me_window.png")
+wait("me_window.png",15)
 type("q", Key.CTRL)
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Media Encoder"))
-if exists("GPUSniffer_error.png"):
+if exists("GPUSniffer_error.png",60):
     click(Pattern("GPUSniffer_error_close.png").targetOffset(-49,4))
 
 # Basic operations.
-wait("me_window.png")
+wait("me_window.png",15)
 wait(3)
 click("me_window.png") # To gain focus.
 type("i", Key.CTRL)
-wait("source_location.png")
+wait("source_location.png",10)
 type(os.path.join(script_path, os.pardir, "resources", "create-project-import-media", "create-project-import-media-step1.prproj") + Key.ENTER)
-wait("loaded.png")
+wait("loaded.png",10)
 type(Key.ENTER)
-wait("done.png")
+wait("done.png",10)
 wait(10)
 assert(util.file_exists(os.path.join(script_path, os.pardir, "resources", "create-project-import-media", "Master Sequence.mp4"), 5))
 
