@@ -22,28 +22,33 @@ run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.ln
 wait(5)
 type('turbo run photoshop --using=creativeclouddesktop,isolate-edge-wc --isolate=merge-user --offline --enable=disablefontpreload --name=test')
 type(Key.ENTER)
-if exists("grafx-warning.png"):
+
+# Minimize the command prompt
+App().focus("Command Prompt")
+type(Key.DOWN, Key.WIN)
+
+if exists("grafx-warning.png",90):
     click(Pattern("grafx-warning.png").targetOffset(255,11))
 run("turbo stop test")
-wait(30)
+wait(20)
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Photoshop"))
-if exists("grafx-warning.png"):
+if exists("grafx-warning.png",90):
     click(Pattern("grafx-warning.png").targetOffset(-298,9))
     click(Pattern("grafx-warning.png").targetOffset(255,11))
-wait("photoshop-menu-bar.png")
+wait("photoshop-menu-bar.png",15)
 
 # Basic operations.
 setAutoWaitTimeout(20)
 type("o", Key.CTRL)
-if exists("on-your-computer.png"):
+if exists("on-your-computer.png",15):
     click("on-your-computer.png")
-wait("file_location.png")
+wait("file_location.png",10)
 type(os.path.join(script_path, os.pardir, "resources", "sample.png") + Key.ENTER)
 wait(5)
 type("w", Key.ALT + Key.CTRL + Key.SHIFT)
-wait("export-button.png")
+wait("export-button.png",15)
 click("export-format-drop.png")
 click(Pattern("format-select.png").targetOffset(-46,53))
 wait(5)
@@ -52,7 +57,7 @@ wait(5)
 type(os.path.join(util.desktop, "export.gif") + Key.ENTER)
 wait(10)
 assert(util.file_exists(os.path.join(util.desktop, "export.gif"), 5))
-if exists("try-later-button.png"):
+if exists("try-later-button.png",10):
     click("try-later-button.png")
 type("q",Key.CTRL)
 wait(30)
