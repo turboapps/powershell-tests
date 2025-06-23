@@ -22,13 +22,16 @@ run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.ln
 wait(5)
 type('turbo run aftereffects --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
 type(Key.ENTER)
-click("widnow.png") # To gain focus. The windos is blocked by CMD window.
+
+# Minimize the command prompt
+App().focus("Command Prompt")
+type(Key.DOWN, Key.WIN)
+
 if exists("warning.png",180):
     click("warning.png")
     type(Key.ENTER)
-wait("new-file-button.png",180)
+wait("new-file-button.png",20)
 run("turbo stop test")
-closeApp("Command Prompt")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe After Effects"))
@@ -37,17 +40,16 @@ if exists("warning.png",180):
     type(Key.ENTER)
 
 # Basic operations.
-wait("new-file-button.png")
+wait("new-file-button.png",20)
 type("i",Key.CTRL)
 wait(5)
 type(os.path.join(script_path, os.pardir, "resources", "sample.mp4") + Key.ENTER)
-wait("sample-mp4.png")
+wait("sample-mp4.png",20)
 doubleClick(Pattern("sample-mp4.png").targetOffset(-6,7))
 
 # Check "Help".
 type(Key.F1)
-util.close_firewall_alert_continue(60)
-wait("help_url.png")
+wait("help_url.png",30)
 closeApp("Edge")
 type("q",Key.CTRL)
 click("save_no.png")

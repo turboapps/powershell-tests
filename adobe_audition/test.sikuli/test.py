@@ -22,13 +22,17 @@ run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.ln
 wait(5)
 type('turbo run audition --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
 type(Key.ENTER)
+
+# Minimize the command prompt
+App().focus("Command Prompt")
+type(Key.DOWN, Key.WIN)
+
 if exists("learn-panel.png",60):
     click(Pattern("learn-panel.png").targetOffset(8,-28))
     click("close-panel.png")
 wait(5)
 type("q",Key.CTRL)
 wait(5)
-closeApp("Command Prompt")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Audition"))
