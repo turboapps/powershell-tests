@@ -23,11 +23,16 @@ run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.ln
 wait(5)
 type('turbo run dreamweaver --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
 type(Key.ENTER)
+
+# Minimize the command prompt
+App().focus("Command Prompt")
+type(Key.DOWN, Key.WIN)
+
 if exists("introducing.png",90):
     click("introducing.png")
     type(Key.ESC)
 click(Pattern("sync_settings.png").targetOffset(-12,59))
-wait("dw_window.png")
+wait("dw_window.png",20)
 type("q", Key.CTRL)
 run("turbo stop test")
 
@@ -40,25 +45,28 @@ if exists("introducing.png",90):
     type(Key.ESC)
 click(Pattern("sync_settings.png").targetOffset(-12,59)) # To gain the focus.
 click(Pattern("sync_settings.png").targetOffset(-12,59))
-wait("dw_window.png")
+wait("dw_window.png",20)
 type("n", Key.CTRL)
 click(Pattern("new.png").targetOffset(0,4))
-wait("new_template.png")
+wait("new_template.png",20)
 type(Key.ENTER)
-wait("code.png")
+wait("code.png",60)
+click("code.png")
 type("s", Key.CTRL)
-wait("save_location.png")
+wait("save_location.png",20)
 type(save_path + Key.ENTER)
 wait(10)
 type("w", Key.CTRL + Key.SHIFT)
 type("o", Key.CTRL)
-wait("open_location.png")
+wait("open_location.png",20)
 type(save_path + Key.ENTER)
-wait("code.png")
+wait("code.png",20)
 
 # Check "help".
 type(Key.F1)
-wait("help_url.png")
+if exists("help-sign-in.png",30):
+    click("help-sign-in.png")
+wait("help_url.png",15)
 closeApp("Edge")
 wait(10)
 type("q", Key.CTRL)
