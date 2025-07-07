@@ -16,7 +16,7 @@ username = credentials.get("username")
 password = credentials.get("password")
 
 # Test of `turbo run`.
-wait("home_button.png",60)
+wait("home_button.png",90)
 wait(10)
 click(Pattern("close_pbi.png").targetOffset(42,-1))
 wait(5)
@@ -26,12 +26,12 @@ wait(5)
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.desktop, "Power BI Desktop"))
-wait("home_button.png",60)
+wait("home_button.png",90)
 click("sign_in.png")
 wait("sign_in_email.png")
 type(username)
 type(Key.ENTER)
-wait("sign_in_email_microsoft.png")
+wait("sign_in_email_microsoft.png",60)
 type(username)
 type(Key.ENTER)
 wait("sign_in_password.png")
