@@ -43,6 +43,8 @@ click("menu_help.png")
 wait("help_url.png")
 closeApp("Edge")
 type(Key.F4, Key.ALT)
+if exists("close-prompt.png",10):
+    click("close-prompt.png")
 wait(20)
 
 # Check if the session terminates.
