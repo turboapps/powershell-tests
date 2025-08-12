@@ -131,7 +131,7 @@ type(os.path.join(script_path, os.pardir, "resources", "hello_world.ts") + Key.E
 click("extensions_buttion.png")
 click(Pattern("extensions_search_typescript.png").targetOffset(-95,14))
 type("@id:dbaeumer.vscode-eslint")
-click(Pattern("extension_typescript.png").targetOffset(106,7))
+click(Pattern("extension_typescript.png").targetOffset(108,11))
 wait(Pattern("install_complete_1.png").similar(0.85), 240)
 click("es-lint-logo.png")
 click("tab_typescript.png")
