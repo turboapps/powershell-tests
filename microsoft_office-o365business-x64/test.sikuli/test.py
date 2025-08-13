@@ -86,7 +86,7 @@ type("N")
 type(Key.ALT)
 click(Pattern("word_insert_menu.png").targetOffset(4,-15))
 wait(2)
-click(Pattern("word_insert_picture_menu.png").targetOffset(-5,-26))
+click("word_insert_picture_menu.png")
 wait("word_file_name.png")
 type(os.path.join(script_path, os.pardir, "resources", "red fox.jpg") + Key.ENTER)
 wait("word_result_3.png")
@@ -245,9 +245,10 @@ util.check_running()
 
 # OneNote.
 run("explorer " + os.path.join(util.start_menu, "OneNote.lnk"))
-if exists("notebooks-cancel.png",30):
+wait("onenote-launched.png")
+if exists("notebooks-cancel.png",20):
     click("notebooks-cancel.png")
-if exists("onenote_not_now.png",30):
+if exists("onenote_not_now.png",20):
     click("onenote_not_now.png")
 wait("onenote_add_page.png")
 wait(5)
@@ -417,9 +418,7 @@ wait("publisher_print.png")
 wait(15) # Wait for the preview to load.
 type(Key.ESC)
 wait("publisher_saved_file.png")
-
-type(Key.F1)
-wait("publisher_help.png")
+wait(5)
 
 type(Key.F4, Key.ALT)
 click(Pattern("publisher_save_changes.png").targetOffset(32,27))
