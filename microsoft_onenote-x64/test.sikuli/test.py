@@ -43,11 +43,11 @@ click("office-sign-in.png")
 wait("sign-in-username.png")
 click(Pattern("sign-in-username.png").targetOffset(75,2))
 type(username + Key.ENTER)
-if exists("notebooks-cancel.png",20):
+wait("onenote-launched.png")
+if exists("notebooks-cancel.png",30):
     click("notebooks-cancel.png")
-wait("onenote_add_page.png")
-wait(5)
-click("onenote_add_page.png")
+wait("new-section.png")
+click("new-section.png")
 wait(5)
 type("Test" + Key.TAB)
 type("first line" + Key.ENTER)
@@ -91,12 +91,12 @@ type("p", Key.CTRL)
 wait("onenote_print.png")
 type(Key.ESC)
 wait("onenote_result_4.png")
+rightClick("quick-notes-notebook.png")
+click("delete-note.png")
+click("yes-delete.png")
 
 type(Key.F1)
 wait("onenote_help.png")
-
-rightClick("onenote_page.png")
-click("onenote_page_menu.png")
 wait(20) # Wait for syncing.
 
 type(Key.F4, Key.ALT)
