@@ -9,12 +9,12 @@ setAutoWaitTimeout(50)
 util.pre_test()
 
 # Test of `turbo run`.
-wait("code_window_0.png")
+wait("welcome-tab.png")
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Visual Studio Code", "Visual Studio Code.lnk"))
-wait("code_window_0.png")
+wait("welcome-tab.png")
 # Activate and maximize the app window.
 app_window = App().focus("Visual Studio Code")
 if app_window.isValid():
@@ -35,7 +35,7 @@ wait("install_complete_python.png", 300)
 type(Key.F4, Key.ALT)
 wait(10)
 run("explorer " + python_save_path)
-wait("tab_welcome.png")
+wait("tab-walkthrough.png")
 wait("restricted_mode_banner.png")
 wait(2)
 click(Pattern("restricted_mode_banner.png").targetOffset(219,2))
@@ -122,7 +122,7 @@ click(Pattern("run_1.png").targetOffset(-28,0))
 wait(Pattern("result.png").similar(0.80), 240)
 type("k", Key.CTRL)
 type("f")
-wait("code_window_1.png")
+wait("welcome-tab.png")
 
 # Extension for JavaScript/TypeScript.
 type("o", Key.CTRL)

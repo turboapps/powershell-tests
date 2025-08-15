@@ -22,6 +22,12 @@ run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.ln
 wait(5)
 type('turbo run premierepro --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
 type(Key.ENTER)
+
+# minimize the command prompt
+cmd_prompt = App().focus("Command Prompt")
+if cmd_prompt.isValid():
+    type(Key.DOWN, Key.WIN)
+    
 wait("pr_window.png", 180)
 run("turbo stop test")
 closeApp("Command Prompt")
