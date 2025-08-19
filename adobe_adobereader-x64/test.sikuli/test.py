@@ -52,7 +52,12 @@ if exists("reader_welcome.png",20):
 wait("reader_window.png")
 
 # Basic operations.
-doubleClick("pdf_example.png")
+type("o", Key.CTRL)
+wait("file-browse.png")
+welcomepdf = os.path.join(script_path, os.pardir, "resources", "welcomepdf.pdf")
+wait(3)
+type(welcomepdf)
+type(Key.ENTER)
 if exists("see_menu_options.png",10):
     click(Pattern("see_menu_options.png").targetOffset(-13,46))
 wait("reader_opened.png")
