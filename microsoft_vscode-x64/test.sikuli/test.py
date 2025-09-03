@@ -15,6 +15,7 @@ run("turbo stop test")
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Visual Studio Code", "Visual Studio Code.lnk"))
 wait("welcome-tab.png")
+click("welcome-tab.png")
 # Activate and maximize the app window.
 app_window = App().focus("Visual Studio Code")
 if app_window.isValid():
