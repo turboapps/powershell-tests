@@ -30,7 +30,6 @@ if cmd_prompt.isValid():
     
 wait("pr_window.png", 180)
 run("turbo stop test")
-closeApp("Command Prompt")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Premiere Pro"))

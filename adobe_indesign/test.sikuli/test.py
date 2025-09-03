@@ -44,6 +44,7 @@ if exists("welcome.png", 15):
 wait("new_file.png")
 wait(15)
 type("s", Key.CTRL)
+click(Pattern("save_cc.png").targetOffset(-93,0))
 wait("save_location.png")
 type(save_path + Key.ENTER)
 assert(util.file_exists(save_path, 5))
