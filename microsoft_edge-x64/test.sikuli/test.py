@@ -27,7 +27,7 @@ if app_window.isValid():
     type(Key.UP, Key.WIN)
 
 # Basic operations.
-click(Pattern("address-bar.png").targetOffset(28,-1))
+click(Pattern("address-bar.png").similar(0.50).targetOffset(28,-1))
 type("https://google.com/" + Key.ENTER)
 wait(Pattern("webpage.png").similar(0.60))
 wait(3)
