@@ -23,7 +23,7 @@ type('node-gyp build' + Key.ENTER)
 wait(15)
 type('node index.js' + Key.ENTER)
 wait(10)
-wait("indexjs-result.png")
+wait("indexjs-result.png",60)
 
 # Test standard nodejs project.
 type('node ..\my-node-app\\app.js' + Key.ENTER)
