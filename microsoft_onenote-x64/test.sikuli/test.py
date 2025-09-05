@@ -25,24 +25,34 @@ click(Pattern("sign-in-username.png").targetOffset(75,2))
 type(username + Key.ENTER)
 wait("office_signin_password.png")
 type(password + Key.ENTER)
-click("office-all-apps.png")
+if exists("office-all-apps.png",10):
+    click("office-all-apps.png")
+if exists("device-reg-done.png",15):
+    click("device-reg-done.png")
 if exists("office_signin_wrong.png"):
     type(Key.ENTER)
-else:
-    wait("office_signin_all_set.png")
+if exists("office_signin_all_set.png",10):
     type(Key.ENTER)
+if exists("privacy-close.png",10):
+    click("privacy-close.png")
 run("turbo stop test")
 
 # OneNote.
 run("explorer " + os.path.join(util.start_menu, "OneNote.lnk"))
 click("sign-in.png")
-if exists("sign-in-username.png"):
+if exists("sign-in-username.png",10):
     click(Pattern("sign-in-username.png").targetOffset(75,2))
     type(username + Key.ENTER)
+if exists("office_signin_password.png",10):
+    type(password + Key.ENTER)
 click("office-sign-in.png")
 wait("sign-in-username.png")
 click(Pattern("sign-in-username.png").targetOffset(75,2))
 type(username + Key.ENTER)
+if exists("office_signin_password.png",10):
+    type(password + Key.ENTER)
+if exists("privacy-close.png",10):
+    click("privacy-close.png")
 wait("onenote-launched.png")
 if exists("notebooks-cancel.png",30):
     click("notebooks-cancel.png")
@@ -91,10 +101,14 @@ type("p", Key.CTRL)
 wait("onenote_print.png")
 type(Key.ESC)
 wait("onenote_result_4.png")
-rightClick("quick-notes-notebook.png")
-click("delete-note.png")
-click("yes-delete.png")
-
+if exists("quick-notes-notebook.png",10):
+    rightClick("quick-notes-notebook.png")
+    click("delete-note.png")
+    click("yes-delete.png")
+if exists("new-section-1.png",10):
+    rightClick("new-section-1.png")
+    click("delete-note.png")
+    click("yes-delete.png")
 type(Key.F1)
 wait("onenote_help.png")
 wait(20) # Wait for syncing.
