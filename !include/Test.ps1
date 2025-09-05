@@ -214,6 +214,8 @@ Add-Type @"
     [WindowHandler]::ShowWindow($consoleHandle, $SW_MINIMIZE)
 
     CloseStartMenu
+    # Kill any OneDrive processes
+    taskkill /F /IM "onedrive*" /T
     ConfigureDefender
 }
 
