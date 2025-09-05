@@ -21,15 +21,16 @@ wait("office_signin_email.png")
 type(username + Key.ENTER)
 wait("office_signin_password.png")
 type(password + Key.ENTER)
-wait("yes-all-apps.png")
-click("yes-all-apps.png")
-if exists("office_signin_wrong.png"):
+if exists("yes-all-apps.png",10):
+    click("yes-all-apps.png")
+if exists("device-reg-done.png",15):
+    click("device-reg-done.png")
+if exists("office_signin_wrong.png",10):
     type(Key.ENTER)
-else:
-    wait("office_signin_all_set.png")
+if exists("office_signin_all_set.png",10):
     type(Key.ENTER)
-wait("privacy-close.png")
-click("privacy-close.png")
+if exists("privacy-close.png",10):
+    click("privacy-close.png")
 wait(5)
 wait("blank_project.png")
 type(Key.F4, Key.ALT)
@@ -41,7 +42,10 @@ if exists("office_signin.png"):
     click(Pattern("office_signin.png").targetOffset(-113,128))
     wait("office_signin_email.png")
     type(username + Key.ENTER)
-
+if exists("office_signin_password.png",10):
+    type(password + Key.ENTER)
+if exists("privacy-close.png",10):
+    click("privacy-close.png")
 # Basic operations.
 click("blank_project.png")
 click(Pattern("project_window.png").targetOffset(63,5))
