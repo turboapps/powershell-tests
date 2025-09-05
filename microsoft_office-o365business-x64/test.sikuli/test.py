@@ -47,7 +47,7 @@ if exists("office_signin.png",30):
     click(Pattern("office_signin.png").targetOffset(-114,106))
     wait("office_signin_email.png")
     type(username + Key.ENTER)
-if exists("office_signin_password.png"):
+if exists("office_signin_password.png",10):
     type(password + Key.ENTER)
 if exists("privacy-close.png",10):
     click("privacy-close.png")
