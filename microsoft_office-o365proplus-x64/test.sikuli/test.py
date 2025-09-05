@@ -25,10 +25,11 @@ wait("office_signin_password.png")
 type(password + Key.ENTER)
 if exists("yes-all-apps.png",10):
     click("yes-all-apps.png")
+if exists("device-reg-done.png",15):
+    click("device-reg-done.png")
 if exists("office_signin_wrong.png",15):
     type(Key.ENTER)
-else:
-    wait("office_signin_all_set.png")
+if exists("office_signin_all_set.png",10):
     type(Key.ENTER)
 if exists("privacy-close.png",10):
     click("privacy-close.png")
@@ -46,6 +47,10 @@ if exists("office_signin.png",30):
     click(Pattern("office_signin.png").targetOffset(-114,106))
     wait("office_signin_email.png")
     type(username + Key.ENTER)
+if exists("office_signin_password.png"):
+    type(password + Key.ENTER)
+if exists("privacy-close.png",10):
+    click("privacy-close.png")
 wait(10) # wait for welcome window to go away
 wait("word_window.png",15)
 click("word_window.png")
@@ -436,7 +441,8 @@ click(Pattern("outlook_add_account_2.png").targetOffset(-198,13)) # Get focus.
 click(Pattern("outlook_add_account_2.png").targetOffset(-182,-14))
 click(Pattern("outlook_add_account_2.png").targetOffset(0,14))
 
-if exists("outlook_got_it.png",30):
+wait(20)
+if exists("outlook_got_it.png",15):
     click("outlook_got_it.png")
 if exists("outlook_got_it.png",15):
     click("outlook_got_it.png")
