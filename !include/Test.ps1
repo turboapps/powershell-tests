@@ -31,13 +31,9 @@ function PrepareTest {
     # Uninstall all the apps installed by Turbo Client.
     turbo uninstalli -a
 
-    # Pull test related images. There won't be test under full isolation, so no need to pull clean.
+    # Reset client config
     turbo config --reset
-    turbo pull /xvm
-    turbo pull base
-    turbo pull sikulix/sikulixide
-    turbo pull oracle/jre-x64
-
+    
     # Point to the specified Turbo Server and log in.
     if (-not [string]::IsNullOrWhiteSpace($domain)) {
         turbo config --domain $domain
@@ -51,6 +47,12 @@ function PrepareTest {
     } else {
         Write-Host "API key not found in secrets.txt"
     }
+
+    # Pull test related images. There won't be test under full isolation, so no need to pull clean.
+    turbo pull /xvm
+    turbo pull base
+    turbo pull sikulix/sikulixide
+    turbo pull oracle/jre-x64
 }
 
 # Pull Turbo images (app image and images in the `--using` list).
