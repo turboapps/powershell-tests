@@ -9,22 +9,26 @@ setAutoWaitTimeout(50)
 util.pre_test()
 
 # Test of `turbo run`.
+# Note this test should be updated when APPQ-3938 is resolved
+run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
+wait(5)
+type('turbo run tdf/libreoffice --offline --enable=disablefontpreload --name=test')
+type(Key.ENTER)
+wait(30) # wait for the app to crash
+closeApp("Command Prompt")
+# run again after crash - it should launch fine the second time
+run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
+wait(5)
+type('turbo run tdf/libreoffice --offline --enable=disablefontpreload --name=test')
+type(Key.ENTER)
 wait("office-launched.png")
 run("turbo stop test")
 wait(10)
-
-# Test help.
-run("explorer " + os.path.join(util.start_menu, "LibreOffice", "LibreOffice Writer.lnk"))
-wait("help-menu.png")
-type(Key.F1)
-wait("read-help-online.png")
-click("read-help-online.png")
-wait("help-url.png")
-closeApp("Edge")
-type(Key.F4, Key.ALT)
-wait(5)
+closeApp("Command Prompt")
 
 # Test Office.
+run("explorer " + os.path.join(util.start_menu, "LibreOffice", "LibreOffice.lnk"))
+wait(30) # wait for crash
 run("explorer " + os.path.join(util.start_menu, "LibreOffice", "LibreOffice.lnk"))
 wait("office-launched.png")
 
@@ -33,7 +37,17 @@ click("writer-document.png")
 if exists("didyouknow.png"):
     click("tip_show_startup.png")
     click("tip_ok.png")
+
+# Test Help
+type(Key.F1)
+wait("read-help-online.png")
+click("read-help-online.png")
+wait("help-url.png")
+closeApp("Edge")
+
+# Test Writer functions
 wait("blank-page.png")
+click("blank-page.png")
 type("Test document")
 type(Key.HOME, Key.SHIFT)
 type("b", Key.CTRL)
