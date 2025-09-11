@@ -67,7 +67,7 @@ type(Key.F4, Key.ALT)
 run('explorer "https://google.com/"')
 click("webpage.png") # To gain focus.
 wait(2)
-wait("webpage.png")
+wait(Pattern("webpage.png").targetOffset(-23,19))
 wait(5)
 type("p", Key.CTRL)
 wait("print_window.png",60)

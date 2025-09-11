@@ -39,13 +39,11 @@ type(password)
 type(Key.ENTER)
 wait("yes-all-apps.png")
 click("yes-all-apps.png")
-if exists("sign_in_went_wrong.png"):
+if exists("sign_in_went_wrong.png",15):
     click("sign_in_continue.png")
-else:
-    wait("sign_in_all_set.png")
+if exists("sign_in_done.png",15):
     click("sign_in_done.png")
-wait(5)
-if exists(Pattern("collaborate_prompt.png").targetOffset(174,-36)):
+if exists(Pattern("collaborate_prompt.png").targetOffset(174,-36),15):
     click(Pattern("collaborate_prompt.png").targetOffset(174,-36))
 
 # Basic operations.
