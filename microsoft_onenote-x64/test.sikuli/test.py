@@ -39,16 +39,18 @@ run("turbo stop test")
 
 # OneNote.
 run("explorer " + os.path.join(util.start_menu, "OneNote.lnk"))
-click("sign-in.png")
+if exists("sign-in.png",30):
+    click("sign-in.png")
 if exists("sign-in-username.png",10):
     click(Pattern("sign-in-username.png").targetOffset(75,2))
     type(username + Key.ENTER)
 if exists("office_signin_password.png",10):
     type(password + Key.ENTER)
-click("office-sign-in.png")
-wait("sign-in-username.png")
-click(Pattern("sign-in-username.png").targetOffset(75,2))
-type(username + Key.ENTER)
+if exists("office-sign-in.png",10):
+    click("office-sign-in.png")
+if exists("sign-in-username.png",10):
+    click(Pattern("sign-in-username.png").targetOffset(75,2))
+    type(username + Key.ENTER)
 if exists("office_signin_password.png",10):
     type(password + Key.ENTER)
 if exists("privacy-close.png",10):
