@@ -32,7 +32,7 @@ dragDrop(Pattern("empty_canvas.png").targetOffset(-90,-66), Pattern("empty_canva
 wait("results_1.png")
 type("s", Key.CTRL)
 wait("save_location.png")
-type(util.desktop)
+paste(util.desktop)
 type(Key.ENTER)
 wait(3)
 type("test")
@@ -42,7 +42,8 @@ type("w", Key.CTRL)
 wait("empty_canvas.png")
 type("o", Key.CTRL)
 click(Pattern("open_location.png").targetOffset(35,-13))
-type(save_path + Key.ENTER)
+paste(save_path)
+type(Key.ENTER)
 wait("results_2.png")
 
 # Check "help".
