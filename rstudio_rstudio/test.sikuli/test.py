@@ -11,21 +11,19 @@ setAutoWaitTimeout(20)
 util.pre_test()
 
 # Test of `turbo run`.
-wait("r_source.png",60)
+wait("rstudio_window.png",60)
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "RStudio.lnk"))
 
 # Basic operations.
-wait("r_source.png",60)
-click(Pattern("r_source.png").targetOffset(90,158))
-wait("rstudio_window.png")
+wait("rstudio_window.png",60)
 App("RStudio").focus()
 type(Key.UP, Key.WIN) # Maximize cmd window.
 click("rstudio_window.png")
 type('install.packages("tidyverse")' + Key.ENTER)
-wait(5)
+wait(10)
 
 # There might be a prompt.
 App("Question").focus()
@@ -57,6 +55,9 @@ wait("project_template.png")
 type("r", Key.ALT + Key.CTRL)
 wait("project_run.png")
 click("project_run.png")
+type("install.packages(\"roxygen2\")")
+type(Key.ENTER)
+wait(10)
 type("b", Key.CTRL + Key.SHIFT)
 wait("project_build.png")
 
