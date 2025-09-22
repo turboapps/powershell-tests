@@ -19,6 +19,7 @@ run("turbo stop test")
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Chromium.lnk"))
 wait("chrome_window.png",120)
+wait(5)
 
 # Activate and maximize the app window.
 app_window = App().focus("Chromium")
@@ -27,19 +28,21 @@ if app_window.isValid():
 
 # Basic operations.
 type("l", Key.CTRL)
-type("https://google.com/" + Key.ENTER)
+paste("https://google.com/")
+type(Key.ENTER)
 wait("google-signin.png")
 wait(3)
 type("s", Key.CTRL)
 wait("save_type.png")
-type(os.path.join(util.desktop, "name with space"))
+paste(os.path.join(util.desktop, "name with space"))
 click("save_type.png")
 click("save_type_correct.png")
 type(Key.ENTER)
 assert(util.file_exists(os.path.join(util.desktop, "name with space.html"), 10))
 type(Key.ESC)
 type("l", Key.CTRL)
-type("chrome://settings/" + Key.ENTER)
+paste("chrome://settings/")
+type(Key.ENTER)
 wait("settings_page.png")
 
 # Check "help".
@@ -51,7 +54,8 @@ type("p", Key.CTRL)
 wait("print_window.png")
 click(Pattern("print_print.png").targetOffset(-28,8))
 wait("print_location.png")
-type(save_location + Key.ENTER)
+paste(save_location)
+type(Key.ENTER)
 assert(util.file_exists(save_location, 5))
 wait(5)
 type(Key.ESC)
