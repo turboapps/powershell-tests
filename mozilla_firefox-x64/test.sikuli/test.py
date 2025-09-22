@@ -22,7 +22,7 @@ wait("firefox_window.png")
 
 # Basic operations.
 type("https://google.com/" + Key.ENTER)
-wait("webpage.png")
+wait(Pattern("webpage.png").similar(0.60))
 wait(3)
 type("s", Key.CTRL)
 wait("save.png")
@@ -60,12 +60,12 @@ click("set-default.png")
 wait(3)
 type(Key.F4, Key.ALT)
 run("explorer " + os.path.join(util.desktop, "name with space.htm"))
-wait("webpage.png")
+wait(Pattern("webpage.png").similar(0.60))
 type("q", Key.CTRL + Key.SHIFT)
 run('explorer "https://google.com/"')
-wait("webpage.png")
+wait(Pattern("webpage.png").similar(0.60))
 wait(5)
-click("webpage.png") # To gain focus.
+click(Pattern("webpage.png").similar(0.60)) # To gain focus.
 wait(10)
 app_window = App().focus("Firefox")
 if app_window.isValid():
