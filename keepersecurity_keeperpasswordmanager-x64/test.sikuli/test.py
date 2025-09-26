@@ -27,17 +27,19 @@ run('explorer "' + os.path.join(util.start_menu, "Keeper Password Manager.lnk") 
 # Basic operations.
 click(Pattern("welcome.png").targetOffset(-90,0))
 click(Pattern("login_email.png").targetOffset(-184,50))
-type(username + Key.ENTER)
+paste(username)
+type(Key.ENTER)
 
 # It might be stuck at MFA.
 if exists("login_password.png"):
     wait("login_password.png")
-    type(password + Key.ENTER)
+    paste(password)
+    type(Key.ENTER)
     click(Pattern("get_started.png").targetOffset(145,133))
     wait("keeper_window.png")
     type("n", Key.CTRL)
     wait("new.png")
-    type("test")
+    paste("test")
     click(Pattern("new_top.png").targetOffset(0,37))
     click(Pattern("new_bottom.png").targetOffset(44,0))
     wait(3)
