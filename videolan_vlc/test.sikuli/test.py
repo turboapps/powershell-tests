@@ -47,6 +47,7 @@ wait(15) # It should not cause error.
 run("explorer " + os.path.join(util.start_menu, "VideoLAN", "VLC media player skinned.lnk"))
 wait("vlc_skinned_window.png")
 type("q", Key.CTRL)
+wait(20)
 
 # Check if the session terminates.
 util.check_running()

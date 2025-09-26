@@ -10,6 +10,11 @@ addImagePath(include_path)
 setAutoWaitTimeout(20)
 util.pre_test(no_min=True)
 
+# Minimize all windows then open the Turbo cmd prompt
+type("d", Key.WIN)
+wait(3)
+App().focus("C:\\WINDOWS\\system32\\cmd.exe")
+
 # Test.
 wait("dn_asp_rt_ready.png")
 run('explorer "http://localhost:5000"')

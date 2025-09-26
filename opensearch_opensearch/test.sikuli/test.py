@@ -10,6 +10,11 @@ addImagePath(include_path)
 setAutoWaitTimeout(30)
 util.pre_test(no_min=True)
 
+# Minimize all windows then open the Turbo cmd prompt
+type("d", Key.WIN)
+wait(3)
+App().focus("C:\\WINDOWS\\system32\\cmd.exe")
+
 # Warmup.
 wait(30)
 wait("opensearch_ready.png", 60)

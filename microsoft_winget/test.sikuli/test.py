@@ -8,17 +8,26 @@ addImagePath(include_path)
 setAutoWaitTimeout(50)
 util.pre_test(no_min=True)
 
+# Minimize all windows then open the Turbo cmd prompt
+type("d", Key.WIN)
+wait(3)
+App().focus("C:\\WINDOWS\\system32\\cmd.exe")
+
 # Test. Winget CMD window shows later so it is always on top.
 wait("winget.png")
-type("winget install wingetcreate" + Key.ENTER)
+paste("winget install wingetcreate")
+type(Key.ENTER)
 wait("agreements.png")
-type("Y" + Key.ENTER)
+paste("Y")
+type(Key.ENTER)
 wait("package_installed.png")
 
 # Check "help".
-type("winget --help" + Key.ENTER)
+paste("winget --help")
+type(Key.ENTER)
 wait("help.png")
-type("exit" + Key.ENTER)
+paste("exit")
+type(Key.ENTER)
 run("turbo stop test")
 wait(20)
 
@@ -29,6 +38,8 @@ assert("test" not in run("turbo sessions"))
 wait(3)
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk")) # launch another command prompt
 click("cmd.png")
-type("wingetcreate help" + Key.ENTER)
+paste("wingetcreate help")
+type(Key.ENTER)
 wait("wingetcreate_help.png")
-type("exit" + Key.ENTER)
+paste("exit")
+type(Key.ENTER)

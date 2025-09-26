@@ -8,11 +8,20 @@ reload(util)
 addImagePath(include_path)
 
 setAutoWaitTimeout(30)
-util.pre_test()
-util.pre_test()
+util.pre_test(no_min=True)
+
+# Minimize all windows then open the Turbo cmd prompt
+type("d", Key.WIN)
+wait(3)
+App().focus("C:\\WINDOWS\\system32\\cmd.exe")
+
+# Activate and maximize the app window.
+app_window = App().focus("MongoDB Compass")
+if app_window.isValid():
+    type(Key.UP, Key.WIN)
 
 # Test of `turbo run`.
-wait("add-connection-button.png",100)
+wait("add-connection-button.png")
 type("q", Key.CTRL)
 wait(3)
 type(Key.ENTER)
@@ -27,25 +36,28 @@ if app_window.isValid():
     type(Key.UP, Key.WIN)
 
 # Basic operations.
-wait("add-connection-button.png",100)
+wait("add-connection-button.png")
 click("add-connection-button.png")
 wait("connection-name.png")
 click("connection-name.png")
-type("mongotest" + Key.ENTER)
+paste("mongotest")
+type(Key.ENTER)
 click("connect-button.png")
 wait("server-name.png")
 click("server-name.png")
 wait("create-db-button.png")
 click("create-db-button.png")
 wait("db-name.png")
-type("testdb" + Key.TAB)
-type("testcollection" + Key.TAB)
+paste("testdb")
+type(Key.TAB)
+paste("testcollection")
+type(Key.TAB)
 click("createdb.png")
 wait("import-button.png")
 click("import-button.png")
 wait("file-browser.png")
 click("file-browser.png")
-type("%localappdata%\\turbo\\containers\\repo\\repos.json")
+paste("%localappdata%\\turbo\\containers\\repo\\repos.json")
 type(Key.ENTER)
 wait("import-confirm.png")
 click("import-confirm.png")
@@ -57,7 +69,7 @@ type("q", Key.CTRL)
 wait(3)
 type(Key.ENTER)
 run("turbo stop mongodbserver")
-wait(10)
+wait(20)
 
 # Check if the session terminates.
 util.check_running()

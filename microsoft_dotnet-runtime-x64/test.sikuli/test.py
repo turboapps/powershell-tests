@@ -10,9 +10,15 @@ addImagePath(include_path)
 setAutoWaitTimeout(20)
 util.pre_test(no_min=True)
 
+# Minimize all windows then open the Turbo cmd prompt
+type("d", Key.WIN)
+wait(3)
+App().focus("C:\\WINDOWS\\system32\\cmd.exe")
+
 # Test.
 wait("rt_ready.png")
-type(os.path.join(script_path, os.pardir, "resources", "TestConsole.exe-x64", "TestConsole.exe") + Key.ENTER)
+paste(os.path.join(script_path, os.pardir, "resources", "TestConsole.exe-x64", "TestConsole.exe"))
+type(Key.ENTER)
 wait("console_test.png")
 run("turbo stop test")
 wait(10)

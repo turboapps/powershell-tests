@@ -32,7 +32,7 @@ click(Pattern("help.png").targetOffset(245,-23))
 
 # Basic operations: zip.
 click(Pattern("address_bar.png").targetOffset(20,0))
-type(os.path.join(script_path, os.pardir, os.pardir, "!include"))
+paste(os.path.join(script_path, os.pardir, os.pardir, "!include"))
 type(Key.ENTER)
 click("folder.png")
 wait(3)
@@ -45,7 +45,8 @@ wait(3)
 click("zip_location.png")
 zip_folder = os.path.join(util.desktop, "7-zip-test")
 zip_path = os.path.join(zip_folder, "util.sikuli.zip")
-type(zip_path + Key.ENTER)
+paste(zip_path)
+type(Key.ENTER)
 assert(util.file_exists(zip_path, 3))
 type(Key.F4, Key.ALT)
 
