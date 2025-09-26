@@ -15,9 +15,11 @@ App().focus("C:\\WINDOWS\\system32\\cmd.exe")
 
 # Test of `turbo run` and command line mode.
 wait("cmd_window.png")
-type("java -jar C:\\tika\\tika-app.jar --help" + Key.ENTER)
+paste("java -jar C:\\tika\\tika-app.jar --help")
+type(Key.ENTER)
 wait("cmd_tika_help.png")
-type("java -jar C:\\tika\\tika-app.jar -t " + os.path.join(script_path, os.pardir, "resources", "sample.pdf") + Key.ENTER)
+paste("java -jar C:\\tika\\tika-app.jar -t " + os.path.join(script_path, os.pardir, "resources", "sample.pdf"))
+type(Key.ENTER)
 wait("cmd_tika_parsed.png")
 run("turbo stop test")
 
@@ -27,9 +29,10 @@ wait("tika_window.png")
 
 # Basic operations.
 click(Pattern("tika_menu_1.png").targetOffset(-21,1))
-click(Pattern("tika_menu_file.png").targetOffset(-15,-30))
+click(Pattern("tika_menu_file.png").targetOffset(-41,0))
 click(Pattern("file_name.png").targetOffset(36,1))
-type(os.path.join(script_path, os.pardir, "resources", "sample.pdf") + Key.ENTER)
+paste(os.path.join(script_path, os.pardir, "resources", "sample.pdf"))
+type(Key.ENTER)
 wait("tika_parsed.png")
 
 # Check "help".
@@ -38,7 +41,7 @@ click("tika_menu_help.png")
 wait("tika_help.png")
 type(Key.F4, Key.ALT)
 click(Pattern("tika_menu_1.png").targetOffset(-21,1))
-click(Pattern("tika_menu_file.png").targetOffset(-23,31))
+click(Pattern("exit.png").targetOffset(-33,0))
 
 # Check if the session terminates.
 util.check_running()
