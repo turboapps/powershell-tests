@@ -10,10 +10,10 @@ addImagePath(include_path)
 setAutoWaitTimeout(30)
 util.pre_test(no_min=True)
 
-# Minimize all windows then open the Turbo cmd prompt
-type("d", Key.WIN)
-wait(3)
-App().focus("C:\\WINDOWS\\system32\\cmd.exe")
+# Minimize the sikulix console
+if exists("sikulix-console.png"):
+    App().focus("java.exe")
+    type(Key.DOWN, Key.WIN)
 
 # Test.
 wait("sdk_ready.png")

@@ -10,6 +10,11 @@ addImagePath(include_path)
 setAutoWaitTimeout(20)
 util.pre_test(no_min=True)
 
+# Minimize the sikulix console
+if exists("sikulix-console.png"):
+    App().focus("java.exe")
+    type(Key.DOWN, Key.WIN)
+
 # Test of `turbo run`.
 wait("jre_cmd.png")
 run("turbo stop test")

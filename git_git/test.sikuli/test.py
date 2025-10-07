@@ -10,6 +10,11 @@ repo_path = os.path.join(util.desktop, "Hello-World")
 setAutoWaitTimeout(30)
 util.pre_test(no_min=True)
 
+# Minimize the sikulix console
+if exists("sikulix-console.png"):
+    App().focus("java.exe")
+    type(Key.DOWN, Key.WIN)
+
 # Test of `turbo run`.
 wait("git-cmd-prompt.png")
 type("git -help" + Key.ENTER)
