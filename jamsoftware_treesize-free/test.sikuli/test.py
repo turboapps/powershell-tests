@@ -22,33 +22,33 @@ wait("select-directory.png")
 type("f", Key.ALT)
 wait(3)
 type("d")
-wait(3)
-type(include_path + Key.ENTER)
-wait("location.png")
-click("select-folder-button.png")
+wait("selected-path.png")
+click("selected-path.png")
+paste(include_path)
+type(Key.ENTER)
 wait("100-percent.png")
 # check that updates are disabled
 click("help-menu.png")
 wait("disabled-update-button.png")
 click("show-help.png")
 wait("help-window.png")
+click("help-window.png")
 # Close Help
 type(Key.F4, Key.ALT)
 wait(3)
 # Close app
+app_window = App().focus("TreeSize Free")
+wait(3)
 type(Key.F4, Key.ALT)
 
 # Test shell context menu
 run("explorer c:\\")
 rightClick("sikuli-folder.png")
 click("context-menu.png")
+wait("select-directory.png")
 # Activate and maximize the app window.
 app_window = App().focus("TreeSize Free")
-if app_window.isValid():
-    type(Key.UP, Key.WIN)
-
 wait("100-percent.png")
-
 type(Key.F4, Key.ALT)
 wait(5)
 
