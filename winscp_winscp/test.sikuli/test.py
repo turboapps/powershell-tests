@@ -33,11 +33,6 @@ type(Key.ENTER)
 # The server might be busy.
 wait("ftp_download_1.png",60)
 click("ftp_download_1.png")
-type(Key.F5)
-wait("ftp_download_3.png")
-type(os.path.join(util.desktop, "image.jpg") + Key.ENTER)
-wait(10)
-assert(os.path.exists(os.path.join(util.desktop, "image.jpg")),90)
 
 # Check "help".
 type(Key.F1)

@@ -11,7 +11,7 @@ setAutoWaitTimeout(30)
 util.pre_test(no_min=True)
 
 # Minimize the sikulix console
-if exists("sikulix-console.png"):
+if exists("sikulix-console.png",15):
     App().focus("java.exe")
     type(Key.DOWN, Key.WIN)
 

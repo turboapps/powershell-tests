@@ -6,7 +6,13 @@ reload(util)
 addImagePath(include_path)
 
 setAutoWaitTimeout(30)
-util.pre_test()
+util.pre_test(no_min=True)
+
+# Minimize the sikulix console
+if exists("sikulix-console.png",15):
+    click("sikulix-console.png")
+    wait(2)
+    type(Key.DOWN, Key.WIN)
 
 # Test turbo run
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))

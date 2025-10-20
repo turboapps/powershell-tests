@@ -9,8 +9,9 @@ setAutoWaitTimeout(60)
 util.pre_test(no_min=True)
 
 # Minimize the sikulix console
-if exists("sikulix-console.png",20):
-    App().focus("java.exe")
+if exists("sikulix-console.png",15):
+    click("sikulix-console.png")
+    wait(2)
     type(Key.DOWN, Key.WIN)
 
 output_path = os.path.join(util.desktop, "cat-mummies.mp4")

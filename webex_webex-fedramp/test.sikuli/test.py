@@ -26,8 +26,15 @@ type(Key.F4, Key.ALT)
 run('explorer "https://meet361.webex.com/meet/pr26330258604"')
 click(Pattern("url_handler.png").targetOffset(129,50))
 closeApp("Edge")
-wait("join-meet.png")
+if exists(Pattern("mic-ok.png").similar(0.90),20):
+    click(Pattern("mic-ok.png").similar(0.90))
+wait("join-meet.png",20)
+click("join-meet.png")
+wait(3)
 type(Key.F4, Key.ALT)
+wait("fedramp-login.png",20)
+type(Key.F4, Key.ALT)
+os.system('cmd /c taskkill /f /im "webexhost.exe" /t')
 wait(20)
 
 # Check if the session terminates.
