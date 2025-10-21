@@ -43,11 +43,17 @@ wait(40) # libreoffice crashes on first launch
 paste('turbo run tdf/libreoffice -d --enable=disablefontpreload -- ' + os.path.join(util.desktop, "manual.docx"))
 type(Key.ENTER)
 wait("docx-sample.png",180)
+wait(10)
+if exists("welcome.png",30):
+    click("welcome.png")
+    wait(2)
+    type(Key.F4, Key.ALT)
 if exists("did-u-know.png",15):
     click("did-u-know.png")
     wait(5)
     type(Key.ENTER)
     wait(3)
+click("docx-sample.png")
 type(Key.F4, Key.ALT)
 wait(5)
 
