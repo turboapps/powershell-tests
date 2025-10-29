@@ -20,7 +20,7 @@ util.launch_adobe_cc(username, password)
 # Test of `turbo run`.
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
 wait(5)
-type('turbo run photoshop --using=creativeclouddesktop,isolate-edge-wc --isolate=merge-user --offline --enable=disablefontpreload --name=test')
+paste('turbo run photoshop --using=creativeclouddesktop,isolate-edge-wc --isolate=merge-user --offline --enable=disablefontpreload --name=test')
 type(Key.ENTER)
 
 # Minimize the command prompt
@@ -45,7 +45,8 @@ type("o", Key.CTRL)
 if exists("on-your-computer.png",15):
     click("on-your-computer.png")
 wait("file_location.png",10)
-type(os.path.join(script_path, os.pardir, "resources", "sample.png") + Key.ENTER)
+paste(os.path.join(script_path, os.pardir, "resources", "sample.png"))
+type(Key.ENTER)
 wait(5)
 type("w", Key.ALT + Key.CTRL + Key.SHIFT)
 wait("export-button.png",15)
@@ -54,7 +55,8 @@ click(Pattern("format-select.png").targetOffset(-46,53))
 wait(5)
 click(Pattern("export-button.png").targetOffset(1,2))
 wait(5)
-type(os.path.join(util.desktop, "export.gif") + Key.ENTER)
+paste(os.path.join(util.desktop, "export.gif"))
+type(Key.ENTER)
 wait(10)
 assert(util.file_exists(os.path.join(util.desktop, "export.gif"), 5))
 if exists("try-later-button.png",10):
