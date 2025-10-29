@@ -17,6 +17,7 @@ if exists("sikulix-console.png",15):
 # Test. Winget CMD window shows later so it is always on top.
 wait("winget.png")
 paste("winget install wingetcreate")
+wait(5)
 type(Key.ENTER)
 wait("agreements.png")
 paste("Y")
