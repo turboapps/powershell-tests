@@ -21,7 +21,7 @@ util.launch_adobe_cc(username, password)
 # Test turbo run
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
 wait(5)
-type('turbo run indesign --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+paste('turbo run indesign --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
 type(Key.ENTER)
 wait("indesign_window.png",300)
 run("turbo stop test")
@@ -30,7 +30,6 @@ closeApp("Command Prompt")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe InDesign"))
-#wait(180) # It's a bug that InDesign Launch is super slow.
 
 # Basic operations.
 wait("indesign_window.png",300)
@@ -44,9 +43,10 @@ if exists("welcome.png", 15):
 wait("new_file.png")
 wait(15)
 type("s", Key.CTRL)
-click(Pattern("save_cc.png").targetOffset(-93,0))
+click("save_cc.png")
 wait("save_location.png")
-type(save_path + Key.ENTER)
+paste(save_path)
+type(Key.ENTER)
 assert(util.file_exists(save_path, 5))
 run("explorer " + os.path.join(script_path, os.pardir, "resources", "Save.indd"))
 wait("missing_fonts.png",120)
