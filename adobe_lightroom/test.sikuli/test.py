@@ -19,31 +19,37 @@ util.launch_adobe_cc(username, password)
 
 # Test turbo run
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
+wait(10)
+paste('turbo run lightroom --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
 wait(5)
-type('turbo run lightroom --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
 type(Key.ENTER)
-if exists("new_feature.png"):
+wait("lightroom_window.png")
+if exists("new_feature.png",15):
     click(Pattern("new_feature.png").targetOffset(485,-3))
+if exists("got_it.png",10):
+    click("got_it.png")
 wait("lightroom_window.png")
 run("turbo stop test")
 closeApp("Command Prompt")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Adobe Lightroom.lnk"))
-if exists("new_feature.png"):
-    click(Pattern("new_feature.png").targetOffset(485,-3))
-
-# Basic operations.
 wait("lightroom_window.png")
-wait("cloud_photo.png")
-wait(5)
-click(Pattern("lightroom_window.png").targetOffset(43,-134))
-if exists("got_it.png"):
-    click(Pattern("got_it.png").targetOffset(0,9))
-click(Pattern("local.png").targetOffset(35,0))
+if exists("new_feature.png",15):
+    click(Pattern("new_feature.png").targetOffset(485,-3))
+if exists("got_it.png",10):
+    click("got_it.png")
+wait("lightroom_window.png")
+click("local.png")
+if exists("got_it.png",10):
+    click("got_it.png")
+if exists("got_it.png",10):
+    click("got_it.png")
+click("browse.png")
 click("local_open.png")
 wait("import_location.png")
-type(os.path.join(script_path, os.pardir, "resources", "Nikon-D3500-Shotkit.NEF") + Key.ENTER)
+paste(os.path.join(script_path, os.pardir, "resources", "Nikon-D3500-Shotkit.NEF"))
+type(Key.ENTER)
 wait("local_photo.png")
 click("edit.png")
 wait(2) # Wait for Edit panel to load.
@@ -55,7 +61,8 @@ click("export.png")
 wait(30) # This can be slow.
 click("export_jpg.png")
 wait("export_location.png")
-type("%USERPROFILE%\\Desktop" + Key.ENTER)
+paste("%USERPROFILE%\\Desktop")
+type(Key.ENTER)
 click("export_confirm.png")
 
 # Check "help".

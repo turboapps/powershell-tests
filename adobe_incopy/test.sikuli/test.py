@@ -5,7 +5,7 @@ import util
 reload(util)
 addImagePath(include_path)
 
-setAutoWaitTimeout(90)
+setAutoWaitTimeout(45)
 save_path = os.path.join(util.desktop, "test.icml")
 
 util.pre_test()
@@ -20,37 +20,37 @@ util.launch_adobe_cc(username, password)
 
 # Test of `turbo run`.
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
-wait(5)
-type('turbo run incopy --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --name=test')
+wait(10)
+paste('turbo run incopy --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --name=test')
+wait(3)
 type(Key.ENTER)
-wait("incopy_window.png", 120)
+wait("incopy_window.png",120)
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe InCopy"))
-wait(120)
 
 # Basic operations.
-wait("incopy_window.png")
+wait("incopy_window.png",120)
 type("n", Key.CTRL)
 wait("new_document.png")
 type(Key.ENTER)
 wait("new_file.png")
-type("test")
+paste("test")
 click(Pattern("new_file.png").targetOffset(61,12))
 wait("layout_view.png")
-type("s", Key.CTRL)
+type("s", Key.CTRL + Key.SHIFT)
 wait("save_location.png")
-type(save_path + Key.ENTER)
+paste(save_path)
+type(Key.ENTER)
 wait("user.png")
-type("turbo" + Key.ENTER)
+paste(save_path) 
+type(Key.ENTER)
 assert(util.file_exists(save_path, 5))
 type("q", Key.CTRL)
-
 wait(30)
 run("explorer " + save_path)
-wait(120)
-wait(Pattern("untitled-1.png").similar(0.85))
+wait("untitled-1.png",120)
 
 # Check "help".
 type(Key.F1)
