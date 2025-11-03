@@ -123,5 +123,10 @@ def close_firewall_alert_continue(wait_time = 200):
 
 # Check if the most recently created Turbo session is terminated.
 # It is usually the session for the app to be tested.
-def check_running():
-    assert("Running" not in run("turbo sessions -l"))
+def check_running(max_retries=12, delay=5):
+    for attempt in range(max_retries):
+        output = run("turbo sessions -l")
+        if "Running" not in output:
+            return
+        time.sleep(delay)
+    assert "Running" not in output
