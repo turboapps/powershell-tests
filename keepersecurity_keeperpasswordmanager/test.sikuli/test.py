@@ -55,9 +55,8 @@ click(Pattern("menu.png").targetOffset(25,-1))
 click(Pattern("menu_help.png").targetOffset(-50,-14))
 wait("help_url.png")
 closeApp("Edge")
-type(Key.F4, Key.ALT)
-click(Pattern("quit.png").targetOffset(8,49))
-wait(30)
+click("keeper-title-bar.png")
+type("q", Key.CTRL)
 
 # Check if the session terminates.
 util.check_running()

@@ -17,7 +17,7 @@ wait(5)
 # Convert website to text file
 paste('turbo run pandoc --offline --isolate=merge-user -- -s -r html https://pandoc.org/MANUAL.html -o "%userprofile%\\desktop\\MANUAL.txt"')
 type(Key.ENTER)
-wait(30)
+assert(util.file_exists(sample_file, 60))
 # Convert text file to HTML
 paste('turbo run pandoc --offline --isolate=merge-user -- -s ' + sample_file + ' -o "%userprofile%\\desktop\\manual.html"')
 type(Key.ENTER)

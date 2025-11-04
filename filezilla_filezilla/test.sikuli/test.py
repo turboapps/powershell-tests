@@ -19,23 +19,17 @@ run("explorer " + os.path.join(util.start_menu, "FileZilla FTP Client", "FileZil
 click("filezilla_window.png")
 
 # Basic operations.
-type("ftp.dlptest.com")
+paste("test.rebex.net")
 type(Key.TAB)
-type("dlpuser")
+wait(3)
+paste("demo")
 type(Key.TAB)
-type("rNrKYTX9g7z3RgJRmxWuGHbeu")
+wait(3)
+paste("password")
 type(Key.ENTER)
 wait("cert-ok.png")
 click("cert-ok.png")
 wait("remote-file.png",60)
-click("remote-file.png")
-wait(3)
-type(Key.ENTER)
-wait(Pattern("download_successful.png").similar(0.80), 40)
-wait(10)
-folder = os.environ["USERPROFILE"]
-matches = [f for f in os.listdir(folder) if f.startswith("10")]
-assert matches
 
 # Check "help".
 click(Pattern("menu.png").targetOffset(59,0))

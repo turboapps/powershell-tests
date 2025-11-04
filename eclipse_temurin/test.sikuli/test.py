@@ -8,12 +8,13 @@ reload(util)
 addImagePath(include_path)
 
 setAutoWaitTimeout(20)
-util.pre_test()
+util.pre_test(no_min=True)
 
-# Minimize all windows then open the Turbo cmd prompt
-type("d", Key.WIN)
-wait(3)
-App().focus("C:\\WINDOWS\\system32\\cmd.exe")
+# Minimize the sikulix console
+if exists("sikulix-console.png",15):
+    click("sikulix-console.png")
+    wait(2)
+    type(Key.DOWN, Key.WIN)
 
 # Test of `turbo run`.
 wait("jre_cmd.png")
@@ -25,9 +26,11 @@ run("explorer " + os.path.join(util.start_menu, "Temurin JDK.lnk"))
 # Basic operations.
 click("jre_cmd.png")
 type(Key.ENTER)
-type("java -version" + Key.ENTER)
+paste("java -version")
+type(Key.ENTER)
 wait("temurin-version.png")
-type('java -jar "' + os.path.join(script_path, os.pardir, "resources", "HelloWorld.jar") + '"' + Key.ENTER)
+paste('java -jar "' + os.path.join(script_path, os.pardir, "resources", "HelloWorld.jar") + '"')
+type(Key.ENTER)
 wait("hello_world.png")
 type(Key.F4, Key.ALT)
 wait(10)
