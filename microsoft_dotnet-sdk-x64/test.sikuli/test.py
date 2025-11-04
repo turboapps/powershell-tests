@@ -19,6 +19,7 @@ if exists("sikulix-console.png",15):
 # Test.
 wait("sdk_ready.png")
 paste('dotnet new console -n TestConsole -o "%USERPROFILE%\Desktop\dotnet\project"')
+wait(3)
 type(Key.ENTER)
 wait("restore_succeeded.png")
 run("turbo stop test")

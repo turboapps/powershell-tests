@@ -19,6 +19,7 @@ if exists("sikulix-console.png",15):
 # Test.
 wait("rt_ready.png")
 paste(os.path.join(script_path, os.pardir, "resources", "TestConsole.exe-x86", "TestConsole.exe"))
+wait(3)
 type(Key.ENTER)
 wait("console_test.png")
 run("turbo stop test")
