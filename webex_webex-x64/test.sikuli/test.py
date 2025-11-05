@@ -11,13 +11,14 @@ setAutoWaitTimeout(60)
 util.pre_test()
 
 # Test of `turbo run`.
-wait("webex_eula.png")
+wait("webex_eula.png",120)
 click(Pattern("webex_eula.png").targetOffset(-94,242))
 wait("webex_window.png")
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Webex", "Webex.lnk"))
+wait("webex_eula.png",120)
 click(Pattern("webex_eula.png").targetOffset(-94,242))
 wait("webex_window.png")
 type(Key.F4, Key.ALT)
