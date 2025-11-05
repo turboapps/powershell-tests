@@ -6,19 +6,22 @@ reload(util)
 addImagePath(include_path)
 
 setAutoWaitTimeout(30)
-util.pre_test()
+util.pre_test(no_min=True)
 
-# Minimize all windows then open the Turbo cmd prompt
-type("d", Key.WIN)
-wait(3)
-App().focus("C:\\WINDOWS\\system32\\cmd.exe")
+# Minimize the sikulix console
+if exists("sikulix-console.png",15):
+    click("sikulix-console.png")
+    wait(2)
+    type(Key.DOWN, Key.WIN)
 
 # Test of `turbo run` and command line mode.
 wait("cmd_window.png")
 paste("java -jar C:\\tika\\tika-app.jar --help")
+wait(3)
 type(Key.ENTER)
 wait("cmd_tika_help.png")
 paste("java -jar C:\\tika\\tika-app.jar -t " + os.path.join(script_path, os.pardir, "resources", "sample.pdf"))
+wait(3)
 type(Key.ENTER)
 wait("cmd_tika_parsed.png")
 run("turbo stop test")
@@ -32,6 +35,7 @@ click(Pattern("tika_menu_1.png").targetOffset(-21,1))
 click(Pattern("tika_menu_file.png").targetOffset(-41,0))
 click(Pattern("file_name.png").targetOffset(36,1))
 paste(os.path.join(script_path, os.pardir, "resources", "sample.pdf"))
+wait(3)
 type(Key.ENTER)
 wait("tika_parsed.png")
 
