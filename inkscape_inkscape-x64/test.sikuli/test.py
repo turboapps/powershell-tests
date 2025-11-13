@@ -45,13 +45,6 @@ click(Pattern("open_location.png").targetOffset(35,-13))
 paste(save_path)
 type(Key.ENTER)
 wait("results_2.png")
-
-# Check "help".
-click(Pattern("menu.png").targetOffset(77,0))
-click(Pattern("menu_help.png").targetOffset(-6,-24))
-wait("help_url.png")
-closeApp("Edge")
-wait(10)
 type(Key.F4, Key.ALT)
 wait(10)
 

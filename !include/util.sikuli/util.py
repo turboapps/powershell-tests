@@ -49,25 +49,27 @@ def launch_adobe_cc(username, password):
 
 # Log in for Adobe Creative Cloud.
 def adobe_cc_login(username, password):
-    wait(Pattern("adobe_login.png").similar(0.60), 90)
-    wait(30)
+    wait(Pattern("adobe_login.png").similar(0.60),30)
+    click("cancel-button.png")
+    wait(20)
+    wait(Pattern("adobe_login.png").similar(0.60),10)
     click(Pattern("adobe_login.png").similar(0.60))
     wait(3)
     paste(username)
     wait(3)
     type(Key.ENTER)
-    wait(Pattern("adobe_login_pass.png").similar(0.60), 90)
+    wait(Pattern("adobe_login_pass.png").similar(0.60),15)
     wait(3)
     click(Pattern("adobe_login_pass.png").similar(0.60))
     wait(3)
     paste(password)
     wait(3)
     type(Key.ENTER)
-    if exists("adobe_login_signout_others.png", 15):
-        click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
-        click(Pattern("adobe_login_continue.png").similar(0.90))
-    if exists("adobe_login_team.png"):
-        click(Pattern("adobe_login_continue.png").similar(0.90))
+    #if exists("adobe_login_signout_others.png", 15):
+    #    click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
+    #    click(Pattern("adobe_login_continue.png").similar(0.90))
+    #if exists("adobe_login_team.png"):
+    #    click(Pattern("adobe_login_continue.png").similar(0.90))
 
 # Get the path of the shortcut for the apps that have different shortcut names for different versions.
 # Assume there is only one match inside the folder.

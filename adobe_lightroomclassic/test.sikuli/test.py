@@ -5,7 +5,7 @@ import util
 reload(util)
 addImagePath(include_path)
 
-setAutoWaitTimeout(90)
+setAutoWaitTimeout(20)
 
 util.pre_test()
 
@@ -20,35 +20,49 @@ util.launch_adobe_cc(username, password)
 # Test of `turbo run`.
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
 wait(5)
-type('turbo run lightroomclassic --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --name=test')
+paste('turbo run lightroomclassic --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --name=test')
 type(Key.ENTER)
 
 # Minimize the command prompt
 App().focus("Command Prompt")
 type(Key.DOWN, Key.WIN)
 
-if exists("whats_new_close.png",90):
-    click("whats_new_close.png")
-if exists("getting_started.png",15):
-    click(Pattern("getting_started.png").targetOffset(186,-18))
-wait(15)
+wait("whats_new.png",120)
+click("whats_new.png")
+wait(30)
+click("whats_new.png")
+type(Key.ESC)
+wait("getting_started.png",20)
+wait(3)
+type(Key.ESC)
+wait("lightroomcc_window.png",30)
+type("q", Key.CTRL)
+click(Pattern("quit.png").targetOffset(101,28))
 run("turbo stop test")
-wait(10)
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Adobe Lightroom Classic.lnk"))
-if exists("whats_new_close.png",90):
-    click("whats_new_close.png")
-if exists("getting_started.png",15):
-    click(Pattern("getting_started.png").targetOffset(186,-18))
+wait("whats_new.png",120)
+click("whats_new.png")
+wait(30)
+click("whats_new.png")
+type(Key.ESC)
+wait("getting_started.png",20)
+wait(3)
+type(Key.ESC)
 
 # Basic operations.
 wait("lightroomcc_window.png",30)
+wait(5)
 type("i", Key.CTRL + Key.SHIFT)
+wait("culling-tip.png",30)
+wait(5)
+type(Key.ESC)
 click("import_select_source.png")
 click("import_select_source_menu.png")
 wait("import_location.png",20)
-type(os.path.join(script_path, os.pardir, "resources") + Key.ENTER)
+paste(os.path.join(script_path, os.pardir, "resources"))
+type(Key.ENTER)
 wait(2)
 type(Key.ENTER)
 wait("import_thumbnail.png",10)
@@ -56,10 +70,7 @@ click("import_import.png")
 wait("import_done.png",20)
 type("d")
 wait(2) # Wait for Edit panel to load.
-if exists("develop_mode.png",30):
-    click(Pattern("develop_mode.png").targetOffset(181,-96))
-if exists("point_color.png",15):
-    click(Pattern("point_color.png").targetOffset(219,-54))
+click(Pattern("develop_mode.png").targetOffset(181,-96),15)
 type("r")
 wait(2)
 type("x")
