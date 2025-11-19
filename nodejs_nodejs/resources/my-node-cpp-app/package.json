@@ -1,0 +1,19 @@
+{
+  "name": "my-node-cpp-app",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "install": "node-gyp rebuild"
+  },
+  "dependencies": {
+    "bindings": "^1.5.0",
+    "node-addon-api": "^8.5.0",
+    "node-gyp": "^12.1.0"
+  },
+  "gypfile": true,
+  "type": "commonjs",
+  "description": "",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

@@ -1,4 +1,3 @@
-const addon = require('./build/Release/addon');
+const addon = require('bindings')('addon');
 
-console.log("Addon loaded:", addon);
-console.log("Result from addon.hello():", addon.hello());
+console.log(addon.hello());

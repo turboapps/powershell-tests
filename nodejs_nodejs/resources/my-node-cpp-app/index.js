@@ -1,3 +1,3 @@
-const addon = require('./build/Release/addon');
+const addon = require('bindings')('addon');
 
-console.log(addon.hello()); // Output: "Hello, world!"
+console.log(addon.hello());

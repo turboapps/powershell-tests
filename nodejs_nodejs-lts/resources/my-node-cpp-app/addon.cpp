@@ -1,16 +1,16 @@
-#include <nan.h>
+#include <napi.h>
 #include <iostream>
 
-void Hello(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    std::cout << "Hello function called!" << std::endl; // Log to console
-    info.GetReturnValue().Set(Nan::New("Hello, World!").ToLocalChecked());
+Napi::String HelloWrapped(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    std::cout << "Hello function called!" << std::endl; // logs to console
+    return Napi::String::New(env, "Hello, World!");
 }
 
-void Init(v8::Local<v8::Object> exports, v8::Local<v8::Value> module, v8::Local<v8::Context> context) {
-    exports->Set(context,
-                 Nan::New("hello").ToLocalChecked(),
-                 Nan::New<v8::FunctionTemplate>(Hello)->GetFunction(context).ToLocalChecked());
+Napi::Object Init(Napi::Env env, Napi::Object exports) {
+    exports.Set(Napi::String::New(env, "hello"),
+                Napi::Function::New(env, HelloWrapped));
+    return exports;
 }
 
-NODE_MODULE_CONTEXT_AWARE(addon, Init)
-
+NODE_API_MODULE(addon, Init)
