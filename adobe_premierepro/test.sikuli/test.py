@@ -5,7 +5,7 @@ import util
 reload(util)
 addImagePath(include_path)
 
-setAutoWaitTimeout(90)
+setAutoWaitTimeout(30)
 
 util.pre_test()
 
@@ -20,7 +20,8 @@ util.launch_adobe_cc(username, password)
 # Test turbo run
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
 wait(5)
-type('turbo run premierepro --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+paste('turbo run premierepro --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+wait(2)
 type(Key.ENTER)
 
 # minimize the command prompt
@@ -39,7 +40,9 @@ wait("pr_window.png", 180)
 click("pr_window.png") # To gain focus.
 type("o", Key.CTRL)
 wait("location.png")
-type(os.path.join(script_path, os.pardir, "resources", "create-project-import-media", "create-project-import-media-step1.prproj") + Key.ENTER)
+paste(os.path.join(script_path, os.pardir, "resources", "create-project-import-media", "create-project-import-media-step1.prproj"))
+wait(2)
+type(Key.ENTER)
 wait("convert_prompt.png")
 click("ok-button.png")
 if exists("no_output_device.png",30):

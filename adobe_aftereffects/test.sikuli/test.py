@@ -20,30 +20,39 @@ util.launch_adobe_cc(username, password)
 # Test turbo run
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
 wait(5)
-type('turbo run aftereffects --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+paste('turbo run aftereffects --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+wait(2)
 type(Key.ENTER)
 
 # Minimize the command prompt
 App().focus("Command Prompt")
 type(Key.DOWN, Key.WIN)
 
-if exists("warning.png",180):
+if exists("ram-warning.png",180):
+    click("ram-warning.png")
+if exists("warning.png",60):
     click("warning.png")
+    wait(2)
     type(Key.ENTER)
 wait("new-file-button.png",20)
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe After Effects"))
-if exists("warning.png",180):
+if exists("ram-warning.png",180):
+    click("ram-warning.png")
+if exists("warning.png",60):
     click("warning.png")
+    wait(2)
     type(Key.ENTER)
 
 # Basic operations.
 wait("new-file-button.png",20)
 type("i",Key.CTRL)
 wait(5)
-type(os.path.join(script_path, os.pardir, "resources", "sample.mp4") + Key.ENTER)
+paste(os.path.join(script_path, os.pardir, "resources", "sample.mp4"))
+wait(2)
+type(Key.ENTER)
 wait("sample-mp4.png",20)
 doubleClick(Pattern("sample-mp4.png").targetOffset(-6,7))
 

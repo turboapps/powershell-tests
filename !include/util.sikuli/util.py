@@ -39,6 +39,7 @@ def launch_adobe_cc(username, password):
     wait(5)
     activate_app_window("Command Prompt",30)
     paste('turbo try creativeclouddesktop --offline --name=ccd --startup-file="@PROGRAMFILES@\\Adobe\\Adobe Creative Cloud\\ACC\\Creative Cloud.exe"')
+    wait(2)
     type(Key.ENTER)
     activate_app_window("Creative Cloud Desktop",30)
     adobe_cc_login(username, password)
@@ -65,11 +66,11 @@ def adobe_cc_login(username, password):
     paste(password)
     wait(3)
     type(Key.ENTER)
-    #if exists("adobe_login_signout_others.png", 15):
-    #    click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
-    #    click(Pattern("adobe_login_continue.png").similar(0.90))
-    #if exists("adobe_login_team.png"):
-    #    click(Pattern("adobe_login_continue.png").similar(0.90))
+    if exists("adobe_login_signout_others.png", 15):
+        click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
+        click(Pattern("adobe_login_continue.png").similar(0.90))
+    if exists("adobe_login_team.png"):
+        click(Pattern("adobe_login_continue.png").similar(0.90))
 
 # Get the path of the shortcut for the apps that have different shortcut names for different versions.
 # Assume there is only one match inside the folder.
