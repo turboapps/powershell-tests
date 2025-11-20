@@ -128,6 +128,50 @@ os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 # Check if the session terminates.
 util.check_running(12, 5) # retry 12 times and delay 5s
 
+# Excel.
+save_location = os.path.join((os.environ["USERPROFILE"]), "Documents", "Book1.xlsx")
+
+run("explorer " + os.path.join(util.start_menu, "Excel.lnk"))
+wait("excel_window.png",60)
+wait(5)
+doubleClick("excel_window.png")
+wait("excel_new_document.png")
+paste("1")
+type(Key.ENTER)
+paste("2")
+type(Key.ENTER)
+paste("=sum(A1, A2)")
+type(Key.ENTER)
+wait("excel_result.png")
+
+type("s", Key.CTRL)
+click("more-options.png")
+doubleClick("this-pc.png")
+click("save_save.png")
+assert(util.file_exists(save_location, 5))
+type("w", Key.CTRL)
+
+run("explorer " + save_location)
+wait("excel_result.png")
+type("w", Key.CTRL)
+run("explorer " +os.path.join(script_path, os.pardir, "resources", "csv.csv"))
+wait("excel_csv.png")
+
+type("p", Key.CTRL)
+wait("excel_print.png")
+type(Key.ESC)
+wait("excel_csv.png")
+
+type(Key.F1)
+wait("excel_help.png")
+
+type(Key.F4, Key.ALT)
+os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
+
+# Check if the session terminates.
+util.check_running(12, 5) # retry 12 times and delay 5s
+
+
 # Outlook.
 run("explorer " + os.path.join(util.start_menu, "Outlook (classic).lnk"))
 wait("outlook_add_account_1.png",60)
@@ -254,51 +298,6 @@ wait("ppt_help.png")
 
 type(Key.F4, Key.ALT)
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
-
-# Check if the session terminates.
-util.check_running(12, 5) # retry 12 times and delay 5s
-
-
-# Excel.
-save_location = os.path.join((os.environ["USERPROFILE"]), "Documents", "Book1.xlsx")
-
-run("explorer " + os.path.join(util.start_menu, "Excel.lnk"))
-wait("excel_window.png",60)
-wait(2)
-click("excel_window.png")
-wait("excel_new_document.png")
-paste("1")
-type(Key.ENTER)
-paste("2")
-type(Key.ENTER)
-paste("=sum(A1, A2)")
-type(Key.ENTER)
-wait("excel_result.png")
-
-type("s", Key.CTRL)
-click("more-options.png")
-doubleClick("this-pc.png")
-click("save_save.png")
-assert(util.file_exists(save_location, 5))
-type("w", Key.CTRL)
-
-run("explorer " + save_location)
-wait("excel_result.png")
-type("w", Key.CTRL)
-run("explorer " +os.path.join(script_path, os.pardir, "resources", "csv.csv"))
-wait("excel_csv.png")
-
-type("p", Key.CTRL)
-wait("excel_print.png")
-type(Key.ESC)
-wait("excel_csv.png")
-
-type(Key.F1)
-wait("excel_help.png")
-
-type(Key.F4, Key.ALT)
-os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
-
 
 # Check if the session terminates.
 util.check_running(12, 5) # retry 12 times and delay 5s
