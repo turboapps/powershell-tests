@@ -13,22 +13,29 @@ util.pre_test()
 # Test of `turbo run`.
 wait("webex_eula.png",120)
 click(Pattern("webex_eula.png").targetOffset(-94,242))
-wait("webex_window.png")
+wait("fedramp-login.png")
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Webex", "Webex.lnk"))
 wait("webex_eula.png",120)
 click(Pattern("webex_eula.png").targetOffset(-94,242))
-wait("webex_window.png")
+wait("fedramp-login.png")
 type(Key.F4, Key.ALT)
 
 # URL handler.
 run('explorer "https://meet361.webex.com/meet/pr26330258604"')
-click("url_handler.png")
+click(Pattern("url_handler.png").targetOffset(129,50))
 closeApp("Edge")
-wait("webex_window.png")
+if exists(Pattern("mic-ok.png").similar(0.90),20):
+    click(Pattern("mic-ok.png").similar(0.90))
+wait("room.png",20)
+click("room.png")
+wait(3)
 type(Key.F4, Key.ALT)
+wait("fedramp-login.png",20)
+type(Key.F4, Key.ALT)
+os.system('cmd /c taskkill /f /im "webexhost.exe" /t')
 wait(20)
 
 # Check if the session terminates.

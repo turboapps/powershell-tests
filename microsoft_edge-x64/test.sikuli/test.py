@@ -71,6 +71,7 @@ assert(util.file_exists(save_location, 5))
 click("menu.png")
 click(Pattern("menu_content.png").targetOffset(0,-14))
 wait("setting_page.png")
+wait(10)
 
 # Check "help".
 type(Key.F1)
