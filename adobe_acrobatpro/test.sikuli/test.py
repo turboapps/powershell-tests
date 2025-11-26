@@ -8,7 +8,7 @@ reload(util)
 addImagePath(include_path) # This is needed to include screenshots from "util".
 
 # Set the default waiting time.
-setAutoWaitTimeout(45)
+setAutoWaitTimeout(30)
 
 # Operations before running individual test.
 util.pre_test()
@@ -27,11 +27,17 @@ util.launch_adobe_cc(username, password)
 # Test turbo run
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
 wait(5)
-type('turbo run acrobatpro --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+paste('turbo run acrobatpro --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+wait(2)
 type(Key.ENTER)
-if exists("get-started.png"):
+if exists("adobe_login_signout_others.png",60):
+    click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
+    click(Pattern("adobe_login_continue.png").similar(0.80))
+if exists("adobe_login_team.png",10):
+    click(Pattern("adobe_login_continue.png").similar(0.80))
+if exists("get-started.png",15):
     type(Key.ESC)
-wait("pdf_window.png")
+wait("pdf_window.png",15)
 run("turbo stop test")
 closeApp("Command Prompt")
 
@@ -48,15 +54,18 @@ click("create-a-pdf.png")
 wait("create-pdf-doc-icon.png")
 click("create-pdf-doc-icon.png")
 wait("create_file_location.png")
-type(os.path.join(script_path, os.pardir, "resources", "get-started-acrobat-dc", "Special_Offers_Deck.pptx") + Key.ENTER)
+paste(os.path.join(script_path, os.pardir, "resources", "get-started-acrobat-dc", "Special_Offers_Deck.pptx"))
+wait(2)
+type(Key.ENTER)
 wait(5)
-wait("create-button.png")
+wait("create-button.png",120)
 click("create-button.png")
-wait(60) # Generation of the pdf is very slow.
-wait("point-2-point.png")
+wait("point-2-point.png",120)
 type("s", Key.CTRL + Key.SHIFT)
 wait("save_file_location.png")
-type(save_location + Key.ENTER)
+paste(save_location)
+wait(2)
+type(Key.ENTER)
 wait(5)
 type("p", Key.CTRL)
 wait("blue-print-button.png")
@@ -80,7 +89,6 @@ if exists("get-started.png"):
 wait("point-2-point.png")
 
 # Check the "help" of the app.
-wait(30)
 type(Key.F1)
 wait("help_url.png")
 closeApp("Edge")
