@@ -68,9 +68,9 @@ def adobe_cc_login(username, password):
     type(Key.ENTER)
     if exists("adobe_login_signout_others.png", 15):
         click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
-        click(Pattern("adobe_login_continue.png").similar(0.90))
+        click(Pattern("adobe_login_continue.png").similar(0.80))
     if exists("adobe_login_team.png"):
-        click(Pattern("adobe_login_continue.png").similar(0.90))
+        click(Pattern("adobe_login_continue.png").similar(0.80))
 
 # Get the path of the shortcut for the apps that have different shortcut names for different versions.
 # Assume there is only one match inside the folder.

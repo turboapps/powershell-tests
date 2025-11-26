@@ -13,7 +13,7 @@ util.pre_test()
 save_location = os.path.join(util.desktop, "print.pdf")
 
 # Test of `turbo run`.
-wait("firefox_window.png")
+wait("firefox_window.png",60)
 run("turbo stop test")
 
 # Launch the app.
@@ -21,7 +21,7 @@ run("explorer " + os.path.join(util.start_menu, "Firefox.lnk"))
 wait("firefox_window.png")
 
 # Basic operations.
-paste("https://google.com/")
+paste("https://google.com/",60)
 type(Key.ENTER)
 wait(Pattern("webpage.png").similar(0.60))
 wait(3)

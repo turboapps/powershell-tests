@@ -6,7 +6,13 @@ reload(util)
 addImagePath(include_path)
 
 setAutoWaitTimeout(30)
-util.pre_test()
+util.pre_test(no_min=True)
+
+# Minimize the sikulix console
+if exists("sikulix-console.png",15):
+    click("sikulix-console.png")
+    wait(2)
+    type(Key.DOWN, Key.WIN)
 
 # Test of `turbo run`.
 App("FileZilla Server").focus()
@@ -25,7 +31,9 @@ click(Pattern("connect_fingerprint.png").targetOffset(226,6))
 wait("server_window.png")
 type("i", Key.CTRL)
 wait("file_location.png")
-type(os.path.join(script_path, os.pardir, "resources", "config.xml") + Key.ENTER)
+paste(os.path.join(script_path, os.pardir, "resources", "config.xml"))
+wait(3)
+type(Key.ENTER)
 wait("import.png")
 type(Key.ENTER)
 
@@ -33,7 +41,9 @@ type(Key.ENTER)
 App().focus("cmd")
 wait("cmd_window.png")
 wait(3)
-type("ftp 127.0.0.1" + Key.ENTER)
+paste("ftp 127.0.0.1")
+wait(3)
+type(Key.ENTER)
 wait("ftp_user.png")
 type("test" + Key.ENTER)
 wait("ftp_password.png")
