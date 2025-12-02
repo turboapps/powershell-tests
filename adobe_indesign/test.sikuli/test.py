@@ -5,7 +5,7 @@ import util
 reload(util)
 addImagePath(include_path)
 
-setAutoWaitTimeout(90)
+setAutoWaitTimeout(30)
 save_path = include_path = os.path.join(util.desktop, "test.indd")
 
 util.pre_test()
@@ -23,7 +23,12 @@ run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.ln
 wait(5)
 paste('turbo run indesign --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
 type(Key.ENTER)
-wait("indesign_window.png",300)
+if exists("adobe_login_signout_others.png",300):
+    click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
+    click(Pattern("adobe_login_continue.png").similar(0.80))
+if exists("adobe_login_team.png",10):
+    click(Pattern("adobe_login_continue.png").similar(0.80))
+wait("indesign_window.png",10)
 run("turbo stop test")
 wait(20)
 closeApp("Command Prompt")

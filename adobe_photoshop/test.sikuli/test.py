@@ -41,12 +41,7 @@ wait(20)
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Photoshop"))
 
-if exists("adobe_login_signout_others.png",90):
-    click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
-    click(Pattern("adobe_login_continue.png").similar(0.80))
-if exists("adobe_login_team.png",10):
-    click(Pattern("adobe_login_continue.png").similar(0.80))
-if exists("grafx-warning.png",15):
+if exists("grafx-warning.png",90):
     click(Pattern("grafx-warning.png").targetOffset(255,11))
 
 wait("photoshop-menu-bar.png",15)

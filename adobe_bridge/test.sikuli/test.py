@@ -20,8 +20,14 @@ util.launch_adobe_cc(username, password)
 # Test turbo run
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
 wait(5)
-type('turbo run bridge --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+paste('turbo run bridge --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+wait(2)
 type(Key.ENTER)
+if exists("adobe_login_signout_others.png",60):
+    click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
+    click(Pattern("adobe_login_continue.png").similar(0.80))
+if exists("adobe_login_team.png",10):
+    click(Pattern("adobe_login_continue.png").similar(0.80))
 if exists("gpu_warning.png"):
     click(Pattern("gpu_warning.png").targetOffset(179,88))
 if exists("bridge_new.png"):
@@ -32,7 +38,7 @@ closeApp("Command Prompt")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Bridge"))
-if exists("gpu_warning.png"):
+if exists("gpu_warning.png",60):
     click(Pattern("gpu_warning.png").targetOffset(179,88))
 if exists("bridge_new.png"):
     type(Key.ESC)
@@ -41,8 +47,10 @@ wait("bridge_window.png")
 # Basic operations.
 click(Pattern("bridge_window.png").targetOffset(-119,27))
 type(Key.RIGHT)
-type("adobe_bridge\\resources" + Key.ENTER) # Bridge cannot take relative paths.
+paste("adobe_bridge\\resources")  # Bridge cannot take relative paths.
 wait(2)
+type(Key.ENTER)
+wait(5)
 click("red-fox-thumbnail.png")
 click("Output-menu.png")
 rightClick("fox-content.png")
@@ -51,7 +59,9 @@ wait("output-doc.png")
 click("export-pdf.png")
 wait("save-pdf.png")
 wait(10)
-type("%userprofile%\\desktop\\fox.pdf" + Key.ENTER)
+paste("%userprofile%\\desktop\\fox.pdf")
+wait(2)
+type(Key.ENTER)
 wait("fox-output.png")
 closeApp("Edge")
 

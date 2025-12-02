@@ -23,36 +23,34 @@ wait(5)
 paste('turbo run audition --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
 wait(2)
 type(Key.ENTER)
-
-# Minimize the command prompt
-App().focus("Command Prompt")
-type(Key.DOWN, Key.WIN)
-
-if exists("adobe_login_signout_others.png",60):
+if exists("learn-panel.png",60):
+    click(Pattern("learn-panel.png").targetOffset(8,-28))
+    click("close-panel.png")
+if exists("adobe_login_signout_others.png",10):
     click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
     click(Pattern("adobe_login_continue.png").similar(0.80))
 if exists("adobe_login_team.png",10):
     click(Pattern("adobe_login_continue.png").similar(0.80))
-
-if exists("learn-panel.png",15):
-    click(Pattern("learn-panel.png").targetOffset(8,-28))
-    click("close-panel.png")
+if exists("hardware-warning.png",10):
+    click(Pattern("hardware-warning.png").targetOffset(-173,7))
+    click(Pattern("hardware-warning.png").targetOffset(192,38))
+wait("audition-title-bar.png",15)
 wait(5)
-type("q",Key.CTRL)
+run("turbo stop test")
 wait(5)
+closeApp("Command Prompt")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Audition"))
-if exists("hardware-warning.png",60):
-    click(Pattern("hardware-warning.png").targetOffset(-173,7))
-    click(Pattern("hardware-warning.png").targetOffset(192,38))
-if exists("learn-panel.png",10):
+if exists("learn-panel.png",60):
     click(Pattern("learn-panel.png").targetOffset(8,-28))
     click("close-panel.png")
-wait("audition-title-bar.png",10)
+if exists("hardware-warning.png",10):
+    click(Pattern("hardware-warning.png").targetOffset(-173,7))
+    click(Pattern("hardware-warning.png").targetOffset(192,38))
+wait("audition-title-bar.png",15)
 
 # Basic operations.
-setAutoWaitTimeout(20)
 type("i",Key.CTRL)
 wait(5)
 paste("%USERPROFILE%\\Desktop\\adobe_audition\\resources\\sample.mp3")

@@ -27,9 +27,13 @@ type(Key.ENTER)
 # Minimize the command prompt
 App().focus("Command Prompt")
 type(Key.DOWN, Key.WIN)
-
 if exists("ram-warning.png",180):
     click("ram-warning.png")
+if exists("adobe_login_signout_others.png",60):
+    click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
+    click(Pattern("adobe_login_continue.png").similar(0.80))
+if exists("adobe_login_team.png",10):
+    click(Pattern("adobe_login_continue.png").similar(0.80))
 if exists("warning.png",60):
     click("warning.png")
     wait(2)

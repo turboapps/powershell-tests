@@ -28,8 +28,14 @@ type(Key.ENTER)
 cmd_prompt = App().focus("Command Prompt")
 if cmd_prompt.isValid():
     type(Key.DOWN, Key.WIN)
+
+if exists("adobe_login_signout_others.png",180):
+    click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
+    click(Pattern("adobe_login_continue.png").similar(0.80))
+if exists("adobe_login_team.png",10):
+    click(Pattern("adobe_login_continue.png").similar(0.80))
     
-wait("pr_window.png", 180)
+wait("pr_window.png", 10)
 run("turbo stop test")
 
 # Launch the app.

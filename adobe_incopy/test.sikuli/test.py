@@ -24,8 +24,14 @@ wait(10)
 paste('turbo run incopy --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --name=test')
 wait(3)
 type(Key.ENTER)
-wait("incopy_window.png",120)
+if exists("adobe_login_signout_others.png",120):
+    click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
+    click(Pattern("adobe_login_continue.png").similar(0.80))
+if exists("adobe_login_team.png",10):
+    click(Pattern("adobe_login_continue.png").similar(0.80))
+wait("incopy_window.png",20)
 run("turbo stop test")
+closeApp("Command Prompt")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe InCopy"))
