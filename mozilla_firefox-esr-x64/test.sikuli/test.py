@@ -18,10 +18,10 @@ run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Firefox.lnk"))
-wait("firefox_window.png")
+wait("firefox_window.png",60)
 
 # Basic operations.
-paste("https://google.com/",60)
+paste("https://google.com/")
 type(Key.ENTER)
 wait(Pattern("webpage.png").similar(0.60))
 wait(3)

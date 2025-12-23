@@ -39,24 +39,24 @@ run("turbo stop test")
 wait(20)
 
 # Launch the app.
+setAutoWaitTimeout(30)
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Photoshop"))
 
 if exists("grafx-warning.png",90):
     click(Pattern("grafx-warning.png").targetOffset(255,11))
 
-wait("photoshop-menu-bar.png",15)
+wait("photoshop-menu-bar.png")
 
 # Basic operations.
-setAutoWaitTimeout(20)
 type("o", Key.CTRL)
-if exists("on-your-computer.png",15):
+if exists("on-your-computer.png",30):
     click("on-your-computer.png")
-wait("file_location.png",10)
+wait("file_location.png")
 paste(os.path.join(script_path, os.pardir, "resources", "sample.png"))
 type(Key.ENTER)
 wait(5)
 type("w", Key.ALT + Key.CTRL + Key.SHIFT)
-wait("export-button.png",15)
+wait("export-button.png")
 click("export-format-drop.png")
 click(Pattern("format-select.png").targetOffset(-46,53))
 wait(5)

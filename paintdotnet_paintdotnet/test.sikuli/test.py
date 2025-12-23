@@ -21,14 +21,16 @@ wait("pdn_window.png")
 # Basic operations.
 type("o", Key.CTRL)
 click("open_location.png")
-type(os.path.join(script_path, os.pardir, "resources", "red fox.jpg") + Key.ENTER)
+paste(os.path.join(script_path, os.pardir, "resources", "red fox.jpg"))
+type(Key.ENTER)
 wait("loaded.png")
 type("g", Key.CTRL + Key.SHIFT)
 wait("processed.png")
 wait(5)
 type("s", Key.CTRL + Key.SHIFT)
 wait("save_location.png")
-type(save_path + Key.ENTER)
+paste(save_path)
+type(Key.ENTER)
 click(Pattern("save_ok.png").targetOffset(-40,5))
 
 # Check "help".
