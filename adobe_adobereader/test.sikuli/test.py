@@ -100,7 +100,19 @@ click("upgrade-prompt.png")
 
 # Test Adobe Login.
 click("sign_in_button.png")
-util.adobe_cc_login(username, password)
+wait(Pattern("login-email.png").similar(0.80),10)
+click(Pattern("login-email.png").similar(0.80))
+wait(3)
+paste(username)
+wait(3)
+type(Key.ENTER)
+wait(Pattern("adobe_login_pass-1.png").similar(0.60),15)
+wait(3)
+click(Pattern("adobe_login_pass-1.png").similar(0.60))
+wait(3)
+paste(password)
+wait(3)
+type(Key.ENTER)
 wait("account_icon.png")
 
 # Quit the application.
