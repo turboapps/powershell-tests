@@ -25,12 +25,12 @@ assert(util.file_exists(sample_file, 60))
 paste('turbo run pandoc --offline --isolate=merge-user -- -s ' + sample_file + ' -o ' + html_file)
 wait(2)
 type(Key.ENTER)
-assert(util.file_exists(sample_file, 60))
+assert(util.file_exists(html_file, 60))
 # Convert text file to DOCX
 paste('turbo run pandoc --offline --isolate=merge-user -- -s ' + sample_file + ' -o ' + doc_file)
 wait(2)
 type(Key.ENTER)
-wait(10)
+assert(util.file_exists(doc_file, 60))
 closeApp("Command Prompt")
 
 # Open the converted documents

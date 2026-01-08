@@ -33,16 +33,17 @@ paste(save_path)
 type(Key.ENTER)
 click(Pattern("save_ok.png").targetOffset(-40,5))
 
+# Export might be slow.
+assert(util.file_exists(save_path, 20))
+
 # Check "help".
 type(Key.F1)
 wait("help_url.png")
 closeApp("Edge")
-wait(10) # Wait for the complete close of the firewall alert
 type(Key.F4, Key.ALT)
 wait(10)
+run("turbo stop paintdotnet")
 
 # Check if the session terminates.
 util.check_running()
 
-# Export might be slow.
-assert(os.path.exists(save_path))

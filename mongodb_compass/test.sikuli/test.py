@@ -12,7 +12,8 @@ util.pre_test(no_min=True)
 
 # Minimize the sikulix console
 if exists("sikulix-console.png",15):
-    App().focus("java.exe")
+    click("sikulix-console.png")
+    wait(2)
     type(Key.DOWN, Key.WIN)
 
 # Activate and maximize the app window.

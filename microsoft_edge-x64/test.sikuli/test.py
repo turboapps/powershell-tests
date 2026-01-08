@@ -11,15 +11,14 @@ util.pre_test()
 save_location = os.path.join(util.desktop, "print.pdf")
 
 # Test of `turbo run`.
-util.close_firewall_alert_continue(wait_time = 30)
-wait("new_tab.png")
+wait("new-tab.png")
 run("turbo stop test")
 wait(10)
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Microsoft Edge.lnk"))
-util.close_firewall_alert_continue(wait_time = 30)
-wait("new_tab.png")
+wait("new-tab.png")
+click("new-tab.png")
 
 # Activate and maximize the app window.
 app_window = App().focus("Edge")
@@ -28,6 +27,8 @@ if app_window.isValid():
 
 # Basic operations.
 click(Pattern("address-bar.png").similar(0.50).targetOffset(28,-1))
+if exists("about-blank.png",5):
+    click("about-blank.png")
 type("https://google.com/" + Key.ENTER)
 wait(Pattern("webpage.png").similar(0.60))
 wait(3)

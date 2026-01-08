@@ -25,7 +25,8 @@ type(Key.F4, Key.ALT)
 
 # URL handler.
 run('explorer "https://meet361.webex.com/meet/pr26330258604"')
-click(Pattern("url_handler.png").targetOffset(129,50))
+wait("url_handler.png")
+click("url_handler.png")
 closeApp("Edge")
 if exists(Pattern("mic-ok.png").similar(0.90),20):
     click(Pattern("mic-ok.png").similar(0.90))

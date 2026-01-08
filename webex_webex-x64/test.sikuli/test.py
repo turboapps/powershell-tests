@@ -25,7 +25,8 @@ type(Key.F4, Key.ALT)
 
 # URL handler.
 run('explorer "https://meet361.webex.com/meet/pr26330258604"')
-click(Pattern("url_handler.png").targetOffset(129,50))
+wait("url_handler.png")
+click("url_handler.png")
 closeApp("Edge")
 wait("join-guest.png",40)
 click("join-guest.png")
