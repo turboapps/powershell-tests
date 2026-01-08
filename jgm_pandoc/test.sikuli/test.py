@@ -18,14 +18,17 @@ run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.ln
 wait(5)
 # Convert website to text file
 paste('turbo run pandoc --offline --isolate=merge-user -- -s -r html https://pandoc.org/MANUAL.html -o ' + sample_file)
+wait(2)
 type(Key.ENTER)
 assert(util.file_exists(sample_file, 60))
 # Convert text file to HTML
 paste('turbo run pandoc --offline --isolate=merge-user -- -s ' + sample_file + ' -o ' + html_file)
+wait(2)
 type(Key.ENTER)
 assert(util.file_exists(sample_file, 60))
 # Convert text file to DOCX
 paste('turbo run pandoc --offline --isolate=merge-user -- -s ' + sample_file + ' -o ' + doc_file)
+wait(2)
 type(Key.ENTER)
 wait(10)
 closeApp("Command Prompt")
