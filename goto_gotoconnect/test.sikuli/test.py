@@ -29,7 +29,7 @@ run('explorer "https://global.gotomeeting.com/join/750803053"')
 if exists("join-from-desktop.png",10):
     click("join-from-desktop.png")
 wait("url-prompt.png")
-click(Pattern("url-prompt.png").targetOffset(143,21))
+click("url-prompt.png")
 wait(5)
 closeApp("Edge")
 wait("join_meeting.png")

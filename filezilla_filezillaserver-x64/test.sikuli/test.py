@@ -2,6 +2,7 @@ script_path = os.path.dirname(os.path.abspath(sys.argv[0]))
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
 import util
+import subprocess
 reload(util)
 addImagePath(include_path)
 
@@ -38,8 +39,9 @@ wait("import.png")
 type(Key.ENTER)
 
 # Test ftp.
+subprocess.Popen("turbo run base -n=cmd --network=test --startup-file=cmd -d")
 App().focus("cmd")
-wait("cmd_window.png")
+wait("cmd_window.png",10)
 wait(3)
 paste("ftp 127.0.0.1")
 wait(3)
@@ -50,6 +52,8 @@ wait("ftp_password.png")
 type(Key.ENTER)
 wait("ftp_ok.png")
 type("quit" + Key.ENTER)
+wait(2)
+type("exit" + Key.ENTER)
 
 App("FileZilla Server").focus()
 click(Pattern("server_window.png").targetOffset(75,-10))

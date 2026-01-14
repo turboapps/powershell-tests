@@ -20,7 +20,8 @@ wait("putty_window.png")
 run("turbo stop test")
 
 # Launch the telnet server
-subprocess.Popen(os.path.join(script_path, os.pardir, "resources", "hk-telnet-server.exe"))
+hk_telnet_server = os.path.join(script_path, os.pardir, "resources", "hk-telnet-server.exe")
+subprocess.Popen("turbo run base -n=telnet --network=test --startup-file=" + hk_telnet_server + " -d")
 wait("telnet-start.png")
 click("telnet-start.png")
             
@@ -60,6 +61,7 @@ wait("logged_in.png")
 type(Key.F4, Key.ALT)
 click(Pattern("close.png").targetOffset(23,38))
 click("telnet-exit.png")
+run("turbo stop telnet")
 
 # Check if the session terminates.
 util.check_running()

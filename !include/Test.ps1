@@ -80,7 +80,7 @@ function InstallTurboApp {
         [string]$extra
     )
 
-    $command = "turbo installi $image --offline --enable=disablefontpreload,usedllinjection"
+    $command = "turbo installi $image --offline --enable=disablefontpreload,usedllinjection,cachefileinfo --network=test"
 
     #Construct the Turbo command.
     if (-not [string]::IsNullOrWhiteSpace($using)) {
@@ -134,7 +134,7 @@ function TryTurboApp {
         [bool]$detached = $True
     )
 
-    $command = "try $image --name=test --enable=disablefontpreload,usedllinjection"
+    $command = "try $image --name=test --enable=disablefontpreload,usedllinjection,cachefileinfo --network=test"
 
     # Construct the Turbo command.
     if (-not [string]::IsNullOrWhiteSpace($using)) {
@@ -167,7 +167,7 @@ function RunTurboApp {
         [bool]$detached = $True
     )
 
-    $command = "run $image --enable=disablefontpreload,usedllinjection"
+    $command = "run $image --enable=disablefontpreload,usedllinjection,cachefileinfo --network=test"
 
     # Construct the Turbo command.
     if (-not [string]::IsNullOrWhiteSpace($using)) {
