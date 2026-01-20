@@ -7,7 +7,7 @@ $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 . $IncludePath
 
 $gguf = Join-Path -Path ([Environment]::GetFolderPath('Desktop')) -ChildPath 'llama-2-7b-chat.Q4_K_M.gguf'
-$image = "ggerganov/llama.cpp"
+$image = "ggerganov/llama-cpp"
 $using = "microsoft/vcredist"
 $extra = $extra + ' --enable=usedllinjection -- /C "C:\llama-cpu\llama-server.exe" -m ' + $gguf + ' -n 50 --port 8180 --chat-template llama2'
 

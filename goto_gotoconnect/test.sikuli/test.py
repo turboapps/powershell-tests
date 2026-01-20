@@ -25,6 +25,9 @@ click("menu_file.png")
 wait(10)
 
 # URL handler.
+run('explorer "https://google.com"')
+wait(10)
+closeApp("Edge")
 run('explorer "https://global.gotomeeting.com/join/750803053"')
 if exists("join-from-desktop.png",10):
     click("join-from-desktop.png")

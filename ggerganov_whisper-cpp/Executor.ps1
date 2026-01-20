@@ -10,7 +10,7 @@ $in = Join-Path -Path $PSScriptRoot -ChildPath "resources\gettysburg10.wav"
 $out = Join-Path -Path ([Environment]::GetFolderPath("Desktop")) -ChildPath "out"
 $ggml = "C:\ggml-tiny-q5_1.bin"
 
-$image = "ggerganov/whisper.cpp"
+$image = "ggerganov/whisper-cpp"
 $using = "ffmpeg/ffmpeg,microsoft/vcredist"
 $isolate = "merge-user"
 $extra = $extra + '--startup-file=powershell -- "C:\whisper.cpp\ConvertAndRun.ps1" -f ' + $in + ' -otxt -of ' + $out + ' -m ' + $ggml + ' '
