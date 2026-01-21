@@ -127,7 +127,7 @@ closeApp("Edge")
 
 # Test Adobe Login.
 click("sign_in_button.png")
-util.adobe_cc_login(username, password)
+adobe_cc_login(username, password)
 wait("account_icon.png")
 
 # Quit the application.
