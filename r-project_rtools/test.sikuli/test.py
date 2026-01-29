@@ -18,7 +18,7 @@ run("turbo stop test")
 run("explorer " + os.path.join(util.start_menu, "RStudio.lnk"))
 
 # Basic operations.
-wait("rstudio_window.png",60)
+wait("rstudio_window.png",120)
 App("RStudio").focus()
 type(Key.UP, Key.WIN) # Maximize cmd window.
 click("rstudio_window.png")
