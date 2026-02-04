@@ -47,7 +47,9 @@ type(Key.ENTER)
 wait(40) # libreoffice crashes on first launch
 paste('turbo run tdf/libreoffice -d --enable=disablefontpreload -- ' + doc_file)
 type(Key.ENTER)
-wait("docx-sample.png",180)
+wait("manual-docx.png",180)
+App().focus("manual.docx")
+wait("docx-sample.png",30)
 wait(10)
 if exists("welcome.png",30):
     click("welcome.png")
