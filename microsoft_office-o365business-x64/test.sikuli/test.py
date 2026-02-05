@@ -277,7 +277,7 @@ click("ppt_pictures_menu.png")
 wait("ppt_file_name.png")
 paste(os.path.join(script_path, os.pardir, "resources", "red fox.jpg"))
 type(Key.ENTER)
-wait("ppt_result_3.png")
+wait(Pattern("ppt_result_3.png").similar(0.60))
 
 type("s", Key.CTRL)
 click("more-options.png")

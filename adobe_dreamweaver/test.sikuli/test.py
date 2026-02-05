@@ -31,6 +31,9 @@ type(Key.DOWN, Key.WIN)
 if exists("introducing.png",90):
     click("introducing.png")
     type(Key.ESC)
+if exists("adobe_login_signout_others.png", 20):
+    click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
+    click(Pattern("adobe_login_continue.png").similar(0.80))
 click(Pattern("sync_settings.png").targetOffset(-12,59))
 wait("dw_window.png",20)
 type("q", Key.CTRL)

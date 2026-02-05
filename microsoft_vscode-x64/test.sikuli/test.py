@@ -190,7 +190,7 @@ click(Pattern("extensions_search_ruby.png").targetOffset(-97,17))
 type("a", Key.CTRL)
 paste("@id:shopify.ruby-extensions-pack")
 click("install-extension.png")
-click("trust-publishers.png")
+click("trust-publisher-install.png")
 wait("install_complete_1.png", 240)
 if exists("theme_ruby.png",15):
     type(Key.ESC)
