@@ -48,7 +48,8 @@ if exists("welcome.png", 15):
 wait("new_file.png")
 wait(15)
 type("s", Key.CTRL)
-click("save_cc.png")
+if exists("save_cc.png"):
+    click("save_cc.png")
 wait("save_location.png")
 paste(save_path)
 type(Key.ENTER)
