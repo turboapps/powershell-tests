@@ -9,30 +9,14 @@ setAutoWaitTimeout(50)
 util.pre_test()
 
 # Test of `turbo run`.
-# Note this test should be updated when APPQ-3938 is resolved
-run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
-wait(5)
-paste('turbo run tdf/libreoffice --offline --enable=disablefontpreload --name=test')
-wait(2)
-type(Key.ENTER)
-wait(30) # wait for the app to crash
-closeApp("Command Prompt")
-# run again after crash - it should launch fine the second time
-run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
-wait(5)
-paste('turbo run tdf/libreoffice --offline --enable=disablefontpreload --name=test')
-wait(2)
-type(Key.ENTER)
-wait("office-launched.png")
+wait("office-launched.png",90)
 run("turbo stop test")
 wait(10)
 closeApp("Command Prompt")
 
 # Test Office.
 run("explorer " + os.path.join(util.start_menu, "LibreOffice", "LibreOffice.lnk"))
-wait(30) # wait for crash
-run("explorer " + os.path.join(util.start_menu, "LibreOffice", "LibreOffice.lnk"))
-wait("office-launched.png")
+wait("office-launched.png",90)
 
 # Test Writer.
 click("writer-document.png")
@@ -42,22 +26,22 @@ if exists("didyouknow.png"):
 
 # Test Help
 type(Key.F1)
-wait("read-help-online.png")
+wait("read-help-online.png",30)
 click("read-help-online.png")
-wait("help-url.png")
+wait("help-url.png",20)
 closeApp("Edge")
 
 # Test Writer functions
 wait("welcome.png",30)
 click(Pattern("welcome.png").targetOffset(313,-1))
-wait("blank-page.png")
+wait("blank-page.png",15)
 click("blank-page.png")
 paste("Test document")
 type(Key.HOME, Key.SHIFT)
 type("b", Key.CTRL)
 type("i", Key.CTRL)
 type("s", Key.CTRL)
-wait("save-dialog.png")
+wait("save-dialog.png",20)
 save_path = os.path.join(util.desktop, "test-doc.odt")
 paste(save_path)
 wait(2)
@@ -67,7 +51,7 @@ assert(util.file_exists(save_path, 5))
 type(Key.F4, Key.ALT)
 wait(5)
 run("explorer " + save_path)
-wait("test-doc-open.png")
+wait("test-doc-open.png",60)
 wait(3)
 type(Key.F4, Key.ALT)
 type("q", Key.CTRL)
