@@ -67,6 +67,9 @@ if exists("choose-app-firefox.png",10):
 wait(Pattern("webpage.png").similar(0.60))
 type("q", Key.CTRL + Key.SHIFT)
 run('explorer "https://google.com/"')
+if exists("open-with-firefox.png",10):
+    click("open-with-firefox.png")
+    click("always.png")
 wait(Pattern("webpage.png").similar(0.60))
 wait(5)
 click(Pattern("webpage.png").similar(0.60)) # To gain focus.
