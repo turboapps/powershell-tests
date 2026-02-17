@@ -16,7 +16,10 @@ run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "FileZilla FTP Client", "FileZilla.lnk"))
+wait("filezilla_window.png")
+wait(5)
 click("filezilla_window.png")
+wait(5)
 
 # Basic operations.
 paste("test.rebex.net")
