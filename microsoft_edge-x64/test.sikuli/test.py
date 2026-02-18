@@ -26,7 +26,7 @@ if app_window.isValid():
     type(Key.UP, Key.WIN)
 
 # Basic operations.
-click(Pattern("address-bar.png").similar(0.50).targetOffset(28,-1))
+click(Pattern("address-bar.png").targetOffset(16,1))
 if exists("about-blank.png",5):
     click("about-blank.png")
 type("https://google.com/" + Key.ENTER)
