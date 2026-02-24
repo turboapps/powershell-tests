@@ -14,13 +14,6 @@ def pre_test(no_min=False):
     # OneDrive shortcut should not be captured.
     assert(not os.path.exists(os.path.join(start_menu, "OneDrive (2).lnk")))
 
-    # Hide the SikuliX java window.
-    if no_min == False:
-        App().focus("java.exe")
-        java_cmd = App().focus("java.exe") # Try this twice to gain the focus of the java window.
-        if java_cmd.isValid():
-            type(Key.DOWN, Key.WIN)
-
 # Get credentials from secrets.txt. That secret file locates under the "resources" folder of the app script folder.
 def get_credentials(path):
     credentials = {}
