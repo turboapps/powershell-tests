@@ -10,12 +10,6 @@ addImagePath(include_path)
 setAutoWaitTimeout(30)
 util.pre_test(no_min=True)
 
-# Minimize the sikulix console
-if exists("sikulix-console.png",15):
-    click("sikulix-console.png")
-    wait(2)
-    type(Key.DOWN, Key.WIN)
-
 # Activate and maximize the app window.
 app_window = App().focus("MongoDB Compass")
 if app_window.isValid():

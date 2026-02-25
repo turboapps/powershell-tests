@@ -10,12 +10,6 @@ addImagePath(include_path)
 setAutoWaitTimeout(20)
 util.pre_test(no_min=True)
 
-# Minimize the sikulix console
-if exists("sikulix-console.png",15):
-    click("sikulix-console.png")
-    wait(2)
-    type(Key.DOWN, Key.WIN)
-
 # Test of `turbo run` and command line mode.
 wait("openssl-cmd-prompt.png")
 type("openssl help" + Key.ENTER)
@@ -44,7 +38,7 @@ wait(5)
 
 # Test headless trigger.
 certOutFile = os.path.join(util.desktop, "headless_cert.pem")
-headlessCmd = "turbo run openssl-light --isolate=merge-user --trigger headless -- pkcs12 -in " + certInFile + " -out " + certOutFile + " -nodes -password pass:thisismycertpassword"
+headlessCmd = "turbo run openssl --isolate=merge-user --trigger headless -- pkcs12 -in " + certInFile + " -out " + certOutFile + " -nodes -password pass:thisismycertpassword"
 run(headlessCmd)
 wait(5)
 assert(util.file_exists(certOutFile, 10))
