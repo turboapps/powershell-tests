@@ -28,6 +28,9 @@ run('explorer "https://meet361.webex.com/meet/pr26330258604"')
 wait("url_handler.png")
 click("url_handler.png")
 closeApp("Edge")
+if exists("new-webex.png",10):
+    click("new-webex.png")
+    click("always.png")
 if exists(Pattern("mic-ok.png").similar(0.90),20):
     click(Pattern("mic-ok.png").similar(0.90))
 wait("room.png",20)
