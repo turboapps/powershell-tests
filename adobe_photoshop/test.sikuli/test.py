@@ -41,12 +41,10 @@ wait(20)
 # Launch the app.
 setAutoWaitTimeout(30)
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Photoshop"))
-
-if exists("grafx-warning.png",90):
-    click(Pattern("grafx-warning.png").targetOffset(255,11))
-
+wait("Welcome.png",90)
 wait("photoshop-menu-bar.png")
-
+if exists("grafx-warning.png",20):
+    click(Pattern("grafx-warning.png").targetOffset(255,11))
 # Basic operations.
 type("o", Key.CTRL)
 if exists("on-your-computer.png",30):
