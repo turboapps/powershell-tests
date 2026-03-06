@@ -28,18 +28,14 @@ def get_credentials(path):
 
 # Launch Adobe Creative Cloud
 def launch_adobe_cc(username, password):
-    run("explorer " + os.path.join(start_menu,"System Tools","Command Prompt.lnk"))
-    wait(5)
-    activate_app_window("Command Prompt",30)
-    paste('turbo try creativeclouddesktop --offline --name=ccd --startup-file="@PROGRAMFILES@\\Adobe\\Adobe Creative Cloud\\ACC\\Creative Cloud.exe"')
-    wait(2)
-    type(Key.ENTER)
+    run('turbo installi creativeclouddesktop --enable=usedllinjection --isolate=merge --offline')
+    run("explorer " + get_shortcut_path_by_prefix(start_menu, "Adobe Creative Cloud"))
     activate_app_window("Creative Cloud Desktop",30)
     adobe_cc_login(username, password)
     wait(15)
     type("w", Key.CTRL)
     wait(5)
-    closeApp("Command Prompt")
+    closeApp("Creative Cloud Desktop")
 
 # Log in for Adobe Creative Cloud.
 def adobe_cc_login(username, password):
