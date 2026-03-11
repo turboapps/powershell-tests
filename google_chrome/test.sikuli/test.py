@@ -68,9 +68,9 @@ run("explorer " + os.path.join(util.desktop, "name with space.html"))
 wait("webpage.png")
 type(Key.F4, Key.ALT)
 run('explorer "https://google.com/"')
-click("webpage.png") # To gain focus.
+wait("webpage.png") # To gain focus.
 wait(2)
-wait(Pattern("webpage.png").targetOffset(-23,19))
+App().focus("Google Chrome")
 wait(5)
 type("p", Key.CTRL)
 wait("print_window.png",60)
