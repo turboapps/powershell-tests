@@ -8,14 +8,8 @@ addImagePath(include_path)
 setAutoWaitTimeout(50)
 util.pre_test(no_min=True)
 
-# Minimize the sikulix console
-if exists("sikulix-console.png",15):
-    click("sikulix-console.png")
-    wait(2)
-    type(Key.DOWN, Key.WIN)
-
 # Test. Winget CMD window shows later so it is always on top.
-wait("winget.png")
+wait("cmd.png")
 paste("winget install wingetcreate")
 wait(3)
 type(Key.ENTER)

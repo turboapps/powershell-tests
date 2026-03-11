@@ -9,7 +9,8 @@ setAutoWaitTimeout(30)
 util.pre_test()
 
 # Test of `turbo run`.
-App().focus("Azure Data Studio")
+App("conhost").focus()
+type(Key.DOWN, Key.WIN)
 wait("ads_window.png")
 run("turbo stop test")
 
@@ -24,42 +25,48 @@ if exists("privacy.png"):
 click(Pattern("connection_type.png").targetOffset(62,20))
 wait(2)
 click(Pattern("connection_string.png").targetOffset(52,0))
-type("Server=localhost;Database=master;Trusted_Connection=True;" + Key.ENTER)
+paste("Server=localhost;Database=master;Trusted_Connection=True;")
+wait(2)
+type(Key.ENTER)
 click("connection_trust.png")
 
 click(Pattern("query_options.png").targetOffset(-46,2))
 
 wait("query_window.png")
-type("CREATE DATABASE TestDB;")
+paste("CREATE DATABASE TestDB;")
+wait(2)
 click(Pattern("query_run.png").targetOffset(-23,0))
 wait("query_result_1.png")
 type("a", Key.CTRL)
 type(Key.DELETE)
 
 wait("query_window.png")
-type("""USE TestDB;
+paste("""USE TestDB;
 CREATE TABLE Employees (
 EmployeeID INT PRIMARY KEY,
 FirstName VARCHAR(50),
 LastName VARCHAR(50),
-Age INT""")
+Age INT)""")
+wait(3)
 click(Pattern("query_run.png").targetOffset(-23,0))
 wait("query_result_1.png")
 type("a", Key.CTRL)
 type(Key.DELETE)
 
 wait("query_window.png")
-type("""INSERT INTO Employees (EmployeeID, FirstName, LastName, Age) VALUES
+paste("""INSERT INTO Employees (EmployeeID, FirstName, LastName, Age) VALUES
 (1, 'John', 'Doe', 30),
 (2, 'Jane', 'Smith', 25),
-(3, 'David', 'Johnson', 35""")
+(3, 'David', 'Johnson', 35)""")
+wait(3)
 click(Pattern("query_run.png").targetOffset(-23,0))
 wait("query_result_2.png")
 type("a", Key.CTRL)
 type(Key.DELETE)
 
 wait("query_window.png")
-type("SELECT * FROM Employees;")
+paste("SELECT * FROM Employees;")
+wait(3)
 click(Pattern("query_run.png").targetOffset(-23,0))
 wait("query_result_3.png")
 
@@ -71,6 +78,7 @@ wait("help_url.png")
 closeApp("Edge")
 type(Key.F4, Key.ALT)
 wait(20)
+run("turbo stop sqlserver-express")
 
 # Check if the session terminates.
 util.check_running()
