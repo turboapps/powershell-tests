@@ -65,20 +65,27 @@ wait("discard-changes.png")
 click("discard-changes.png")
 wait(3)
 
+# Set default app.
+type("i", Key.WIN)
+wait("windows_setting_window.png")
+paste("Default apps")
+type(Key.ENTER)
+click("windows_setting_default.png")
+click("search-file-type.png")
+paste(".jpg")
+wait(2)
+type(Key.ENTER)
+click("jpg-type.png")
+click("select-gimp-app.png")
+click("set-default.png")
+
 # Test file association.
 run("explorer " + save_path)
-wait("select-gimp-app.png",90)
-click("select-gimp-app.png")
-click("always.png")
-wait("welcome-close.png",90)
-click("welcome-close.png")
-wait("fox-inverted.png")
+wait("fox-inverted.png",90)
 type("q", Key.CTRL) # Close GIMP.
 wait(3)
 run("explorer " + save_path)
-wait("welcome-close.png",90)
-click("welcome-close.png")
-wait("inverted-fox-open.png")
+wait("inverted-fox-open.png",90)
 type("q", Key.CTRL) # Close GIMP.
 wait(20)
 
