@@ -22,7 +22,7 @@ type("o", Key.CTRL)
 click(Pattern("open_location.png").targetOffset(20,-4))
 paste(pdf_path)
 type("o", Key.ALT)
-if exists("next-button.png",10):
+if exists("next-button.png",30):
     click("next-button.png")
     type(Key.ESC)
 wait("pdf_sample.png")

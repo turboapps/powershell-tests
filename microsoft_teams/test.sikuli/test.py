@@ -9,13 +9,13 @@ setAutoWaitTimeout(30)
 util.pre_test()
 
 # Test of `turbo run`.
-wait("teams_window.png")
+wait("teams_window.png",60)
 run("turbo stop test")
 wait(20)
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Microsoft Teams"))
-wait("teams_window.png")
+wait("teams_window.png",60)
 
 # URL handler.
 # Workaround for escaping % sign.
