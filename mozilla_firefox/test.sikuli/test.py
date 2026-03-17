@@ -46,12 +46,10 @@ type("q", Key.CTRL + Key.SHIFT)
 
 # Set default browser.
 type("i", Key.WIN)
-click("windows_setting_default.png") # To gain focus.
-click("windows_setting_default.png")
+wait("windows_setting_default.png")
 paste("Default apps")
-type(Key.ENTER)
 wait(3)
-click("set-default-app.png")
+type(Key.ENTER)
 wait(3)
 click("search-apps.png")
 paste("firefox")

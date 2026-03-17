@@ -1,3 +1,5 @@
+# The tests for google/chrome and google/chrome-x64 are the same.
+
 script_path = os.path.dirname(os.path.abspath(sys.argv[0])) 
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
@@ -12,6 +14,8 @@ save_location = os.path.join(util.desktop, "print.pdf")
 
 # Test of `turbo run`.
 wait("chrome_window.png")
+wait(5)
+type(Key.F4, Key.ALT)
 run("turbo stop test")
 
 # Launch the app.
@@ -52,8 +56,8 @@ type(Key.F4, Key.ALT)
 type("i", Key.WIN)
 wait("windows_setting_window.png")
 paste("Default apps")
+wait(3)
 type(Key.ENTER)
-click("windows_setting_default.png")
 click(Pattern("search-apps.png").targetOffset(-91,30))
 paste("google")
 wait(5)
