@@ -9,8 +9,8 @@ setAutoWaitTimeout(30)
 util.pre_test()
 
 # Test of `turbo run`.
-App("conhost").focus()
-type(Key.DOWN, Key.WIN)
+type("d", Key.WIN)
+App("Azure Data Studio").focus()
 wait("ads_window.png")
 run("turbo stop test")
 
