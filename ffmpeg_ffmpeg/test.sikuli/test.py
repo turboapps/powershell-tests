@@ -20,9 +20,7 @@ wait("cmd_window.png")
 type("ffmpeg --help" + Key.ENTER)
 wait("ffmpeg_help.png")
 
-paste("ffmpeg -i " + os.path.join(script_path, os.pardir, "resources", "drop.avi") + " " + output_path)
-wait(2)
-type(Key.ENTER)
+type("ffmpeg -i " + os.path.join(script_path, os.pardir, "resources", "drop.avi") + " " + output_path + Key.ENTER)
 assert(util.file_exists(output_path, 5))
 
 run("turbo stop test")

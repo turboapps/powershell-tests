@@ -10,6 +10,12 @@ addImagePath(include_path)
 setAutoWaitTimeout(20)
 util.pre_test(no_min=True)
 
+# Minimize the sikulix console
+if exists("sikulix-console.png",15):
+    click("sikulix-console.png")
+    wait(2)
+    type(Key.DOWN, Key.WIN)
+
 # Test cpp nodejs project.
 type('cd my-node-cpp-app' + Key.ENTER)
 wait(3)
