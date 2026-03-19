@@ -33,7 +33,7 @@ if exists("office_signin_wrong.png",15):
     type(Key.ENTER)
 if exists("office_signin_all_set.png",10):
     type(Key.ENTER)
-if exists("privacy-close.png",10):
+if exists("privacy-close.png",20):
     click("privacy-close.png")
 wait(10) # wait for welcome window to go away
 wait("word_window.png",15)

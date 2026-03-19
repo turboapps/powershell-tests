@@ -21,14 +21,17 @@ util.launch_adobe_cc(username, password)
 # Test of `turbo run`.
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
 wait(5)
-type('turbo run mediaencoder --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --name=test')
+paste('turbo run mediaencoder --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --name=test')
 type(Key.ENTER)
 
 # Minimize the command prompt
 App().focus("Command Prompt")
 type(Key.DOWN, Key.WIN)
 
-if exists("GPUSniffer_error.png",60):
+if exists("adobe_login_signout_others.png",60):
+        click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
+        click(Pattern("adobe_login_continue.png").similar(0.80))
+if exists("GPUSniffer_error.png",30):
     click(Pattern("GPUSniffer_error_close.png").targetOffset(-49,4))
 wait("me_window.png",15)
 type("q", Key.CTRL)
@@ -45,7 +48,8 @@ wait(3)
 click("me_window.png") # To gain focus.
 type("i", Key.CTRL)
 wait("source_location.png",10)
-type(os.path.join(script_path, os.pardir, "resources", "create-project-import-media", "create-project-import-media-step1.prproj") + Key.ENTER)
+paste(os.path.join(script_path, os.pardir, "resources", "create-project-import-media", "create-project-import-media-step1.prproj"))
+type(Key.ENTER)
 wait("loaded.png",10)
 type(Key.ENTER)
 wait("done.png",10)

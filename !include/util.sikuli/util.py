@@ -39,23 +39,23 @@ def launch_adobe_cc(username, password):
 
 # Log in for Adobe Creative Cloud.
 def adobe_cc_login(username, password):
-    wait(Pattern("adobe_login.png").similar(0.60),30)
+    wait(Pattern("adobe_login.png").similar(0.40),60)
     click("cancel-button.png")
     wait(20)
-    wait(Pattern("adobe_login.png").similar(0.60),10)
-    click(Pattern("adobe_login.png").similar(0.60))
+    wait(Pattern("adobe_login.png").similar(0.40),10)
+    click(Pattern("adobe_login.png").similar(0.40))
     wait(3)
     paste(username)
     wait(3)
     type(Key.ENTER)
-    wait(Pattern("adobe_login_pass.png").similar(0.60),15)
+    wait(Pattern("adobe_login_pass.png").similar(0.40),15)
     wait(3)
-    click(Pattern("adobe_login_pass.png").similar(0.60))
+    click(Pattern("adobe_login_pass.png").similar(0.40))
     wait(3)
     paste(password)
     wait(3)
     type(Key.ENTER)
-    if exists("adobe_login_signout_others.png", 15):
+    if exists("adobe_login_signout_others.png",15):
         click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
         click(Pattern("adobe_login_continue.png").similar(0.80))
     if exists("adobe_login_team.png"):

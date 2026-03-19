@@ -42,9 +42,11 @@ os.system('cmd /c taskkill /f /im "ADPClientService.exe" /t')
 # Test file association.
 run("explorer " + dwgfile_path)
 wait("dwg-tab.png")
+click("dwg-tab.png")
 type(Key.F4, Key.ALT) # Close app.
 wait(10)
 os.system('cmd /c taskkill /f /im "ADPClientService.exe" /t')
+os.system('cmd /c taskkill /f /im "AdskAccessService.exe" /t')
 wait(20)
 
 # Check if the session terminates.
