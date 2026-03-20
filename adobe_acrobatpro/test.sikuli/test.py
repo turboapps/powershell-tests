@@ -35,8 +35,6 @@ if exists("adobe_login_signout_others.png",60):
     click(Pattern("adobe_login_continue.png").similar(0.80))
 if exists("adobe_login_team.png",10):
     click(Pattern("adobe_login_continue.png").similar(0.80))
-if exists("get-started.png",15):
-    type(Key.ESC)
 wait("pdf_window.png",15)
 run("turbo stop test")
 closeApp("Command Prompt")
@@ -46,7 +44,10 @@ run("explorer " + os.path.join(util.start_menu, "Adobe Acrobat Pro.lnk"))
 
 # Basic operations.
 click("pdf_window.png")
-type(Key.UP, Key.WIN)
+wait(5)
+type(" ", Key.ALT)   # open system menu
+wait(2)
+type("x")            # maximize
 wait(3)
 wait("see-all-tools.png")
 click("see-all-tools.png")
