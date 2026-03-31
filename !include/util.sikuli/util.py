@@ -28,7 +28,7 @@ def get_credentials(path):
 
 # Launch Adobe Creative Cloud
 def launch_adobe_cc(username, password):
-    run('turbo installi creativeclouddesktop --enable=usedllinjection --isolate=merge --offline')
+    run('turbo installi creativeclouddesktop --network=test --enable=usedllinjection --isolate=merge --offline')
     run("explorer " + get_shortcut_path_by_prefix(start_menu, "Adobe Creative Cloud"))
     activate_app_window("Creative Cloud Desktop",30)
     adobe_cc_login(username, password)
