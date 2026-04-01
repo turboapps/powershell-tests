@@ -33,7 +33,7 @@ assert("test" not in run("turbo sessions"))
 # Check if wingetcreate is installed successfully by winget.
 wait(3)
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk")) # launch another command prompt
-click("cmd.png")
+click("cmd1.png")
 paste("wingetcreate help")
 type(Key.ENTER)
 wait("wingetcreate_help.png")
