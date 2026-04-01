@@ -2,6 +2,7 @@ script_path = os.path.dirname(os.path.abspath(sys.argv[0]))
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
 import util
+import subprocess
 reload(util)
 addImagePath(include_path)
 
@@ -19,9 +20,7 @@ password = credentials.get("password")
 util.launch_adobe_cc(username, password)
 
 # Test of `turbo run`.
-run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
-wait(10)
-paste('turbo run incopy --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --name=test')
+subprocess.Popen("turbo run incopy --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --network=test --name=test")
 wait(3)
 type(Key.ENTER)
 if exists("adobe_login_signout_others.png",120):
@@ -38,6 +37,8 @@ run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe InCop
 
 # Basic operations.
 wait("incopy_window.png",120)
+wait(10)
+click("incopy_window.png")
 type("n", Key.CTRL)
 wait("new_document.png")
 type(Key.ENTER)
@@ -59,8 +60,12 @@ run("explorer " + save_path)
 wait("untitled-1.png",120)
 
 # Check "help".
+# Launch help twice as it sometimes fails the first time
 type(Key.F1)
-wait("help_url.png")
+wait(10)
+closeApp("Edge")
+type(Key.F1)
+wait("help_url.png",30)
 closeApp("Edge")
 wait(10)
 type("q", Key.CTRL)
