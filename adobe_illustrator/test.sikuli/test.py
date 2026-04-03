@@ -2,10 +2,11 @@ script_path = os.path.dirname(os.path.abspath(sys.argv[0]))
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
 import util
+import subprocess
 reload(util)
 addImagePath(include_path)
 
-setAutoWaitTimeout(90)
+setAutoWaitTimeout(30)
 
 util.pre_test()
 
@@ -20,17 +21,13 @@ password = credentials.get("password")
 util.launch_adobe_cc(username, password)
 
 # Test of `turbo run`.
-run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
-wait(10)
-paste('turbo run illustrator --using=creativeclouddesktop,vcredist --offline --enable=disablefontpreload --name=test')
-wait(3)
-type(Key.ENTER)
-if exists("whats_new.png"):
+subprocess.Popen("turbo run illustrator --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --network=test --name=test")
+if exists("whats_new.png",100):
     type(Key.ESC)
-wait("ai_window.png")
 if exists("adobe_login_signout_others.png",20):
     click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
     click(Pattern("adobe_login_continue.png").similar(0.80))
+wait("ai_window.png",20)
 run("turbo stop test")
 wait(10)
 
@@ -40,9 +37,9 @@ if exists("whats_new.png"):
     type(Key.ESC)
 
 # Basic operations.
-wait("ai_window.png")
+wait("ai_window.png",100)
 wait(10)
-type("n", Key.CTRL + Key.SHIFT)
+click(Pattern("ai_window.png").targetOffset(-2,-7))
 wait(10)
 click("open_location.png")
 paste("C:\\Program Files\\Adobe\\Adobe Illustrator 2026\\Cool Extras\\en_US\\Templates\\Blank Templates\\Tshirt.ait")
