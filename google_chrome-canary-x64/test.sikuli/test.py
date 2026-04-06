@@ -30,6 +30,7 @@ if app_window.isValid():
 # Basic operations.
 type("l", Key.CTRL)
 paste("https://google.com/")
+wait(3)
 type(Key.ENTER)
 wait("webpage.png")
 wait(3)
@@ -74,6 +75,8 @@ wait("webpage.png") # To gain focus.
 wait(2)
 App().focus("Google Chrome")
 wait(5)
+type("n", Key.CTRL)
+wait(5)
 type("p", Key.CTRL)
 wait("print_window.png",60)
 click(Pattern("print_print.png").targetOffset(-28,8))
@@ -84,6 +87,7 @@ assert(util.file_exists(save_location, 5))
 
 type(Key.ESC)
 type(Key.F4, Key.ALT)
+closeApp("Google Chrome")
 wait(5)
 
 # Check if the session terminates.

@@ -2,6 +2,7 @@ script_path = os.path.dirname(os.path.abspath(sys.argv[0]))
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
 import util
+import subprocess
 reload(util)
 addImagePath(include_path)
 
@@ -19,10 +20,7 @@ password = credentials.get("password")
 util.launch_adobe_cc(username, password)
 
 # Test turbo run
-run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
-wait(5)
-paste('turbo run indesign --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
-type(Key.ENTER)
+subprocess.Popen("turbo run indesign --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --network=test --name=test")
 if exists("adobe_login_signout_others.png",300):
     click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
     click(Pattern("adobe_login_continue.png").similar(0.80))
