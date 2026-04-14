@@ -1,4 +1,6 @@
-﻿# Clean the environment for tests, pull test related images and login to a Turbo Server.
+﻿$NewLine = [System.Environment]::NewLine
+
+# Clean the environment for tests, pull test related images and login to a Turbo Server.
 # Note: this funtion will remove all the Turbo sessions, unregister all the apps installed by Turbo and reset Turbo Client configurations.
 function PrepareTest {
     param (
@@ -49,10 +51,10 @@ function PrepareTest {
     }
 
     # Pull test related images. There won't be test under full isolation, so no need to pull clean.
-    turbo pull /xvm
-    turbo pull base
-    turbo pull sikulix/sikulixide
-    turbo pull oracle/jre-x64
+    turbo pull /xvm --format=json
+    turbo pull base --format=json
+    turbo pull sikulix/sikulixide --format=json
+    turbo pull oracle/jre-x64 --format=json
 }
 
 # Pull Turbo images (app image and images in the `--using` list).
@@ -62,11 +64,11 @@ function PullTurboImages {
         [string]$using
     )
 
-    turbo pull $image
+    turbo pull $image --format=json
 
     if (-not [string]::IsNullOrWhiteSpace($using)) {
         $using.Split(",") | ForEach-Object {
-            turbo pull $_.Trim()
+            turbo pull $_.Trim() --format=json
         }
     }
 }
