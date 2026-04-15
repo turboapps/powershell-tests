@@ -217,6 +217,9 @@ Add-Type @"
     # Minimize the window.
     [WindowHandler]::ShowWindow($consoleHandle, $SW_MINIMIZE)
 
+    # Show the Desktop
+    (New-Object -ComObject Shell.Application).MinimizeAll()
+
     CloseStartMenu
     # Kill any OneDrive processes
     taskkill /F /IM "onedrive*" /T
