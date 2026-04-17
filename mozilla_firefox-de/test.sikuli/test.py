@@ -19,7 +19,7 @@ run("turbo stop test")
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Firefox.lnk"))
 wait("firefox_window.png",60)
-click("firefox_window.png")
+
 # Basic operations.
 type("l", Key.CTRL)
 wait(2)
@@ -30,7 +30,7 @@ wait(3)
 type("s", Key.CTRL)
 wait("save.png")
 paste(os.path.join(util.desktop, "name with space"))
-click(Pattern("save_type.png").targetOffset(39,0))
+click(Pattern("save_type.png").targetOffset(39,1))
 wait(2)
 type(Key.DOWN)
 wait(2)
@@ -45,10 +45,7 @@ type(Key.ENTER)
 wait("settings_page.png")
 
 # Check "help".
-type(Key.ALT)
-type(Key.LEFT)
-type(Key.DOWN)
-type(Key.ENTER)
+click("help-link.png")
 wait("help_page.png")
 type("q", Key.CTRL + Key.SHIFT)
 
@@ -84,7 +81,7 @@ app_window = App().focus("Firefox")
 if app_window.isValid():
     type("p", Key.CTRL)
 wait(Pattern("print_window.png").similar(0.60))
-click(Pattern("print_print.png").similar(0.90).targetOffset(-9,1))
+click(Pattern("print_print.png").targetOffset(-9,1))
 wait("print_location.png")
 paste(save_location)
 click(Pattern("print_save.png").targetOffset(-49,-1))
