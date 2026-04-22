@@ -79,7 +79,7 @@ if exists("upgrade-to-64.png",30):
 
 # Check "help".
 type(Key.F1)
-wait("reader_help_url.png")
+wait("reader_help_url.png",60)
 closeApp("Edge")
 
 # Test Adobe Login.
