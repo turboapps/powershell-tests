@@ -51,8 +51,8 @@ if exists(Pattern("collaborate_prompt.png").targetOffset(174,-36),15):
 
 # Basic operations.
 click("excel-data.png")
-if exists("dark-mode-prompt.png", 15):
-    click(Pattern("dark-mode-prompt.png").targetOffset(247,-250))
+if exists("close-new-feature.png", 15):
+    click("close-new-feature.png")
 wait("import_file_name.png",20)
 paste("C:\\Program Files\\Microsoft Power BI Desktop\\bin\\SampleData\\Financial Sample.xlsx")
 wait(2)
