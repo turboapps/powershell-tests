@@ -5,6 +5,7 @@ import util
 reload(util)
 addImagePath(include_path)
 
+
 save_path = os.path.join(util.desktop, "red fox.jpg")
 
 setAutoWaitTimeout(30)
@@ -26,16 +27,18 @@ app_window = App().focus("GNU Image Manipulation Program") # Activate and maximi
 if app_window.isValid():
     type(Key.UP, Key.WIN)
 wait(3)
+type("q", Key.CTRL)
 
 # Basic operations.
-type("o", Key.CTRL)
-wait("desktop-folder.png")
-click("desktop-folder.png")
-doubleClick("gimp-folder.png")
-wait(5)
-doubleClick("resources-folder.png")
-click("open-file.png")
-wait("red-fox.png")
+resources = os.path.join(script_path, os.pardir, "resources")
+run("explorer " + resources)
+wait("red-fox-file.png",10)
+rightClick("red-fox-file.png")
+click("open-with.png")
+click("choose-app.png")
+click("choose-gimp.png")
+click("always.png")
+wait("red-fox.png",90)
 click("colors-menu.png")
 wait("invert-tool.png")
 click("invert-tool.png")
@@ -64,22 +67,6 @@ type("q", Key.CTRL) # Close GIMP.
 wait("discard-changes.png")
 click("discard-changes.png")
 wait(3)
-
-# Set default app.
-type("i", Key.WIN)
-wait("windows_setting_window.png")
-paste("Default apps")
-wait(3)
-type(Key.ENTER)
-click("search-file-type.png")
-paste(".jpg")
-wait(2)
-type(Key.ENTER)
-click("jpg-type.png")
-click("select-gimp-app.png")
-click("set-default.png")
-wait(2)
-type(Key.F4, Key.ALT)
 
 # Test file association.
 run("explorer " + save_path)
