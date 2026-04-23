@@ -9,11 +9,15 @@ setAutoWaitTimeout(50)
 util.pre_test()
 
 # Test of `turbo run`.
-wait("welcome-tab.png")
+wait("welcome-skip.png",60)
+click("welcome-skip.png")
+wait("welcome-tab.png",15)
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Visual Studio Code", "Visual Studio Code.lnk"))
+wait("welcome-skip.png",60)
+click("welcome-skip.png")
 wait("welcome-tab.png")
 click("welcome-tab.png")
 # Activate and maximize the app window.
@@ -73,6 +77,7 @@ wait("extension_c.png")
 wait(2)
 click(Pattern("extension_c.png").targetOffset(28,31))
 wait("install_complete_1.png", 240)
+click("trust-continue.png")
 if exists("extensions_pre-release_c.png",15):
     click(Pattern("extensions_pre-release_c.png").targetOffset(197,27))
 click("tab_c.png")
@@ -136,7 +141,6 @@ click(Pattern("run_1.png").similar(0.60).targetOffset(-28,0))
 wait(Pattern("result.png").similar(0.80), 240)
 type("k", Key.CTRL)
 type("f")
-wait("welcome-tab.png")
 
 # Extension for JavaScript/TypeScript.
 type("o", Key.CTRL)
