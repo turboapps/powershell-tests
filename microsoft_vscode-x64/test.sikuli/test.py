@@ -9,13 +9,13 @@ setAutoWaitTimeout(50)
 util.pre_test()
 
 # Test of `turbo run`.
-wait("welcome-tab.png",60)
+wait("code_window_2.png",60)
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Visual Studio Code", "Visual Studio Code.lnk"))
-wait("welcome-tab.png",60)
-click("welcome-tab.png")
+wait("code_window_2.png",60)
+click("code_window_2.png")
 # Activate and maximize the app window.
 app_window = App().focus("Visual Studio Code")
 if app_window.isValid():
@@ -117,10 +117,10 @@ wait(2)
 type(Key.ENTER)
 wait("open_folder_select_folder.png")
 type(Key.ENTER)
-wait("remember-checkbox.png")
-click("remember-checkbox.png")
-type(Key.TAB)
-type(Key.SPACE)
+if exists("remember-checkbox.png",10):
+    click("remember-checkbox.png")
+    type(Key.TAB)
+    type(Key.SPACE)
 doubleClick(Pattern("solution_c_sharp.png").targetOffset(-20,17))
 wait("extension_c_sharp.png")
 wait(2)
@@ -133,9 +133,7 @@ if exists("get-started-csharp.png",15):
     click("tab_c_sharp.png")
 wait("projects-helloworld.png",240)
 click(Pattern("run_1.png").similar(0.60).targetOffset(-28,0))
-wait("rebuild-yes.png",240)
-click("rebuild-yes.png")
-wait(Pattern("result.png").similar(0.80),20)
+wait(Pattern("result.png").similar(0.80),240)
 type("k", Key.CTRL)
 type("f")
 wait("code_window_2.png")
