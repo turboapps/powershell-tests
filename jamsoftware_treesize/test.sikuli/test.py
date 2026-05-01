@@ -26,7 +26,7 @@ type("t")
 click("directory.png")
 click("desktop.png")
 click("confirm-selection.png")
-wait("include-folder.png")
+wait("edge-lnk.png")
 wait(5)
 # Close app
 type(Key.F4, Key.ALT)
