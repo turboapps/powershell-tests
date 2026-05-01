@@ -9,12 +9,16 @@ setAutoWaitTimeout(50)
 util.pre_test()
 
 # Test of `turbo run`.
-wait("code_window_2.png",60)
+if exists("vscode-signin.png",60):
+    type(Key.ESC)
+wait("code_window_2.png",20)
 run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Visual Studio Code", "Visual Studio Code.lnk"))
-wait("code_window_2.png",60)
+if exists("vscode-signin.png",60):
+    type(Key.ESC)
+wait("code_window_2.png",20)
 click("code_window_2.png")
 # Activate and maximize the app window.
 app_window = App().focus("Visual Studio Code")

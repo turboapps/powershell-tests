@@ -25,6 +25,8 @@ if exists("quit.png"):
 run('explorer "' + os.path.join(util.start_menu, "Keeper Password Manager.lnk") + '"') # Need to wrap the path for comma.
 
 # Basic operations.
+wait("welcome.png")
+wait(10)
 click(Pattern("welcome.png").targetOffset(-90,0))
 click(Pattern("login_email.png").targetOffset(-184,50))
 paste(username)
