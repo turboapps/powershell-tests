@@ -137,7 +137,10 @@ if exists("get-started-csharp.png",15):
     click("tab_c_sharp.png")
 wait("projects-helloworld.png",240)
 click(Pattern("run_1.png").similar(0.60).targetOffset(-28,0))
-wait(Pattern("result.png").similar(0.80),240)
+if exists("rebuild-yes.png",240):
+    click("rebuild-yes.png")
+wait(Pattern("result.png").similar(0.80),20)
+wait(10)
 type("k", Key.CTRL)
 type("f")
 wait("code_window_2.png")
