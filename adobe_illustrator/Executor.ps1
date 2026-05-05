@@ -7,7 +7,7 @@ $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 . $IncludePath
 
 $image = "adobe/illustrator"
-$using = "adobe/creativeclouddesktop,microsoft/vcredist"
+$using = "adobe/creativeclouddesktop,microsoft/vcredist,turbobuild/isolate-edge-wc"
 $isolate = "merge-user"
 
 StandardTest -image $image -using $using -isolate $isolate -extra $extra -localLogsDir $localLogsDir -shouldTry $false
