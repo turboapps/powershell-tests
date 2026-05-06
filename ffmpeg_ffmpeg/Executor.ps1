@@ -7,7 +7,8 @@ $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 . $IncludePath
 
 $image = "ffmpeg/ffmpeg"
-$isolate = "merge-user"
-$extra = $extra + " --startup-file=cmd "
 
-StandardTest -image $image -isolate $isolate -extra $extra -shouldInstall $False -localLogsDir $localLogsDir
+PrepareTest -image $image -localLogsDir $localLogsDir
+PullTurboImages -image $image
+HidePowerShellWindow
+$TestResult = StartTest -image $image -localLogsDir $localLogsDir
