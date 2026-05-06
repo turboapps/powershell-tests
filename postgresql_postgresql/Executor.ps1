@@ -13,8 +13,9 @@ Set-Content -Path (Join-Path -Path $PSScriptRoot -ChildPath "extra.txt") -Value 
 
 PrepareTest -image $image -localLogsDir $localLogsDir
 PullTurboImages -image $image
-RunProcess -path (Join-Path -Path $PSScriptRoot -ChildPath "resources\setup.bat")
 HidePowerShellWindow
+$setupfile = Join-Path -Path $PSScriptRoot -ChildPath "resources\setup.bat"
+Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$setupfile`""
 $TestResult = StartTest -image $image -localLogsDir $localLogsDir
 
 exit $TestResult
