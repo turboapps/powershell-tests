@@ -16,6 +16,8 @@ PrepareTest -image $image -localLogsDir $localLogsDir
 PullTurboImages -image $image
 PullTurboImages -image $using
 HidePowerShellWindow
+$setupfile = Join-Path -Path $PSScriptRoot -ChildPath "resources\setup.bat"
+Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$setupfile`""
 $TestResult = StartTest -image $image -localLogsDir $localLogsDir
 
 exit $TestResult
