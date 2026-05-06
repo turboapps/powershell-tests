@@ -14,6 +14,11 @@ if exists("vscode-signin.png",60):
 wait("code_window_2.png",20)
 run("turbo stop test")
 
+# Install the extensions
+extensions = "code --install-extension ms-python.python --install-extension ms-vscode.cpptools --install-extension ms-vscode.cpptools-extension-pack --install-extension vscjava.vscode-java-pack --install-extension ms-dotnettools.csdevkit --install-extension dbaeumer.vscode-eslint --install-extension golang.go --install-extension shopify.ruby-extensions-pack --force"
+turbocmd = "turbo run vscode-x64 --isolate=merge-user --using=python/python-x64,eclipse/temurin-lts,microsoft/dotnet-sdk-x64:8 --startup-file=cmd -- /C "
+run(turbocmd + extensions)
+            
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Visual Studio Code", "Visual Studio Code.lnk"))
 if exists("vscode-signin.png",60):
@@ -36,11 +41,6 @@ paste(python_save_path)
 wait(2)
 type(Key.ENTER)
 assert(util.file_exists(python_save_path, 5))
-wait("extension_python.png")
-wait(2)
-click(Pattern("extension_python.png").targetOffset(59,26))
-while exists("installing-extension.png"):
-    wait(1)
 click("tab_python.png")
 type(Key.F4, Key.ALT)
 wait(10)
@@ -60,7 +60,6 @@ type("w", Key.CTRL) # Python window.
 wait(2)
 type("w", Key.CTRL) # Restricted Mode window.
 wait(2)
-type("w", Key.CTRL) # Python Extension window.
 wait("code_window_2.png")
 
 # Extension for C/C++.
@@ -73,19 +72,14 @@ wait("remember-checkbox.png")
 click("remember-checkbox.png")
 type(Key.TAB)
 type(Key.SPACE)
-if exists("trust-continue.png",15):
+if exists("trust-continue.png",20):
     click("trust-continue.png")
-wait("install-c-ext.png",15)
-wait(2)
-click("install-c-ext.png")
-wait("install_complete_1.png", 240)
 if exists("extensions_pre-release_c.png",20):
     click(Pattern("extensions_pre-release_c.png").targetOffset(197,27))
 click("tab_c.png")
 wait("code_c.png")
 type("w", Key.CTRL) # C window.
 wait(2)
-type("w", Key.CTRL) # C Extension window.
 wait("code_window_2.png")
 
 # Extension for Java.
@@ -94,11 +88,6 @@ wait("open_location.png")
 paste(os.path.join(script_path, os.pardir, "resources", "hello_world.java"))
 wait(2)
 type(Key.ENTER)
-wait("extension_java.png")
-wait(2)
-click(Pattern("extension_java.png").targetOffset(32,22))
-while exists("installing-extension.png"):
-    wait(1)
 wait("tab_java.png",240)
 click("tab_java.png")
 wait("code_java.png")
@@ -107,9 +96,6 @@ click(Pattern("run_1.png").similar(0.60).targetOffset(-28,0))
 wait("result.png")
 type("w", Key.CTRL) # Jave window.
 wait(2)
-type("w", Key.CTRL) # Java Extension window.
-wait(2)
-type("w", Key.CTRL) # JDK window
 wait("code_window_2.png")
 
 # Extension for C#.
@@ -126,16 +112,7 @@ if exists("remember-checkbox.png",10):
     type(Key.TAB)
     type(Key.SPACE)
 doubleClick(Pattern("solution_c_sharp.png").targetOffset(-20,17))
-wait("extension_c_sharp.png")
-wait(2)
-click(Pattern("extension_c_sharp.png").targetOffset(27,23))
-while exists("installing-extension.png"):
-    wait(1)
 click("tab_c_sharp.png")
-wait("code_c_sharp.png")
-if exists("get-started-csharp.png",15):
-    click("tab_c_sharp.png")
-wait("projects-helloworld.png",240)
 click(Pattern("run_1.png").similar(0.60).targetOffset(-28,0))
 if exists("rebuild-yes.png",240):
     click("rebuild-yes.png")
@@ -150,17 +127,9 @@ wait("open_location.png")
 paste(os.path.join(script_path, os.pardir, "resources", "hello_world.ts"))
 wait(2)
 type(Key.ENTER)
-click(Pattern("extensions_buttion.png").similar(0.60))
-click(Pattern("extensions_search_typescript.png").targetOffset(-95,14))
-paste("@id:dbaeumer.vscode-eslint")
-click(Pattern("extension_typescript.png").targetOffset(108,11))
-wait("install_complete_1.png", 400)
-click("es-lint-logo.png")
 click("tab_typescript.png")
 wait("code_typescript.png")
 type("w", Key.CTRL) # TypeScript window.
-wait(2)
-type("w", Key.CTRL) # TypeScript Extension window.
 wait("code_window_2.png")
 
 # Extension for Go.
@@ -169,11 +138,6 @@ wait("open_location.png")
 paste(os.path.join(script_path, os.pardir, "resources", "hello_world.go"))
 wait(2)
 type(Key.ENTER)
-wait("extension_go.png")
-wait(2)
-click(Pattern("extension_go.png").targetOffset(24,24))
-click("trust-publisher-install.png")
-wait("install_complete_1.png", 300)
 if exists("no_go.png",15):
     click(Pattern("no_go.png").targetOffset(205,-10))
 click("tab_go.png")
@@ -181,10 +145,7 @@ wait("code_go.png")
 type("w", Key.CTRL) # Go window.
 wait(2)
 type("w", Key.CTRL) # Go for VS Code window.
-wait(2)
-type("w", Key.CTRL) # Go Extension window.
 wait("code_window_2.png")
-
 
 # Extension for Ruby.
 type("o", Key.CTRL)
@@ -192,19 +153,9 @@ wait("open_location.png")
 paste(os.path.join(script_path, os.pardir, "resources", "hello_world.rb"))
 wait(2)
 type(Key.ENTER)
-click(Pattern("extensions_search_ruby.png").similar(0.50).targetOffset(-97,17))
-type("a", Key.CTRL)
-paste("@id:shopify.ruby-extensions-pack")
-click("install-extension.png")
-click("trust-publisher-install2.png")
-wait("install_complete_1.png", 240)
-if exists("theme_ruby.png",15):
-    type(Key.ESC)
 click("tab_ruby.png")
 wait("code_ruby.png")
 type("w", Key.CTRL) # Ruby window.
-wait(2)
-type("w", Key.CTRL) # Ruby Extension window.
 wait("code_window_2.png")
 
 # Check "help".
