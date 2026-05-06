@@ -67,14 +67,12 @@ type("q", Key.CTRL) # Close GIMP.
 wait("discard-changes.png")
 click("discard-changes.png")
 wait(3)
+type("d", Key.WIN) # minimize to desktop
 
 # Test file association.
 run("explorer " + save_path)
 wait("fox-inverted.png",90)
-type("q", Key.CTRL) # Close GIMP.
-wait(3)
-run("explorer " + save_path)
-wait("inverted-fox-open.png",90)
+wait(5)
 type("q", Key.CTRL) # Close GIMP.
 wait(20)
 

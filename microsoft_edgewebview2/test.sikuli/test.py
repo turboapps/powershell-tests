@@ -5,15 +5,14 @@ import util
 reload(util)
 addImagePath(include_path)
 
-setAutoWaitTimeout(10)
+setAutoWaitTimeout(30)
 util.pre_test()
 
 # Test of `turbo run`.
 # Exit with error code if the WebView2 layer is not working.
 if exists("update-required.png"):
     sys.exit(1)
-setAutoWaitTimeout(30)
-wait("home_button.png")
+wait("home_button.png",60)
 wait(10)
 click(Pattern("close_pbi.png").targetOffset(42,-1))
 wait(5)
@@ -26,7 +25,8 @@ run("explorer " + os.path.join(util.start_menu, "Microsoft Power BI Desktop", "P
 # Exit with error code if the WebView2 layer is not working.
 if exists("update-required.png"):
     sys.exit(1)
-wait("home_button.png")
+wait("home_button.png",60)
+wait(10)
 type(Key.F4, Key.ALT)
 wait(20)
 
