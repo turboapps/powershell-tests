@@ -35,7 +35,11 @@ function PrepareTest {
 
     # Reset client config
     turbo config --reset
-    
+
+    # Pull the base and xvm images from hub.turbo.net
+    turbo pull /xvm --format=json
+    turbo pull base --format=json
+
     # Point to the specified Turbo Server and log in.
     if (-not [string]::IsNullOrWhiteSpace($domain)) {
         turbo config --domain $domain
@@ -51,8 +55,6 @@ function PrepareTest {
     }
 
     # Pull test related images. There won't be test under full isolation, so no need to pull clean.
-    turbo pull /xvm --format=json
-    turbo pull base --format=json
     turbo pull sikulix/sikulixide --format=json
     turbo pull oracle/jre-x64 --format=json
 }
