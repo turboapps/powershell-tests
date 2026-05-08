@@ -22,6 +22,8 @@ wait("ads_window.png")
 click("create_connection.png")
 if exists("privacy.png"):
     click(Pattern("privacy.png").targetOffset(206,-32))
+if exists("retired-msg.png"):
+    click(Pattern("retired-msg.png").targetOffset(152,16))
 click(Pattern("connection_type.png").targetOffset(62,20))
 wait(2)
 click(Pattern("connection_string.png").targetOffset(52,0))

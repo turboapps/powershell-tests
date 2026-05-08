@@ -93,7 +93,7 @@ click("tab_java.png")
 wait("code_java.png")
 wait(Pattern("run_1.png").similar(0.60).targetOffset(-28,0),240)
 click(Pattern("run_1.png").similar(0.60).targetOffset(-28,0))
-wait("result.png")
+wait("result.png",240)
 type("w", Key.CTRL) # Jave window.
 wait(2)
 wait("code_window_2.png")

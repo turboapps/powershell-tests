@@ -41,7 +41,7 @@ if exists("sign_in_password.png",10):
     paste(password)
     wait(3)
     type(Key.ENTER)
-wait("not-interested.png",60)
+wait("not-interested.png",180)
 click("not-interested.png")
 wait("new-mail-button.png")
 click("new-mail-button.png")
