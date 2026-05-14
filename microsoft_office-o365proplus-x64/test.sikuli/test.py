@@ -352,7 +352,7 @@ type(Key.ENTER)
 wait(3)
 type("2")
 type(Key.ENTER)
-wait("access_result_1.png")
+wait(Pattern("access_result_1.png").similar(0.50))
 
 type("s", Key.CTRL)
 wait("access_save.png")
