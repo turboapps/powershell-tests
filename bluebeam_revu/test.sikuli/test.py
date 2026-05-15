@@ -39,6 +39,9 @@ click("password-box.png")
 type(password)
 type(Key.ENTER)
 wait(5)
+# Check "help".
+type(Key.F1)
+wait("help-window.png")
 type(Key.F4, Key.ALT)
 
 # Launch sample pdf.
@@ -56,10 +59,6 @@ click("confirm-ok.png")
 wait("gfx-warning.png",10)
 click("gfx-warning.png")
 wait("pdf-loaded.png")
-
-# Check "help".
-type(Key.F1)
-wait("help-window.png")
 closeApp("Revu")
 wait(60)
 
