@@ -163,9 +163,6 @@ wait("excel_print.png")
 type(Key.ESC)
 wait("excel_csv.png")
 
-type(Key.F1)
-wait("excel_help.png")
-
 type(Key.F4, Key.ALT)
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 
@@ -209,10 +206,6 @@ type(Key.ESC)
 wait("outlook_new_email_2.png")
 type(Key.DELETE)
 wait(15)
-
-type(Key.F1)
-wait("outlook_help.png")
-
 type(Key.F4, Key.ALT)
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 util.check_running(12, 5) # retry 12 times and delay 5s
@@ -294,9 +287,6 @@ wait("ppt_print.png")
 type(Key.ESC)
 wait("ppt_result_4.png")
 
-type(Key.F1)
-wait("ppt_help.png")
-
 type(Key.F4, Key.ALT)
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 
@@ -368,9 +358,6 @@ type("p", Key.CTRL)
 wait("access_print.png")
 type(Key.ESC)
 wait("access_result_1.png")
-
-type(Key.F1)
-wait("access_help.png")
 
 type(Key.F4, Key.ALT)
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
