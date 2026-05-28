@@ -37,7 +37,7 @@ function PrepareTest {
     turbo config --reset
 
     # Pull the base and xvm images from hub.turbo.net
-    # turbo pull /xvm --format=json
+    turbo pull /xvm --format=json
     turbo pull base --format=json
 
     # Point to the specified Turbo Server and log in.
