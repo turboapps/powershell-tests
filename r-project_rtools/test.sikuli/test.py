@@ -19,6 +19,7 @@ run("explorer " + os.path.join(util.start_menu, "RStudio.lnk"))
 
 # Basic operations.
 wait("rstudio_window.png",120)
+click("whatsnew-close.png")
 App("RStudio").focus()
 type(Key.UP, Key.WIN) # Maximize cmd window.
 click("rstudio_window.png")
