@@ -74,8 +74,6 @@ type(Key.TAB)
 type(Key.SPACE)
 if exists("trust-continue.png",20):
     click("trust-continue.png")
-if exists("extensions_pre-release_c.png",20):
-    click(Pattern("extensions_pre-release_c.png").targetOffset(197,27))
 click("tab_c.png")
 wait("code_c.png")
 type("w", Key.CTRL) # C window.
