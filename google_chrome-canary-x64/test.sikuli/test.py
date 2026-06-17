@@ -15,7 +15,7 @@ save_location = os.path.join(util.desktop, "print.pdf")
 # Test of `turbo run`.
 wait("chrome_window.png")
 wait(5)
-type(Key.F4, Key.ALT)
+closeApp("Chrome")
 run("turbo stop test")
 
 # Launch the app.
@@ -51,7 +51,7 @@ wait("settings_page.png")
 # Check "help".
 type(Key.F1)
 wait("help_page.png")
-type(Key.F4, Key.ALT)
+closeApp("Chrome")
 
 # Set default browser.
 type("i", Key.WIN)
@@ -69,7 +69,7 @@ wait(5)
 type(Key.F4, Key.ALT)
 run("explorer " + os.path.join(util.desktop, "name with space.html"))
 wait("webpage.png")
-type(Key.F4, Key.ALT)
+closeApp("Chrome")
 run('explorer "https://google.com/"')
 wait("webpage.png") # To gain focus.
 wait(2)
@@ -89,8 +89,8 @@ type(Key.ENTER)
 assert(util.file_exists(save_location, 5))
 
 type(Key.ESC)
-type(Key.F4, Key.ALT)
 closeApp("Google Chrome")
+closeApp("Chrome")
 wait(5)
 
 # Check if the session terminates.
