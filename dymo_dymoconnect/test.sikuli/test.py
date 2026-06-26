@@ -10,13 +10,14 @@ util.pre_test()
 
 # Test of `turbo run`.
 wait("tips.png",120)
+type(Key.ESC)
 run("turbo stop test")
 wait(10)
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "DYMO", "DYMO Connect", "DYMO Connect.lnk"))
 wait("tips.png",120)
-click(Pattern("tips.png").targetOffset(178,-75))
+type(Key.ESC)
 
 # Basic operations.
 wait("textbox.png")
