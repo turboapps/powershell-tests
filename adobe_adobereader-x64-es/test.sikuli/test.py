@@ -76,7 +76,8 @@ wait("reader_opened.png",90)
 # Check "help".
 type(Key.F1)
 wait("reader_help_url.png")
-closeApp("Edge")
+if App("Edge").isRunning(10):
+    closeApp("Edge")
 
 # Test Adobe Login.
 click("sign_in_button.png")

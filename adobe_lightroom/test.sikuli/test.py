@@ -68,7 +68,8 @@ click("export_confirm.png")
 # Check "help".
 type(Key.F1)
 wait("help_url.png")
-closeApp("Edge")
+if App("Edge").isRunning(10):
+    closeApp("Edge")
 wait(10)
 type(Key.F4, Key.ALT)
 wait(10)

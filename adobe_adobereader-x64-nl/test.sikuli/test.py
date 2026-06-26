@@ -50,8 +50,8 @@ wait("sign_after.png")
 type("s", Key.CTRL + Key.SHIFT)
 if exists("cannot-save-ok.png",10):
     click("cannot-save-ok.png")
-wait("choose_diff_folder.png")
-click("choose_diff_folder.png")
+wait(Pattern("choose_diff_folder.png").similar(0.50))
+click(Pattern("choose_diff_folder.png").similar(0.50))
 wait("save_location.png")
 wait(3)
 paste(save_location)
@@ -76,7 +76,8 @@ wait("reader_opened.png",90)
 # Check "help".
 type(Key.F1)
 wait("reader_help_url.png")
-closeApp("Edge")
+if App("Edge").isRunning(10):
+    closeApp("Edge")
 
 # Test Adobe Login.
 click("sign_in_button.png")

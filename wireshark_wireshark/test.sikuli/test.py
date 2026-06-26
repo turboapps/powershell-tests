@@ -41,7 +41,8 @@ wait(Pattern("captured.png").similar(0.39))
 # Check "help".
 type(Key.F1)
 wait("help.png")
-closeApp("Edge")
+if App("Edge").isRunning(10):
+    closeApp("Edge")
 wait(5)
 type(Key.F4, Key.ALT)
 click(Pattern("quit.png").targetOffset(16,30))

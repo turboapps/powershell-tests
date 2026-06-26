@@ -161,7 +161,8 @@ click("menu_help.png")
 click("menu_help_doc.png")
 wait("help_url.png")
 wait(5)
-closeApp("Edge")
+if App("Edge").isRunning(10):
+    closeApp("Edge")
 type(Key.F4, Key.ALT)
 wait(20)
 # Check if the session terminates.

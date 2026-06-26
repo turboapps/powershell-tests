@@ -41,7 +41,8 @@ type(Key.ENTER)
 wait(20)
 type(Key.ESC)
 assert(os.path.exists(os.path.join(util.desktop, "name with space.html")),60)
-closeApp("Edge")
+if App("Edge").isRunning(10):
+    closeApp("Edge")
 
 # Set default browser.
 type("i", Key.WIN)
@@ -56,7 +57,8 @@ click(Pattern("windows_setting_default_edge.png").similar(0.95))
 type(Key.F4, Key.ALT)
 run("explorer " + os.path.join(util.desktop, "name with space.html"))
 wait(Pattern("webpage.png").similar(0.60))
-closeApp("Edge")
+if App("Edge").isRunning(10):
+    closeApp("Edge")
 run('explorer "https://google.com/"')
 wait(Pattern("webpage.png").similar(0.60))
 click(Pattern("webpage.png").similar(0.60)) # To gain focus.
@@ -76,7 +78,8 @@ wait(10)
 # Check "help".
 type(Key.F1)
 wait("help_url.png")
-closeApp("Edge")
+if App("Edge").isRunning(10):
+    closeApp("Edge")
 wait(20)
 
 # Check if the session terminates.

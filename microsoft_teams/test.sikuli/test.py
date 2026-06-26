@@ -34,7 +34,8 @@ wait(2)
 type(Key.TAB)
 wait(2)
 type(Key.ENTER)
-closeApp("Edge")
+if App("Edge").isRunning(10):
+    closeApp("Edge")
 click("meeting.png")
 type(Key.F4, Key.ALT)
 

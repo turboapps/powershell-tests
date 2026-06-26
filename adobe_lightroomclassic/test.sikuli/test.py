@@ -84,7 +84,8 @@ type(Key.ENTER)
 # Check "help".
 type(Key.F1)
 wait("help_url.png",30)
-closeApp("Edge")
+if App("Edge").isRunning(10):
+    closeApp("Edge")
 wait(10)
 if exists("import_select_source.png",10):
     wait(2)
