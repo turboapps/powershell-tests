@@ -29,6 +29,8 @@ click("cupcakes-loaded.png")
 type(Key.NUM1)
 click(Pattern("render.png").targetOffset(-12,0))
 wait("cupcake-rendered.png",60)
+wait(10)
+type("s", Key.CTRL)
 closeApp("Blender")
 
 # Check if the session terminates.
