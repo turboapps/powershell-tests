@@ -10,7 +10,7 @@ setAutoWaitTimeout(20)
 util.pre_test()
 
 # Test of `turbo run`.
-wait("blender-continue.png,60")
+wait("blender-continue.png",60)
 wait(3)
 run("turbo stop test")
 
@@ -19,7 +19,7 @@ blenderfile = os.path.join(script_path, os.pardir, "resources", "cupcakes.blend"
 run("explorer " + blenderfile)
 
 # Basic operations.
-wait("blender-continue.png,60")
+wait("blender-continue.png",60)
 wait(3)
 click("blender-continue.png")
 wait(3)
@@ -28,7 +28,7 @@ wait("cupcakes-loaded.png")
 click("cupcakes-loaded.png")
 type(Key.NUM1)
 click(Pattern("render.png").targetOffset(-12,0))
-wait("cupcake-rendered.png,60")
+wait("cupcake-rendered.png",60)
 closeApp("Blender")
 
 # Check if the session terminates.
