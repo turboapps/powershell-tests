@@ -18,6 +18,8 @@ wait(10)
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Zoom", "Zoom Workplace.lnk"))
 wait("zoom_window.png")
+if exists("dont-show-vdi.png",10):
+    click("dont-show-vdi.png")
 click("sign-in.png")
 wait("down-arrow.png")
 wait(5)
