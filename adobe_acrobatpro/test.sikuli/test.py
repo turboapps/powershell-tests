@@ -43,7 +43,7 @@ closeApp("Command Prompt")
 run("explorer " + os.path.join(util.start_menu, "Adobe Acrobat Pro.lnk"))
 
 # Basic operations.
-click("pdf_window.png")
+click("pdf_window.png",60)
 wait(5)
 type(" ", Key.ALT)   # open system menu
 wait(2)
