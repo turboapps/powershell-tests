@@ -20,6 +20,19 @@ type(Key.F4, Key.ALT)
 wait(5)
 run("turbo stop test")
 
+# Add MS work account
+run("explorer ms-settings:workplace")
+click("work-connect.png")
+click"email-field.png")
+paste(username)
+wait(3)
+type(Key.ENTER)
+wait("sign_in_password.png",120)
+paste(password)
+type(Key.ENTER)
+click("sign_in_done.png")
+type(Key.F4, Key.ALT)
+
 # Launch the app.
 run("explorer " + os.path.join(util.desktop, "Outlook (new).lnk"))
 wait("email-prompt.png")
@@ -31,13 +44,6 @@ wait("sign_in_password.png",120)
 paste(password)
 wait(3)
 type(Key.ENTER)
-wait("yes-all-apps.png")
-click("yes-all-apps.png")
-wait(5)
-wait("yes-all-apps.png")
-click("yes-all-apps.png")
-if exists("sign_in_went_wrong.png",10):
-    type(Key.ENTER)
 if exists("sign_in_done.png",10):
     click("sign_in_done.png")
 if exists("sign_in_password.png",10):
