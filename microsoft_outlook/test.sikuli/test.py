@@ -33,6 +33,8 @@ wait(3)
 type(Key.ENTER)
 wait("yes-all-apps.png")
 click("yes-all-apps.png")
+wait("yes-all-apps.png")
+click("yes-all-apps.png")
 if exists("sign_in_went_wrong.png",10):
     type(Key.ENTER)
 if exists("sign_in_done.png",10):
