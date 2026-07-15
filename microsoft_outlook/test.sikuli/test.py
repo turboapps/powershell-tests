@@ -32,12 +32,14 @@ wait("sign_in_password.png",120)
 paste(password)
 wait(3)
 type(Key.ENTER)
-if exists("sign_in_done.png",10):
-    click("sign_in_done.png")
+wait("yes-all-apps.png",10)
+click("yes-all-apps.png")
 if exists("sign_in_password.png",10):
     paste(password)
     wait(3)
     type(Key.ENTER)
+if exists("sign_in_done.png",10):
+    click("sign_in_done.png")
 wait("not-interested.png",180)
 click("not-interested.png")
 wait("new-mail-button.png")
