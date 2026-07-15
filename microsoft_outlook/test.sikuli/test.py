@@ -20,20 +20,6 @@ type(Key.F4, Key.ALT)
 wait(5)
 run("turbo stop test")
 
-# Add MS work account
-run("explorer ms-settings:workplace")
-click("work-connect.png")
-wait("email-field.png")
-type(username)
-wait(3)
-type(Key.ENTER)
-wait("sign_in_password.png",120)
-paste(password)
-wait(3)
-type(Key.ENTER)
-click("sign_in_done.png")
-wait(10)
-type(Key.F4, Key.ALT)
 
 # Launch the app.
 run("explorer " + os.path.join(util.desktop, "Outlook (new).lnk"))
