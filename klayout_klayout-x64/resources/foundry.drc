@@ -1,0 +1,46 @@
+# -------------------------------------------------------------------------
+# foundry.drc  —  a realistic, multi-rule KLayout DRC deck
+#
+# Rules (the staples found in almost every real runset):
+#   M1.W     metal1 minimum width      >= 0.20 um
+#   M1.S     metal1 minimum spacing    >= 0.20 um
+#   M1.A     metal1 minimum area       >= 0.05 um^2
+#   V1.ENC   metal1 enclosure of via   >= 0.05 um
+#   V1.COV   every via must be covered by metal1
+#   M1M2.OV  metal1 and metal2 must not overlap
+#
+# Layers:  metal1 = 1/0   via = 2/0   metal2 = 3/0
+#
+# HOW TO RUN (GUI, easiest):
+#   1. File > Open  ->  dirty.gds   (so it is the active layout)
+#   2. Tools > DRC  ->  open/paste this deck  ->  Run
+#   3. Click any entry in the Marker Browser to jump to the violation.
+#
+# The source() line is commented out so the deck runs on the ACTIVE layout.
+# For batch use, uncomment it and set the absolute path to dirty.gds.
+# -------------------------------------------------------------------------
+
+# source("C:/Users/admin/test/dirty.gds")   # <- uncomment + fix path for batch
+report("Foundry DRC")                        # results go to the Marker Browser
+
+metal1 = input(1, 0)
+via    = input(2, 0)
+metal2 = input(3, 0)
+
+# M1.W  — minimum width 0.20 um
+metal1.width(0.20.um).output("M1.W", "Metal1 width must be >= 0.20 um")
+
+# M1.S  — minimum spacing 0.20 um
+metal1.space(0.20.um).output("M1.S", "Metal1 spacing must be >= 0.20 um")
+
+# M1.A  — minimum area 0.05 um^2 (flag polygons smaller than that)
+metal1.with_area(nil, 0.05.um2).output("M1.A", "Metal1 area must be >= 0.05 um^2")
+
+# V1.ENC — metal1 must enclose each via by at least 0.05 um
+metal1.enclosing(via, 0.05.um).output("V1.ENC", "Metal1 must enclose via by >= 0.05 um")
+
+# V1.COV — every via must sit fully inside metal1
+via.not_inside(metal1).output("V1.COV", "Via must be covered by Metal1")
+
+# M1M2.OV — metal1 and metal2 must not overlap (short between layers)
+(metal1 & metal2).output("M1M2.OV", "Metal1 and Metal2 must not overlap")
