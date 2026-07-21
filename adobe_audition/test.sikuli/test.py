@@ -4,6 +4,7 @@ sys.path.append(include_path)
 import util
 reload(util)
 addImagePath(include_path)
+resources = os.path.join(script_path, os.pardir, "resources")
 
 setAutoWaitTimeout(20)
 
@@ -23,7 +24,7 @@ wait(5)
 paste('turbo run audition --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
 wait(2)
 type(Key.ENTER)
-if exists("learn-panel.png",60):
+if exists("learn-panel.png",90):
     click(Pattern("learn-panel.png").targetOffset(8,-28))
     click("close-panel.png")
 if exists("adobe_login_signout_others.png",10):
@@ -42,7 +43,7 @@ closeApp("Command Prompt")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Audition"))
-if exists("learn-panel.png",60):
+if exists("learn-panel.png",90):
     click(Pattern("learn-panel.png").targetOffset(8,-28))
     click("close-panel.png")
 if exists("hardware-warning.png",10):
@@ -52,8 +53,10 @@ wait("audition-title-bar.png",15)
 
 # Basic operations.
 type("i",Key.CTRL)
+wait("import-file.png")
 wait(5)
-paste("%USERPROFILE%\\Desktop\\adobe_audition\\resources\\sample.mp3")
+sample = os.path.join(resources,"sample.mp3")
+paste(sample)
 wait(2)
 type(Key.ENTER)
 wait("sample-open.png",30)
