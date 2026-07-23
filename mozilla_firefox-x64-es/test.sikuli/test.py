@@ -42,7 +42,7 @@ type("l", Key.CTRL)
 wait(2)
 paste("about:preferences")
 type(Key.ENTER)
-wait("settings_page.png")
+wait("help-link.png")
 
 # Check "help".
 click("help-link.png")
