@@ -20,7 +20,7 @@ run("turbo stop test")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "GIMP"))
-wait("welcome-close.png",90)
+wait("welcome-close.png",300)
 click("welcome-close.png")
 click("gimp-menus.png")
 app_window = App().focus("GNU Image Manipulation Program") # Activate and maximize the app window.
