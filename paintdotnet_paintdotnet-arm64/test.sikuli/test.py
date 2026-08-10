@@ -1,0 +1,49 @@
+script_path = os.path.dirname(os.path.abspath(sys.argv[0])) 
+include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
+sys.path.append(include_path)
+import util
+reload(util)
+addImagePath(include_path)
+
+save_path = os.path.join(util.desktop, "red fox.jpg")
+
+setAutoWaitTimeout(30)
+util.pre_test()
+
+# Test of `turbo run`.
+wait("pdn_window.png")
+run("turbo stop test")
+
+# Launch the app.
+run("explorer " + os.path.join(util.start_menu, "paint.net.lnk"))
+wait("pdn_window.png")
+
+# Basic operations.
+type("o", Key.CTRL)
+click("open_location.png")
+paste(os.path.join(script_path, os.pardir, "resources", "red fox.jpg"))
+type(Key.ENTER)
+wait("loaded.png")
+type("g", Key.CTRL + Key.SHIFT)
+wait("processed.png")
+wait(5)
+type("s", Key.CTRL + Key.SHIFT)
+wait("save_location.png")
+paste(save_path)
+type(Key.ENTER)
+click(Pattern("save_ok.png").targetOffset(-40,5))
+
+# Export might be slow.
+assert(util.file_exists(save_path, 20))
+
+# Check "help".
+type(Key.F1)
+wait("help_url.png")
+closeApp("Edge")
+type(Key.F4, Key.ALT)
+wait(10)
+run("turbo stop paintdotnet")
+
+# Check if the session terminates.
+util.check_running()
+

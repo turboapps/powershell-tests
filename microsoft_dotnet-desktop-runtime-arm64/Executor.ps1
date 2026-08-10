@@ -1,0 +1,21 @@
+﻿param (
+        [string]$extra,
+        [string]$localLogsDir
+    )
+
+$IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
+. $IncludePath
+
+$image = "microsoft/dotnet-desktop-runtime-arm64"
+$app = "microsoft/dotnet-aspnet-runtime-arm64"
+$using = "microsoft/dotnet-desktop-runtime-arm64,turbobuild/isolate-edge-wc"
+$isolate = "merge-user"
+$extra = $extra + " --startup-file=" + $PSScriptRoot + "\resources\MyAspNetCoreApp-arm64\HelloWorldAspNet.exe "
+
+PrepareTest -image $image -localLogsDir $localLogsDir
+PullTurboImages -image $app -using $using
+TryTurboApp -image $app -using $using -isolate $isolate -extra $extra -detached $True
+HidePowerShellWindow
+$TestResult = StartTest -image $image -localLogsDir $localLogsDir
+
+exit $TestResult
