@@ -12,6 +12,9 @@ New-NetFirewallRule -DisplayName "Allow node" -Direction Inbound -Protocol UDP -
 
 $image = "nodejs/nodejs-arm64"
 $using = "python/python-arm64,microsoft/vsbuildtools"
-$extra = $extra + " --enable=usedllinjection --working-dir=" + $PSScriptRoot + "\resources "
+# --startup-file=cmd: the image's default startup (cmd /k nodevars.bat) crashes at launch
+# on the win11-arm pool (VM bug - cmd.exe faults in ntdll with 0xC00000FF when the startup
+# file has commandLine args). Plain cmd works and node is on the container PATH regardless.
+$extra = $extra + " --enable=usedllinjection --startup-file=cmd --working-dir=" + $PSScriptRoot + "\resources "
 
 StandardTest -image $image -using $using -isolate $isolate -extra $extra -shouldInstall $False -localLogsDir $localLogsDir
