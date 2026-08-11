@@ -16,7 +16,7 @@ run("turbo stop test")
 
 # Install the extensions
 extensions = "code --install-extension ms-python.python --install-extension ms-vscode.cpptools --install-extension ms-vscode.cpptools-extension-pack --install-extension vscjava.vscode-java-pack --install-extension ms-dotnettools.csdevkit --install-extension dbaeumer.vscode-eslint --install-extension golang.go --install-extension shopify.ruby-extensions-pack --force"
-turbocmd = "turbo run vscode-arm64 --isolate=merge-user --using=python/python-arm64,eclipse/temurin-lts-arm64,microsoft/dotnet-sdk-arm64:8 --startup-file=cmd -- /C "
+turbocmd = "turbo run vscode-arm64 --isolate=merge-user --using=python/python-arm64,eclipse/temurin-lts-arm64,microsoft/dotnet-sdk-arm64 --startup-file=cmd -- /C "
 run(turbocmd + extensions)
             
 # Launch the app.

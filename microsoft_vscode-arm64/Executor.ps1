@@ -27,7 +27,7 @@ foreach ($path in $paths) {
 }
 
 $image = "microsoft/vscode-arm64"
-$using = "python/python-arm64,eclipse/temurin-lts-arm64,microsoft/dotnet-sdk-arm64:8,turbobuild/isolate-edge-wc"
+$using = "python/python-arm64,eclipse/temurin-lts-arm64,microsoft/dotnet-sdk-arm64,turbobuild/isolate-edge-wc"
 $isolate = "merge-user"
 
 StandardTest -image $image -using $using -isolate $isolate -extra $extra -localLogsDir $localLogsDir
