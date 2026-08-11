@@ -25,7 +25,14 @@ wait("save_location.png")
 type("%USERPROFILE%\\Desktop\\new 1" + Key.ENTER)
 type(Key.F4, Key.ALT)
 run("explorer " + util.desktop)
-rightClick(Pattern("txt.png").similar(0.90))
+wait(3)
+# Select the saved file via Explorer type-ahead and open its context menu with Shift+F10.
+# Matching the file entry by screenshot (txt.png at 0.90 similarity) is brittle across
+# Windows builds - Explorer renders the entry differently on the win11-arm pool - and
+# lowering similarity risks matching the test's own log files on the same Desktop.
+type("new 1")
+wait(1)
+type(Key.F10, Key.SHIFT)
 click("shell_edit_with.png")
 wait("npp_window.png")
 type("p", Key.CTRL)
@@ -36,7 +43,9 @@ type(Key.ESC)
 click("menu.png")
 click("menu_help.png")
 wait("npp_help_url.png")
-closeApp("Edge")
+# Close the foreground Edge window with Alt+F4. closeApp("Edge") intermittently fails on
+# the win11-arm pool on Edge's first-ever (cold) start (see aspnet-runtime tests).
+type(Key.F4, Key.ALT)
 type(Key.F4, Key.ALT)
 type(Key.F4, Key.ALT) # Close the explorer window
 wait(20)

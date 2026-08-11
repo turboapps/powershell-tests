@@ -165,12 +165,12 @@ Function TurboPublish($App,$Version,$ApiKey,$ServerURL) {
     # If no version parameter was passed just push without a version
     # If this script was launched by the HTA, this should not be possible
     if ([string]::IsNullOrWhiteSpace($Version)) {
-        $ProcessExitCode = RunProcess $Turbo "push $Repo" $True
+        $ProcessExitCode = RunProcess $Turbo "push $Repo --format=json" $True
         CheckForError "Checking process exit code:" 0 $ProcessExitCode $True # Fail on turbo push failure
         WriteLog "Published=$Repo"
     # If a version parameter was passed, include the version in the push
     } else {
-        $ProcessExitCode = RunProcess $Turbo "push $Repo $Repo`:$Version" $True
+        $ProcessExitCode = RunProcess $Turbo "push $Repo $Repo`:$Version --format=json" $True
         CheckForError "Checking process exit code:" 0 $ProcessExitCode $True # Fail on turbo push failure
         WriteLog "Published=$Repo`:$Version"
     }
