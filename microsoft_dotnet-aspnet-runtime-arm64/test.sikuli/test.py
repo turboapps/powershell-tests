@@ -15,7 +15,10 @@ wait("dn_asp_rt_ready.png")
 run('explorer "http://localhost:5000"')
 wait("app.png")
 wait(5)
-closeApp("Edge")
+# Close the foreground Edge window with Alt+F4. closeApp("Edge") intermittently fails on
+# the win11-arm pool: on Edge's first-ever (cold) start SikuliX's app-name lookup can come
+# back empty and closeApp throws IndexOutOfBoundsException.
+type(Key.F4, Key.ALT)
 wait(5)
 run("turbo stop test")
 wait(10)
