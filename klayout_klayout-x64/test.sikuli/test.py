@@ -21,8 +21,9 @@ wait(10)
 
 
 # Run headless to create dirty
-certOutFile = os.path.join(resources, "dirty.gds")
-headlessCmd = "turbo run klayout-x64 --isolate=merge-user --working-dir=" + resources + " -- -b -r generate_dirty.py"
+certOutFile = os.path.join(util.desktop, "dirty.gds")
+genScript = os.path.join(resources, "generate_dirty.py")
+headlessCmd = "turbo run klayout --isolate=merge-user --working-dir=" + util.desktop + " -- -b -r " + genScript
 run(headlessCmd)
 wait(5)
 assert(util.file_exists(certOutFile, 10))

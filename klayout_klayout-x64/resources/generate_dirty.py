@@ -6,7 +6,7 @@ Layers:   metal1 = 1/0    via = 2/0    metal2 = 3/0
 Units:    dbu = 1 nm  (so 1 um = 1000 units, 0.20 um = 200 units)
 
 Run:
-    klayout -b -r generate_dirty.py         # writes dirty.gds next to this script
+    klayout -b -r generate_dirty.py         # writes dirty.gds into the current working directory
     python generate_dirty.py                # needs:  pip install klayout
 """
 
@@ -62,7 +62,7 @@ def build():
     top.shapes(m1).insert(B(2000, 2000, 2600, 2600))
     top.shapes(via).insert(B(2200, 2200, 2400, 2400))
 
-    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dirty.gds")
+    out = os.path.join(os.getcwd(), "dirty.gds")
     ly.write(out)
     print("wrote", out)
 
