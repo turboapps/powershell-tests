@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\dev\\code\\powershell-tests\\microsoft_vscode-arm64\\resources\\Hello World\\Hello World.csproj": {}
+    "C:\\dev\\code\\powershell-tests\\microsoft_vscode-arm64\\resources\\Hello World\\Hello World.csproj": {}
   },
   "projects": {
-    "c:\\dev\\code\\powershell-tests\\microsoft_vscode-arm64\\resources\\Hello World\\Hello World.csproj": {
+    "C:\\dev\\code\\powershell-tests\\microsoft_vscode-arm64\\resources\\Hello World\\Hello World.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\dev\\code\\powershell-tests\\microsoft_vscode-arm64\\resources\\Hello World\\Hello World.csproj",
+        "projectUniqueName": "C:\\dev\\code\\powershell-tests\\microsoft_vscode-arm64\\resources\\Hello World\\Hello World.csproj",
         "projectName": "Hello World",
-        "projectPath": "c:\\dev\\code\\powershell-tests\\microsoft_vscode-arm64\\resources\\Hello World\\Hello World.csproj",
+        "projectPath": "C:\\dev\\code\\powershell-tests\\microsoft_vscode-arm64\\resources\\Hello World\\Hello World.csproj",
         "packagesPath": "C:\\Users\\david\\.nuget\\packages\\",
-        "outputPath": "c:\\dev\\code\\powershell-tests\\microsoft_vscode-arm64\\resources\\Hello World\\obj\\",
+        "outputPath": "C:\\dev\\code\\powershell-tests\\microsoft_vscode-arm64\\resources\\Hello World\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\david\\AppData\\Roaming\\NuGet\\NuGet.Config",

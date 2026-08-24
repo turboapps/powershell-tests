@@ -14,8 +14,9 @@ wait("ssms_window.png",200)
 run("turbo stop test")
 
 # Launch the app.
-folder_path = util.get_shortcut_path_by_prefix(util.start_menu, "Microsoft SQL Server Tools")
-run("explorer " + util.get_shortcut_path_by_prefix(folder_path, "SQL Server Management Studio"))
+# The arm64 image's client-generated shortcut sits flat in the Start Menu, named from
+# the image Title ("SQL Server Management Studio ARM64") - no "Microsoft SQL Server Tools" folder.
+run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "SQL Server Management Studio"))
 wait(30)
 wait("ssms_window.png", 200)
 

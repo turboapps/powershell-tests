@@ -17,7 +17,7 @@ wait("firefox_window.png",60)
 run("turbo stop test")
 
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "Firefox.lnk"))
+run("explorer " + os.path.join(util.start_menu, "Firefox ESR ARM64.lnk"))
 wait("firefox_window.png",60)
 
 # Basic operations.

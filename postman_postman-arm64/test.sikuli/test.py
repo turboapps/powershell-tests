@@ -16,7 +16,7 @@ if exists("continue-without-account.png",20):
 run("turbo stop test")
 
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "Postman", "Postman.lnk"))
+run("explorer " + os.path.join(util.start_menu, "Postman API Client ARM64.lnk"))
 
 # Basic operations.
 if exists("light-client.png",20):
