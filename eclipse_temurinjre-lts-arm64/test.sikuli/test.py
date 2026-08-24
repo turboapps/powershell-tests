@@ -15,7 +15,7 @@ wait("jre_cmd.png")
 run("turbo stop test")
 
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "Temurin JRE LTS.lnk"))
+run("explorer " + os.path.join(util.start_menu, "Temurin JRE LTS ARM64.lnk"))
 
 # Basic operations.
 click("jre_cmd.png")
