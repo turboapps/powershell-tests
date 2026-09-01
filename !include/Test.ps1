@@ -19,6 +19,11 @@ function PrepareTest {
     $name = $image -replace '[/]', '_'
     Start-Transcript -Path "$localLogsDir\$name-executor.log"
 
+    # Remove completion markers from a previous run so a stale marker is not
+    # mistaken for this run's result when iterating (see Write-TestDoneMarker).
+    Remove-Item "$env:USERPROFILE\Desktop\TEST-DONE-PASS" -Force -ErrorAction SilentlyContinue
+    Remove-Item "$env:USERPROFILE\Desktop\TEST-DONE-FAIL" -Force -ErrorAction SilentlyContinue
+
     # Parse the secrets file.
     $secrets = Get-Content $secretsFile | ConvertFrom-Csv -Header "Key", "Value"
     $domain = $secrets | Where-Object { $_.Key -eq "Domain" } | Select-Object -ExpandProperty Value
@@ -207,6 +212,17 @@ Add-Type @"
 
         [DllImport("kernel32.dll")]
         public static extern IntPtr GetConsoleWindow();
+
+        public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        public static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        public static extern bool IsWindowVisible(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
     }
 "@
 
@@ -218,6 +234,30 @@ Add-Type @"
 
     # Minimize the window.
     [WindowHandler]::ShowWindow($consoleHandle, $SW_MINIMIZE)
+
+    # On Windows 11 24H2 the default terminal is Windows Terminal, which hosts
+    # this PowerShell in a ConPTY. GetConsoleWindow() then returns the hidden
+    # pseudoconsole window rather than the visible Windows Terminal frame, and
+    # Shell.Application.MinimizeAll() does not minimize Windows Terminal windows,
+    # so the terminal stays on top and covers the app under test - every sikuli
+    # image match then fails. Minimize the top-level Windows Terminal windows
+    # explicitly so the desktop is clear for the visual test.
+    $terminalPids = @(Get-Process -Name "WindowsTerminal" -ErrorAction SilentlyContinue |
+        Select-Object -ExpandProperty Id)
+    if ($terminalPids.Count -gt 0) {
+        $callback = [WindowHandler+EnumWindowsProc]{
+            param($hWnd, $lParam)
+            if ([WindowHandler]::IsWindowVisible($hWnd)) {
+                $windowPid = 0
+                [void][WindowHandler]::GetWindowThreadProcessId($hWnd, [ref]$windowPid)
+                if ($terminalPids -contains $windowPid) {
+                    [void][WindowHandler]::ShowWindow($hWnd, $SW_MINIMIZE)
+                }
+            }
+            return $true
+        }
+        [void][WindowHandler]::EnumWindows($callback, [IntPtr]::Zero)
+    }
 
     # Show the Desktop
     (New-Object -ComObject Shell.Application).MinimizeAll()
@@ -284,6 +324,22 @@ function StartTest {
     return $LASTEXITCODE
 }
 
+# Write a TEST-DONE-PASS or TEST-DONE-FAIL marker file on the desktop. The
+# test runs with console windows minimized, so the marker is the visible
+# signal for a person watching the desktop that the run has finished.
+# PrepareTest removes stale markers at the start of each run.
+function Write-TestDoneMarker {
+    param (
+        [string]$image,
+        [int]$testResult
+    )
+    if ($testResult -eq 0) {
+        "$image Pass at $(Get-Date -Format 'o')" | Set-Content "$env:USERPROFILE\Desktop\TEST-DONE-PASS"
+    } else {
+        "$image Fail (exit $testResult) at $(Get-Date -Format 'o')" | Set-Content "$env:USERPROFILE\Desktop\TEST-DONE-FAIL"
+    }
+}
+
 # Most of the apps share the same testing procedure.
 function StandardTest {
     param (
@@ -308,6 +364,7 @@ function StandardTest {
     }
     HidePowerShellWindow
     $TestResult = StartTest -image $image -localLogsDir $localLogsDir
+    Write-TestDoneMarker -image $image -testResult $TestResult
 
     return $TestResult
 }
