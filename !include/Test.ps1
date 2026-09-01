@@ -19,6 +19,11 @@ function PrepareTest {
     $name = $image -replace '[/]', '_'
     Start-Transcript -Path "$localLogsDir\$name-executor.log"
 
+    # Remove completion markers from a previous run so a stale marker is not
+    # mistaken for this run's result when iterating (see Write-TestDoneMarker).
+    Remove-Item "$env:USERPROFILE\Desktop\TEST-DONE-PASS" -Force -ErrorAction SilentlyContinue
+    Remove-Item "$env:USERPROFILE\Desktop\TEST-DONE-FAIL" -Force -ErrorAction SilentlyContinue
+
     # Parse the secrets file.
     $secrets = Get-Content $secretsFile | ConvertFrom-Csv -Header "Key", "Value"
     $domain = $secrets | Where-Object { $_.Key -eq "Domain" } | Select-Object -ExpandProperty Value
@@ -319,6 +324,22 @@ function StartTest {
     return $LASTEXITCODE
 }
 
+# Write a TEST-DONE-PASS or TEST-DONE-FAIL marker file on the desktop. The
+# test runs with console windows minimized, so the marker is the visible
+# signal for a person watching the desktop that the run has finished.
+# PrepareTest removes stale markers at the start of each run.
+function Write-TestDoneMarker {
+    param (
+        [string]$image,
+        [int]$testResult
+    )
+    if ($testResult -eq 0) {
+        "$image Pass at $(Get-Date -Format 'o')" | Set-Content "$env:USERPROFILE\Desktop\TEST-DONE-PASS"
+    } else {
+        "$image Fail (exit $testResult) at $(Get-Date -Format 'o')" | Set-Content "$env:USERPROFILE\Desktop\TEST-DONE-FAIL"
+    }
+}
+
 # Most of the apps share the same testing procedure.
 function StandardTest {
     param (
@@ -343,6 +364,7 @@ function StandardTest {
     }
     HidePowerShellWindow
     $TestResult = StartTest -image $image -localLogsDir $localLogsDir
+    Write-TestDoneMarker -image $image -testResult $TestResult
 
     return $TestResult
 }
