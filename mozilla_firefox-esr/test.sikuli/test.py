@@ -11,6 +11,15 @@ setAutoWaitTimeout(30)
 util.pre_test()
 
 save_location = os.path.join(util.desktop, "print.pdf")
+htm_location = os.path.join(util.desktop, "name with space.htm")
+
+# Remove artifacts a previous run may have left on the desktop. Both saves below
+# are verified with util.file_exists asserts; a stale name with space.htm or
+# print.pdf would satisfy the assert even when the current save/print failed,
+# letting the test limp past a broken interaction and only FindFail later.
+for stale in (htm_location, save_location):
+    if os.path.exists(stale):
+        os.remove(stale)
 
 # Test of `turbo run`.
 wait("firefox_window.png",60)
@@ -37,7 +46,7 @@ wait(2)
 type(Key.ENTER)
 wait(2)
 type(Key.ENTER)
-assert(util.file_exists(os.path.join(util.desktop, "name with space.htm"), 20))
+assert(util.file_exists(htm_location, 20))
 type("l", Key.CTRL)
 wait(2)
 paste("about:preferences")
@@ -63,7 +72,7 @@ wait(3)
 click("set-default.png")
 wait(3)
 type(Key.F4, Key.ALT)
-run("explorer " + os.path.join(util.desktop, "name with space.htm"))
+run("explorer " + htm_location)
 if exists("choose-app-firefox.png",10):
     click("choose-app-firefox.png")
     click("always.png")
