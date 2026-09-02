@@ -16,14 +16,38 @@ if os.path.exists(save_location):
 setAutoWaitTimeout(30)
 util.pre_test()
 
-# Reader 26.001+ opens an "Ask AI Assistant" panel over documents at
-# unpredictable times; its prompt box swallows keystrokes (save/print/help
-# shortcuts). Close it whenever it is present before keyboard-driven steps.
+# Reader 26.001+ opens an AI panel over documents at unpredictable times; its
+# prompt box swallows keystrokes (save/print/help shortcuts). The panel header
+# reads "Ask AI Assistant" at first and flips to "Generative summary" once
+# Reader starts summarizing the open file, sometimes within a second of
+# appearing. Both headers share the close-button geometry (148x24 captures,
+# close button 64 px left of center), so one offset serves both.
+# ai_summary_close.png is only captured for some locales; missing captures
+# are skipped so the helper degrades to the assistant-header check.
+AI_PANEL_HEADERS = [img for img in ("ai_assistant_close.png", "ai_summary_close.png")
+                    if os.path.exists(os.path.join(script_path, img))]
+
+def find_ai_panel(timeout):
+    for img in AI_PANEL_HEADERS:
+        m = exists(img, timeout)
+        if m:
+            return m
+    return None
+
+# Close the AI panel whenever it is present before keyboard-driven steps.
+# Click the match that was actually seen instead of re-searching by image: a
+# re-search races the header flip and throws FindFailed on a panel that is
+# still open.
 def dismiss_ai_assistant():
-    if exists("ai_assistant_close.png", 3):
-        click(Pattern("ai_assistant_close.png").targetOffset(-64, 0))
-        waitVanish("ai_assistant_close.png", 10)
+    m = find_ai_panel(3)
+    if not m:
+        return
+    click(m.getTarget().offset(-64, 0))
+    for _ in range(10):
         wait(1)
+        if not find_ai_panel(0.5):
+            break
+    wait(1)
 
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resources", "secrets.txt"))
@@ -100,7 +124,7 @@ for _ in range(30):
     if exists(Pattern("reader_help_url.png"), 1):
         help_result = "browser"
         break
-    if exists("ai_assistant_close.png", 1):
+    if find_ai_panel(1):
         help_result = "assistant"
         break
 assert help_result is not None, "F1 opened neither browser help nor AI Assistant"
