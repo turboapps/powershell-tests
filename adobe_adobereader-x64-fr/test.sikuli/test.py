@@ -49,6 +49,26 @@ def dismiss_ai_assistant():
             break
     wait(1)
 
+# Reader (free) shows an "Unlock premium tools" upsell modal at random
+# moments; it is web content, so its ADOBE ACROBAT header is the same in every
+# locale. Close it via its window X (fixed offset from the header) when seen.
+def dismiss_upsell():
+    m = exists("upsell_acrobat.png", 1)
+    if m:
+        click(m.getTarget().offset(722, -69))
+        wait(2)
+
+# Keyboard shortcuts only reach Reader while its main window is active; other
+# top-level windows (sign-in host, Explorer, coach marks) can take the focus
+# between steps, and Reader hides its floating tool strip when that happens.
+# Click an empty stretch of the title bar (right of the Create button, left of
+# the help icon in every locale) to make the main window active again.
+def focus_reader():
+    bar = exists("reader_opened.png", 5)
+    if bar:
+        click(bar.getTarget().offset(500, 0))
+        wait(1)
+
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resources", "secrets.txt"))
 username = credentials.get("username")
@@ -85,24 +105,57 @@ wait(3)
 click("sign_before.png")
 type(Key.ESC)
 wait("sign_after.png")
+# Leave the Fill & Sign tool before using keyboard shortcuts: while it is the
+# active tool (seen on x64 locales) Ctrl+Shift+S is swallowed and the Save As
+# dialog never opens. Switching back to the Select tool restores them.
+select_tool = exists("arrow_tool.png", 5)
+if select_tool:
+    click(select_tool)
+    wait(1)
+    # The Select button carries a flyout chevron (Select / Pan); the small
+    # glyph match can land on it and open the menu, which would swallow the
+    # next shortcut. Escape closes the flyout and is a no-op otherwise.
+    type(Key.ESC)
+    wait(1)
 dismiss_ai_assistant()
-type("s", Key.CTRL + Key.SHIFT)
-if exists("cannot-save-ok.png",10):
-    click("cannot-save-ok.png")
-wait(Pattern("choose_diff_folder.png").similar(0.50))
-click(Pattern("choose_diff_folder.png").similar(0.50))
-wait("save_location.png")
+# Save As: Reader's own "Save as" sheet first, then "Choose a different
+# folder" opens the system file dialog. A Reader upsell modal ("Unlock premium
+# tools") can pop up at any point and swallow the sheet, so dismiss it and
+# retry the whole sequence once before giving up.
+save_dialog = None
+for _ in range(2):
+    dismiss_upsell()
+    focus_reader()
+    type("s", Key.CTRL + Key.SHIFT)
+    if exists("cannot-save-ok.png", 10):
+        click("cannot-save-ok.png")
+    sheet = exists(Pattern("choose_diff_folder.png").similar(0.50), 20)
+    if sheet:
+        click(sheet)
+        save_dialog = exists("save_location.png", 20)
+        if save_dialog:
+            break
+    dismiss_upsell()
+if not save_dialog:
+    wait("save_location.png", 5)
 wait(3)
 paste(save_location)
 type(Key.ENTER)
+dismiss_upsell()
 dismiss_ai_assistant()
+focus_reader()
 type("p", Key.CTRL)
 wait("print_window.png",60)
 type(Key.ESC)
 type(Key.F4, Key.ALT)
 wait(15)
 run("explorer " + util.desktop)
-rightClick("test-pdf-file.png")
+# The saved file shows Reader's icon once the app owns the .pdf association,
+# but the stock Edge PDF icon when it does not yet (seen on x64 locales);
+# accept either row rendering.
+pdf_row = exists("test-pdf-file.png", 15) or exists("test-pdf-file-edge.png", 15)
+assert pdf_row is not None, "test.pdf row not found on the Desktop"
+rightClick(pdf_row)
 click("open-with.png")
 click("choose-another-app.png")
 click("open-with-adobe.png")
@@ -117,11 +170,16 @@ wait("reader_opened.png",90)
 # Depending on whether GenAI is active, F1 either opens the help page in the
 # system browser or submits a help query to the in-app AI Assistant.
 # Accept both outcomes.
+dismiss_upsell()
 dismiss_ai_assistant()
+focus_reader()
 type(Key.F1)
 help_result = None
 for _ in range(30):
-    if exists(Pattern("reader_help_url.png"), 1):
+    # The help URL is localized (helpx.adobe.com/<lang>/support/...), so an
+    # Edge window appearing is the browser signal; the URL capture is kept as
+    # the fast path for the English apps.
+    if exists(Pattern("reader_help_url.png"), 1) or App("Edge").isRunning(0):
         help_result = "browser"
         break
     if find_ai_panel(1):
@@ -135,6 +193,7 @@ else:
     dismiss_ai_assistant()
 
 # Test Adobe Login.
+dismiss_upsell()
 click("sign_in_button.png")
 wait(Pattern("login-email.png").similar(0.90),10)
 # The dialog keeps rendering after the field first appears: it shifts down and
@@ -157,11 +216,27 @@ wait(2)
 type(password)
 wait(3)
 type(Key.ENTER)
+# Adobe may follow a successful password with a "set up a passkey"
+# interstitial. Its text is localized, but the wand illustration is not; the
+# Skip button sits at a fixed offset below it. Skip it when it shows.
+passkey = exists("passkey_prompt.png", 20)
+if passkey:
+    click(passkey.getTarget().offset(149, 354))
+    wait(3)
 wait("account_icon.png",60)
 
-# Quit the application.
-type(Key.F4, Key.ALT)
+# Quit the application. After sign-in a hidden helper window (the sign-in
+# host) can still own the keyboard focus, so Alt+F4 closes that instead of
+# Reader and the session stays up. Focus the main window, then use the
+# app-level Exit shortcut Ctrl+Q; fall back to Alt+F4 if the document window
+# is still there.
+wait(3)
+focus_reader()
+type("q", Key.CTRL)
 wait(30)
+if exists("reader_opened.png", 3):
+    type(Key.F4, Key.ALT)
+    wait(30)
 
 # Check if the session terminates.
 util.check_running()
