@@ -13,11 +13,28 @@ credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resourc
 username = credentials.get("username")
 password = credentials.get("password")
 
+# Wait for Revu's first-run UI and accept the terms dialog when it is shown.
+# Up to Revu 21.10 the terms dialog ("I Accept") preceded the sign-in window on
+# every first launch. Revu 21.11 (2026-09-01) redesigned the first-time user
+# experience and opens the sign-in window directly, so the terms dialog is now
+# optional: the app counts as up once either the terms dialog or the sign-in
+# window's email box is visible, and the test only clicks "I Accept" if the
+# terms dialog did appear.
+def wait_first_run(timeout):
+    end = time.time() + timeout
+    while time.time() < end:
+        if exists("agreement.png", 1):
+            wait(5)
+            click("agreement.png")
+            type(Key.ENTER)
+            wait("email-box.png", 60)
+            return
+        if exists("email-box.png", 1):
+            return
+    raise FindFailed("neither agreement.png nor email-box.png appeared within %d seconds" % timeout)
+
 # Test of `turbo run`.
-wait("agreement.png",120)
-wait(5)
-click("agreement.png")
-type(Key.ENTER)
+wait_first_run(120)
 wait(10)
 type(Key.F4, Key.ALT)
 wait(5)
@@ -26,11 +43,7 @@ wait(10)
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.desktop, "Bluebeam Revu"))
-wait("agreement.png",120)
-wait(5)
-click("agreement.png")
-type(Key.ENTER)
-wait("email-box.png")
+wait_first_run(120)
 wait(15)
 click("email-box.png")
 type(username)
