@@ -13,6 +13,13 @@ credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resourc
 username = credentials.get("username")
 password = credentials.get("password")
 
+# The sign-in window is a web page whose email field is focused automatically
+# while the window is active, so the field itself renders with or without a
+# focus ring depending on timing. Anchor on the "Bluebeam ID / (Your Email
+# Address)" labels above the field, which never change, and click into the
+# field by offset.
+email_box = Pattern("email-label.png").targetOffset(85, 46)
+
 # Wait for Revu's first-run UI and accept the terms dialog when it is shown.
 # Up to Revu 21.10 the terms dialog ("I Accept") preceded the sign-in window on
 # every first launch. Revu 21.11 (2026-09-01) redesigned the first-time user
@@ -27,11 +34,11 @@ def wait_first_run(timeout):
             wait(5)
             click("agreement.png")
             type(Key.ENTER)
-            wait("email-box.png", 60)
+            wait("email-label.png", 60)
             return
-        if exists("email-box.png", 1):
+        if exists("email-label.png", 1):
             return
-    raise FindFailed("neither agreement.png nor email-box.png appeared within %d seconds" % timeout)
+    raise FindFailed("neither agreement.png nor email-label.png appeared within %d seconds" % timeout)
 
 # Test of `turbo run`.
 wait_first_run(120)
@@ -45,7 +52,7 @@ wait(10)
 run("explorer " + util.get_shortcut_path_by_prefix(util.desktop, "Bluebeam Revu"))
 wait_first_run(120)
 wait(15)
-click("email-box.png")
+click(email_box)
 type(username)
 type(Key.ENTER)
 wait("password-box.png")
