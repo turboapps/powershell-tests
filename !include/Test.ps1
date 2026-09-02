@@ -317,11 +317,104 @@ function StartTest {
     # Clear any error before running the sikulix test.
     $Error.Clear()
 
-    # The sikulix launch should use java.exe instead of javaw.exe as we found that javaw takes focus when running the sikulix test scripts so key passes didn't get sent to the application.
-    $command = "turbo run sikulixide --using=oracle/jre-x64 --offline --disable=spawnvm --isolate=merge-user --startup-file=javaw -- -jar @SYSDRIVE@\SikulixIDE\sikulixide-2.0.5.jar -r $($PSScriptRoot)\..\$name\test.sikuli -f $($localLogsDir)\$name-test.log"
-    Invoke-Expression $command    
+    # turbo runs sikulix in a console hosted by Windows Terminal (the Windows 11 24H2
+    # default terminal). Because Invoke-Expression runs turbo in this executor's own
+    # console, turbo restores that Windows Terminal window - which HidePowerShellWindow
+    # had minimized - and it pops up over the screen center, covering whatever the
+    # sikulix test is trying to match and producing spurious FindFailed. It cannot be
+    # suppressed at launch: GetConsoleWindow returns the hidden ConPTY window under
+    # Windows Terminal (not the visible frame), a minimized/hidden window style is
+    # ignored, and CreateNoWindow makes turbo exit 128 (which Invoke-AppTest.ps1 reads
+    # as a failure). So keep launching with Invoke-Expression (so $LASTEXITCODE is
+    # turbo's real exit code) and, for the duration of the test, keep the covering
+    # console minimized from an in-process runspace. We minimize only the harness-owned Windows
+    # Terminal windows - turbo's container console and this executor's PowerShell, identified by
+    # their window titles - plus this executor's own console handle (the classic-conhost case
+    # on Server 2019, where GetConsoleWindow does return the real window). App consoles
+    # a test legitimately checks - e.g. apache's httpd window - are classic conhost; consoles a
+    # test opens itself (a Start Menu Command Prompt, hosted by Windows Terminal on Win11) carry
+    # neither title and are left visible. The remaining harness consoles
+    # windows owned by the app, never Windows Terminal and never this executor's
+    # console, so they are left alone. SW_SHOWMINNOACTIVE (7) minimizes without
+    # activating another window, and already-minimized windows are skipped, so focus is
+    # never stolen from the app the sikulix test drives with the keyboard.
+    $consoleTypeDef = @'
+using System;
+using System.Runtime.InteropServices;
+public class SikuliConsole {
+    [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int n);
+    public delegate bool EnumProc(IntPtr h, IntPtr l);
+    [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc cb, IntPtr l);
+    [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+    [DllImport("kernel32.dll")] public static extern IntPtr GetConsoleWindow();
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr h, System.Text.StringBuilder s, int max);
+    public static long ExecutorConsole() { return (long)GetConsoleWindow(); }
+    private static void MinIfShown(IntPtr h) { if (IsWindowVisible(h) && !IsIconic(h)) ShowWindow(h, 7); }
+    public static void MinimizeCovering(long executorConsole) {
+        if (executorConsole != 0) MinIfShown(new IntPtr(executorConsole));
+        EnumWindows(delegate(IntPtr h, IntPtr l) {
+            if (IsWindowVisible(h) && !IsIconic(h)) {
+                uint pid; GetWindowThreadProcessId(h, out pid);
+                try {
+                    var p = System.Diagnostics.Process.GetProcessById((int)pid);
+                    if (p.ProcessName.ToLowerInvariant() == "windowsterminal") {
+                        // Only the harness's own terminals: turbo's container console (titled
+                        // with turbo.exe) and this executor's PowerShell (WindowsPowerShell in the title). A console the TEST
+                        // opens (a Start Menu "Command Prompt" - winget, adobe_*, pandoc, ...)
+                        // must stay visible so sikulix can read it.
+                        var sb = new System.Text.StringBuilder(512); GetWindowText(h, sb, 512);
+                        string title = sb.ToString().ToLowerInvariant();
+                        if (title.Contains("turbo.exe") || title.Contains("windowspowershell")) ShowWindow(h, 7);
+                    }
+                } catch { }
+            }
+            return true;
+        }, IntPtr.Zero);
+    }
+}
+'@
+    if (-not ([System.Management.Automation.PSTypeName]'SikuliConsole').Type) {
+        Add-Type -TypeDefinition $consoleTypeDef
+    }
+    $executorConsole = [SikuliConsole]::ExecutorConsole()
 
-    return $LASTEXITCODE
+    # Run the minimize loop in an in-process runspace (a background thread), NOT a
+    # Start-Job: Start-Job launches a child powershell.exe, which under Windows Terminal
+    # opens its OWN console window - adding to the covering it is meant to remove. A
+    # runspace shares this process, so it spawns no console.
+    $stopFlag = [hashtable]::Synchronized(@{ Stop = $false })
+    $runspace = [runspacefactory]::CreateRunspace()
+    $runspace.Open()
+    $runspace.SessionStateProxy.SetVariable('executorConsole', $executorConsole)
+    $runspace.SessionStateProxy.SetVariable('stopFlag', $stopFlag)
+    $minimizer = [powershell]::Create()
+    $minimizer.Runspace = $runspace
+    [void]$minimizer.AddScript({
+        while (-not $stopFlag.Stop) {
+            [SikuliConsole]::MinimizeCovering($executorConsole)
+            Start-Sleep -Milliseconds 300
+        }
+    })
+    $asyncResult = $minimizer.BeginInvoke()
+
+    $exitCode = 0
+    try {
+        # The sikulix launch should use java.exe instead of javaw.exe as we found that javaw takes focus when running the sikulix test scripts so key passes didn't get sent to the application.
+        $command = "turbo run sikulixide --using=oracle/jre-x64 --offline --disable=spawnvm --isolate=merge-user --startup-file=javaw -- -jar @SYSDRIVE@\SikulixIDE\sikulixide-2.0.5.jar -r $($PSScriptRoot)\..\$name\test.sikuli -f $($localLogsDir)\$name-test.log"
+        Invoke-Expression $command | Out-Host
+        $exitCode = $LASTEXITCODE
+    } finally {
+        $stopFlag.Stop = $true
+        try { $null = $minimizer.EndInvoke($asyncResult) } catch { }
+        $minimizer.Dispose()
+        $runspace.Close()
+        $runspace.Dispose()
+    }
+
+    return $exitCode
+
 }
 
 # Write a TEST-DONE-PASS or TEST-DONE-FAIL marker file on the desktop. The
