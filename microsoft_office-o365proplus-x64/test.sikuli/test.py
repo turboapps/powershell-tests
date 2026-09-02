@@ -11,6 +11,14 @@ setAutoWaitTimeout(20)
 
 util.pre_test()
 
+# Remove leftover output files from a previous run so the Save As dialogs do not
+# stop on an overwrite-confirmation prompt (a clean VM has none of these).
+documents_dir = os.path.join(os.environ["USERPROFILE"], "Documents")
+for output_file in ["First line.docx", "Book1.xlsx", "Title.pptx", "Database1.accdb", "Publication1.pub"]:
+    output_path = os.path.join(documents_dir, output_file)
+    if os.path.exists(output_path):
+        os.remove(output_path)
+
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resources", "secrets.txt"))
 username = credentials.get("username")
