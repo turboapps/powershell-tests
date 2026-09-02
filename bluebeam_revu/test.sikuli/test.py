@@ -83,6 +83,9 @@ wait(5)
 type(Key.F4, Key.ALT)
 wait("gfx-warning.png",10)
 click("gfx-warning.png")
+# pdf-loaded.png is the "Name: <file>  Pages: 7" properties bar above the document:
+# it does not depend on the zoom level Revu picks for the page (the drawing content
+# rendered at a different scale in 21.11 than the previous capture).
 wait("pdf-loaded.png")
 closeApp("Revu")
 wait(60)
