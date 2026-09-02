@@ -24,26 +24,29 @@ credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resourc
 username = credentials.get("username")
 password = credentials.get("password")
 
-# Test of `turbo run` and log in.
-wait("office_signin.png",120)
-click(Pattern("office_signin.png").targetOffset(-114,106))
-wait("office_signin_email.png",30)
-click("office_signin_email.png")
-paste(username)
-type(Key.ENTER)
-if exists("office_signin_password.png",10):
-    paste(password)
+# Test of `turbo run` and log in. The Microsoft sign-in prompt does not appear
+# when the VM is already signed in, so only run the sign-in steps if it shows;
+# otherwise carry on. (If the app is genuinely not signed in and thus not
+# functional, a later step fails.)
+if exists("office_signin.png",120):
+    click(Pattern("office_signin.png").targetOffset(-114,106))
+    wait("office_signin_email.png",30)
+    click("office_signin_email.png")
+    paste(username)
     type(Key.ENTER)
-if exists("yes-all-apps.png",10):
-    click("yes-all-apps.png")
-if exists("device-reg-done.png",15):
-    click("device-reg-done.png")
-if exists("office_signin_wrong.png",15):
-    type(Key.ENTER)
-if exists("office_signin_all_set.png",10):
-    type(Key.ENTER)
-if exists("privacy-close.png",20):
-    click("privacy-close.png")
+    if exists("office_signin_password.png",10):
+        paste(password)
+        type(Key.ENTER)
+    if exists("yes-all-apps.png",10):
+        click("yes-all-apps.png")
+    if exists("device-reg-done.png",15):
+        click("device-reg-done.png")
+    if exists("office_signin_wrong.png",15):
+        type(Key.ENTER)
+    if exists("office_signin_all_set.png",10):
+        type(Key.ENTER)
+    if exists("privacy-close.png",20):
+        click("privacy-close.png")
 wait(10) # wait for welcome window to go away
 wait("word_window.png",15)
 type(Key.F4, Key.ALT)
