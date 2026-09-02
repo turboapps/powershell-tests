@@ -231,8 +231,14 @@ click("ppt_title_subtitle_2.png")
 paste("Subtitle")
 wait("ppt_title_subtitle_3.png")
 
-click(Pattern("ppt_new_slide.png").targetOffset(0,20))
-click("ppt_new_slide_menu.png")
+# Exit the subtitle text box, then add a new slide with Ctrl+M. After a Title
+# slide this inserts the Title and Content layout the rest of the block needs.
+# (Clicking the New Slide split button via automation is unreliable: the click
+# is frequently swallowed as a hover, and the layout dropdown will not open.)
+type(Key.ESC)
+type(Key.ESC)
+type("m", Key.CTRL)
+wait(2)
 if exists("ppt_got_it.png",5):
     click("ppt_got_it.png")
 click(Pattern("ppt_slide_created.png").targetOffset(-175,49))
