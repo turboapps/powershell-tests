@@ -20,6 +20,11 @@ run("explorer " + os.path.join(util.start_menu, "Zoom", "Zoom Workplace.lnk"))
 wait("zoom_window.png")
 if exists("dont-show-vdi.png",10):
     click("dont-show-vdi.png")
+# The 32-bit Zoom Workplace build shows an "Upgrade required soon" modal on launch that
+# blocks the sign-in button. Dismiss it if present.
+if exists("upgrade_ok.png",10):
+    click("upgrade_ok.png")
+    wait(2)
 click("sign-in.png")
 wait("down-arrow.png")
 wait(5)
