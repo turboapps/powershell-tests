@@ -257,16 +257,25 @@ dismiss_upgrade_prompt()
 click("sign_in_button.png")
 # The sign-in dialog is a separate window that does not always hold the
 # keyboard focus, so the email field has to be clicked rather than typed into
-# blind. Its label is localized ("Adresse e-mail"), which makes the field
-# capture unreliable outside English; anchor on the Adobe wordmark in the
-# dialog header instead - identical in every locale - and click the field at
-# its fixed offset below it.
-logo = wait("adobe_signin_logo.png", 30)
+# blind, and it comes in two layouts: a wide one with a marketing panel beside
+# the form (the English apps) and a compact one headed by the red Adobe
+# wordmark (the localized apps). login-email.png carries the field's localized
+# label ("Adresse e-mail") so it only matches the English layout, and the
+# wordmark only appears in the compact one - so wait for whichever shows up.
+field = None
+logo = None
+for _ in range(30):
+    field = exists(Pattern("login-email.png").similar(0.70), 1)
+    if field:
+        break
+    logo = exists("adobe_signin_logo.png", 1)
+    if logo:
+        break
 wait(3)
-field = exists(Pattern("login-email.png").similar(0.70), 5)
+field = exists(Pattern("login-email.png").similar(0.70), 2) or field
 if field:
     click(field)
-else:
+elif logo:
     click(logo.getTarget().offset(159, 173))
 wait(2)
 type(username)
