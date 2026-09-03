@@ -271,12 +271,17 @@ for _ in range(30):
     logo = exists("adobe_signin_logo.png", 1)
     if logo:
         break
-wait(3)
-field = exists(Pattern("login-email.png").similar(0.70), 2) or field
+# The dialog keeps rendering after the anchor first appears and shifts down as
+# it settles, so a click placed from the first sighting can miss the field.
+# Let it settle, then locate the anchor again and click from that position.
+wait(5)
+field = exists(Pattern("login-email.png").similar(0.70), 3)
 if field:
     click(field)
-elif logo:
-    click(logo.getTarget().offset(159, 173))
+else:
+    logo = exists("adobe_signin_logo.png", 5) or logo
+    if logo:
+        click(logo.getTarget().offset(159, 173))
 wait(2)
 type(username)
 wait(3)
