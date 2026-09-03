@@ -193,11 +193,15 @@ for attempt in range(30):
         help_result = "assistant"
         break
 assert help_result is not None, "F1 opened neither browser help nor AI Assistant"
-if help_result == "browser":
-    if App("Edge").isRunning(10):
-        closeApp("Edge")
-else:
-    dismiss_ai_assistant()
+# F1 can produce both outcomes at once: the AI panel is already open (summary
+# mode after reopening the file) and the help page still opens in Edge a few
+# seconds later. Whichever was detected first, clear both before moving on;
+# an Edge window left open would cover Reader's Sign in button.
+wait(3)
+dismiss_ai_assistant()
+if App("Edge").isRunning(10):
+    closeApp("Edge")
+    wait(2)
 
 # Test Adobe Login.
 dismiss_upsell()
