@@ -4,6 +4,7 @@ script_path = os.path.dirname(os.path.abspath(sys.argv[0]))
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
 import util
+import time
 reload(util)
 addImagePath(include_path)
 
@@ -93,6 +94,19 @@ def dismiss_upgrade_prompt(timeout=1):
         click(m.getTarget().offset(-74, 0))
         wait(2)
 
+# Reader's window can take a long time to come up when the shell association
+# starts it cold, and modals (the 64-bit upgrade prompt, the premium upsell)
+# land on top of it while it does. Keep clearing them while waiting instead of
+# waiting once and failing on whatever happened to be in the way.
+def wait_reader_window(timeout=120):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if exists("reader_opened.png", 3):
+            return True
+        dismiss_upgrade_prompt()
+        dismiss_upsell()
+    return False
+
 # The help page opens in Edge at a localized URL (helpx.adobe.com/<lang>/...),
 # so the browser is recognised by the address-bar prefix that every locale
 # shares. SikuliX's App("Edge") is not usable for this: matched by process
@@ -169,17 +183,20 @@ dismiss_ai_assistant()
 # tools") can pop up at any point and swallow the sheet, so dismiss it and
 # retry the whole sequence once before giving up.
 save_dialog = None
-for _ in range(2):
+for _ in range(3):
     dismiss_upsell()
     dismiss_upgrade_prompt()
-    focus_reader()
+    # The AI panel takes the keystroke as prompt text while it is open, so
+    # it has to be cleared on every attempt, not only before the first one.
+    dismiss_ai_assistant()
+    ensure_reader_front()
     type("s", Key.CTRL + Key.SHIFT)
-    if exists("cannot-save-ok.png", 10):
+    if exists("cannot-save-ok.png", 5):
         click("cannot-save-ok.png")
-    sheet = exists(Pattern("choose_diff_folder.png").similar(0.50), 40)
+    sheet = exists(Pattern("choose_diff_folder.png").similar(0.50), 20)
     if sheet:
         click(sheet)
-        save_dialog = exists("save_location.png", 40)
+        save_dialog = exists("save_location.png", 20)
         if save_dialog:
             break
     dismiss_upsell()
@@ -201,20 +218,39 @@ run("explorer " + util.desktop)
 # The saved file shows Reader's icon once the app owns the .pdf association,
 # but the stock Edge PDF icon when it does not yet (seen on x64 locales);
 # accept either row rendering.
-pdf_row = exists("test-pdf-file.png", 15) or exists("test-pdf-file-edge.png", 15)
+#
+# The row must be located again right before it is right-clicked. The Explorer
+# window is still settling into place when the first match comes back, and the
+# harness writes its own <app>-test.log and <app>-executor.log onto the same
+# Desktop while the test runs, so rows appear and the list shifts under a
+# position captured a moment earlier - a stale match right-clicks a log file
+# and the Open with flow then runs against the wrong file type. Wait until the
+# same row matches twice in the same place before using it.
+def find_pdf_row(timeout=45):
+    deadline = time.time() + timeout
+    previous = None
+    while time.time() < deadline:
+        row = exists("test-pdf-file.png", 1) or exists("test-pdf-file-edge.png", 1)
+        if row:
+            here = row.getTarget()
+            if previous and abs(here.x - previous.x) < 3 and abs(here.y - previous.y) < 3:
+                return row
+            previous = here
+        wait(1)
+    return None
+
+pdf_row = find_pdf_row()
 assert pdf_row is not None, "test.pdf row not found on the Desktop"
 rightClick(pdf_row)
 click("open-with.png")
 click("choose-another-app.png")
 click("open-with-adobe.png")
 click("always.png")
-wait("reader_opened.png")
-dismiss_upgrade_prompt(30)
+assert wait_reader_window(), "Reader did not open the file from the Desktop"
 type(Key.F4, Key.ALT)
 wait(15)
 run("explorer " + save_location)
-wait("reader_opened.png",90)
-dismiss_upgrade_prompt(30)
+assert wait_reader_window(), "Reader did not reopen the saved file"
 
 # Check "help". Close the AI Assistant panel first so F1 reaches the app.
 # Depending on whether GenAI is active, F1 either opens the help page in the
@@ -252,66 +288,150 @@ dismiss_ai_assistant()
 close_help_browser()
 
 # Test Adobe Login.
-dismiss_upsell()
-dismiss_upgrade_prompt()
-click("sign_in_button.png")
-# The sign-in dialog is a separate window that does not always hold the
-# keyboard focus, so the email field has to be clicked rather than typed into
-# blind, and it comes in two layouts: a wide one with a marketing panel beside
-# the form (the English apps) and a compact one headed by the red Adobe
-# wordmark (the localized apps). login-email.png carries the field's localized
-# label ("Adresse e-mail") so it only matches the English layout, and the
-# wordmark only appears in the compact one - so wait for whichever shows up.
-field = None
-logo = None
-for _ in range(30):
-    field = exists(Pattern("login-email.png").similar(0.70), 1)
-    if field:
-        break
-    logo = exists("adobe_signin_logo.png", 1)
-    if logo:
-        break
-# The dialog keeps rendering after the anchor first appears and shifts down as
-# it settles, so a click placed from the first sighting can miss the field.
-# Let it settle, then locate the anchor again and click from that position.
-wait(5)
-field = exists(Pattern("login-email.png").similar(0.70), 3)
-if field:
-    click(field)
-else:
-    logo = exists("adobe_signin_logo.png", 5) or logo
-    if logo:
-        click(logo.getTarget().offset(159, 173))
-wait(2)
-type(username)
-wait(3)
-type(Key.ENTER)
-# The next page offers "Sign in with a code" (default) or a
-# "Continue with password" field; use the password path.
-wait("login-password.png",15)
-click(Pattern("login-password.png").targetOffset(0,12))
-wait(2)
-type(password)
-wait(3)
-type(Key.ENTER)
-# Adobe may follow a successful password with a "set up a passkey"
-# interstitial. The wand illustration at its top is locale-independent, but
-# the Skip button below it is not: the localized body text changes how far the
-# text wraps, so the button row sits at a different height in each locale and
-# no fixed offset from the wand reaches it. Click the button itself where a
-# capture of it exists, and fall back to the offset elsewhere.
+#
+# Adobe shows a "set up a passkey" interstitial after some - not all - of these
+# sign-ins, and that is what the account_icon timeouts in CI were: the
+# interstitial was still on screen and nothing was going to move it. It has to
+# be dismissed to finish signing in, it can arrive well after the password is
+# submitted, and the Skip button sits at a locale-dependent height, so the
+# interstitial is polled for alongside the account icon (rather than looked for
+# once, before it) and clicked by its own capture where one exists. The rest of
+# the exchange re-locates every anchor right before using it, because the page
+# keeps rendering while it is being clicked, and the whole thing is retried once
+# if it does not finish.
 PASSKEY_SKIP = "passkey_skip.png" if os.path.exists(
     os.path.join(script_path, "passkey_skip.png")) else None
 
-passkey = exists("passkey_prompt.png", 20)
-if passkey:
-    skip = exists(PASSKEY_SKIP, 5) if PASSKEY_SKIP else None
-    if skip:
-        click(skip)
+# Where the Skip button sits relative to the wand illustration when the folder
+# has no capture of it. The body text wraps differently in each locale, which
+# moves the button row: the single offset this replaces misses the Spanish
+# button by 46 px (measured wand (361,484), Skip (492,884)). Try a few
+# positions, checking after each whether the interstitial went away. They only
+# ever step left and down - "Set up passkey" is immediately to the right of
+# Skip, and clicking that would start creating a passkey instead.
+PASSKEY_SKIP_OFFSETS = ((149, 354), (131, 400), (131, 446), (105, 400))
+
+# login-password.png is the English capture in every folder but fr, and it
+# scores only 0.77 against the localized page (measured on the Spanish one) -
+# clearing the 0.70 default with little to spare, and dropping to 0.69 once the
+# click has left a focus ring on the field. Everything here therefore matches it
+# before clicking, never after.
+LOGIN_EMAIL = Pattern("login-email.png").similar(0.70)
+LOGIN_PASSWORD = Pattern("login-password.png").similar(0.70)
+
+def signin_visible():
+    return (exists(LOGIN_PASSWORD, 0) or exists("adobe_signin_logo.png", 0)
+            or exists("passkey_prompt.png", 0))
+
+# Bring the sign-in host back: Reader reuses the existing window, on the page
+# it was left on, when its Sign in button is clicked again.
+def open_signin():
+    for _ in range(3):
+        if signin_visible():
+            return True
+        button = exists(Pattern("sign_in_button.png").similar(0.70), 3)
+        if not button:
+            return False
+        click(button)
+        wait(5)
+    return signin_visible() is not None
+
+def enter_email():
+    # Two layouts: a wide one with a marketing panel beside the form (the
+    # English apps) and a compact one headed by the red Adobe wordmark (the
+    # localized apps). login-email.png matches the field itself, the wordmark
+    # only the compact layout - so wait for whichever shows up. The dialog
+    # keeps rendering after the anchor first appears and shifts as it settles,
+    # so let it settle and locate the anchor again before clicking.
+    field = None
+    logo = None
+    for _ in range(30):
+        field = exists(LOGIN_EMAIL, 1)
+        if field:
+            break
+        logo = exists("adobe_signin_logo.png", 1)
+        if logo:
+            break
+    wait(5)
+    field = exists(LOGIN_EMAIL, 3)
+    if field:
+        click(field)
     else:
-        click(passkey.getTarget().offset(149, 354))
+        logo = exists("adobe_signin_logo.png", 5) or logo
+        if not logo:
+            return False
+        click(logo.getTarget().offset(159, 173))
+    wait(2)
+    type(username)
     wait(3)
-wait("account_icon.png",60)
+    type(Key.ENTER)
+    return True
+
+def enter_password():
+    # The page offers "Sign in with a code" (the primary button) or a
+    # "Continue with password" field; use the password path. A click that
+    # misses the field leaves the box empty, and Enter on an empty box does
+    # nothing at all, so locate the field again once the page has settled.
+    box = exists(LOGIN_PASSWORD, 20)
+    if not box:
+        return False
+    wait(2)
+    box = exists(LOGIN_PASSWORD, 5) or box
+    click(box.getTarget().offset(0, 12))
+    wait(2)
+    type(password)
+    wait(3)
+    type(Key.ENTER)
+    return True
+
+# Wait for the account icon while clearing whatever Adobe puts in the way. The
+# passkey interstitial is anchored on its locale-independent wand
+# illustration; the Skip button below it is not (the localized body text wraps
+# differently, moving the button row), so click the button itself where a
+# capture of it exists and fall back to the offset elsewhere.
+def wait_signed_in(timeout=150):
+    deadline = time.time() + timeout
+    tried = 0
+    while time.time() < deadline:
+        if exists("account_icon.png", 2):
+            return True
+        passkey = exists("passkey_prompt.png", 1)
+        if passkey:
+            skip = exists(PASSKEY_SKIP, 2) if PASSKEY_SKIP else None
+            if skip:
+                click(skip)
+            else:
+                click(passkey.getTarget().offset(
+                    *PASSKEY_SKIP_OFFSETS[tried % len(PASSKEY_SKIP_OFFSETS)]))
+                tried += 1
+            wait(3)
+            continue
+        if not signin_visible():
+            # The host is gone and Reader is still signed out: nothing more is
+            # going to happen on its own, so stop waiting and let the caller
+            # start the exchange again.
+            return False
+        wait(2)
+    return False
+
+signed_in = False
+for attempt in range(2):
+    dismiss_upsell()
+    dismiss_upgrade_prompt()
+    dismiss_ai_assistant()
+    if exists("account_icon.png", 1):
+        signed_in = True
+        break
+    if not open_signin():
+        continue
+    if exists(LOGIN_PASSWORD, 2):
+        submitted = enter_password()
+    else:
+        submitted = enter_email() and enter_password()
+    if submitted and wait_signed_in():
+        signed_in = True
+        break
+assert signed_in, "Adobe sign-in did not complete: the account icon never appeared"
 
 # Quit the application. After sign-in a hidden helper window (the sign-in
 # host) can still own the keyboard focus, so Alt+F4 closes that instead of
