@@ -69,6 +69,19 @@ def focus_reader():
         click(bar.getTarget().offset(500, 0))
         wait(1)
 
+# Reader's toolbar is not visible while another window covers it, and then
+# focus_reader() cannot click anything: F1 went to that window instead and
+# Edge answered it with its own help page. Close whatever is on top until
+# Reader's toolbar is reachable again.
+def ensure_reader_front(attempts=3):
+    for _ in range(attempts):
+        focus_reader()
+        if exists("reader_opened.png", 2):
+            return True
+        type(Key.F4, Key.ALT)
+        wait(2)
+    return False
+
 # The help page opens in Edge at a localized URL (helpx.adobe.com/<lang>/...),
 # so the browser is recognised by the address-bar prefix that every locale
 # shares. SikuliX's App("Edge") is not usable for this: matched by process
@@ -106,7 +119,7 @@ wait("pdf_example.png",90)
 
 # Basic operations.
 type("o", Key.CTRL)
-wait("open-file.png",15)
+wait("open-file.png",60)
 click("open-file.png")
 paste(os.path.join(script_path, os.pardir, "resources", "homeacrordrunified18_2025.pdf"))
 wait(2)
@@ -194,7 +207,7 @@ wait("reader_opened.png",90)
 # Accept both outcomes.
 dismiss_upsell()
 dismiss_ai_assistant()
-focus_reader()
+ensure_reader_front()
 type(Key.F1)
 help_result = None
 for attempt in range(30):
@@ -203,7 +216,7 @@ for attempt in range(30):
         # have taken the keystroke. Clear them, refocus and press F1 again.
         dismiss_upsell()
         dismiss_ai_assistant()
-        focus_reader()
+        ensure_reader_front()
         type(Key.F1)
     if help_browser():
         help_result = "browser"
