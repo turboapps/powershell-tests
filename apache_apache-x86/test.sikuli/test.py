@@ -17,7 +17,10 @@ util.pre_test(no_min=True)
 # console window title (Apache icon + C:\Apache24\bin\httpd.exe) rather than a prompt.
 wait("httpd-window.png")
 run('explorer "http://localhost:8080"')
-wait("app.png")
+# Maximize the browser so the page text is on screen regardless of the window's saved placement.
+wait(5)
+type(Key.UP, Key.WIN)
+wait("app.png", 30)
 wait(5)
 closeApp("Edge")
 wait(5)
