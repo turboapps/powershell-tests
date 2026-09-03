@@ -15,7 +15,7 @@ wait("pdn_window.png")
 run("turbo stop test")
 
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "Paint.NET ARM64.lnk"))
+util.launch_shortcut("paint.net.lnk", "Paint.NET ARM64.lnk")
 wait("pdn_window.png")
 
 # Basic operations.

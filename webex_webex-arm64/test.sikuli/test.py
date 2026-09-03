@@ -17,7 +17,7 @@ wait("welcome.png")
 run("turbo stop test")
 
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "Webex ARM64.lnk"))
+util.launch_shortcut(["Webex", "Webex.lnk"], "Webex ARM64.lnk")
 wait("webex_eula.png",120)
 click(Pattern("webex_eula.png").targetOffset(-94,242))
 wait("welcome.png")

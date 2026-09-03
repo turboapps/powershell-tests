@@ -26,7 +26,7 @@ wait("telnet-start.png")
 click("telnet-start.png")
             
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "PuTTY (64-bit)", "PuTTY.lnk"))
+util.launch_shortcut(["PuTTY (ARM64)", "PuTTY.lnk"], ["PuTTY (64-bit)", "PuTTY.lnk"], ["PuTTY", "PuTTY.lnk"], "Putty ARM64.lnk")
 wait("putty_window.png")
 
 # Check "help".

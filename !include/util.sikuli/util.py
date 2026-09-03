@@ -68,6 +68,53 @@ def get_shortcut_path_by_prefix(folder_path, prefix):
     matching = [file for file in files if file.startswith(prefix)]
     return os.path.join(folder_path, matching[0])
 
+# Launch an app from its installed shortcut, given every name it is known by.
+#
+# Two naming schemes are in play, and which one applies depends on the image,
+# not on the test. When the captured installer created Start Menu shortcuts of
+# its own (any MSI/EXE app), the client replays those, so the shortcut keeps
+# the vendor's name and subfolder ("Zoom\Zoom Workplace.lnk"). When the
+# installer created none (a ZIP app such as Temurin), the client synthesizes a
+# single flat shortcut from the image Title ("Temurin JDK LTS ARM64.lnk").
+# Passing both candidates keeps a test working under either, and across a
+# rebuild that changes which one an image produces.
+#
+# Each candidate is relative to `base` (the Start Menu by default): a string
+# for a flat shortcut, or a list of segments for one inside a subfolder.
+#
+# Resolve before launching, because run("explorer <missing path>") does not
+# fail - Explorer silently opens a "Documents" window and the test dies later
+# at an unrelated wait(), pointing at the wrong thing. Raise here instead, and
+# list what is actually installed so the real name is in the log.
+def launch_shortcut(*candidates, **kwargs):
+    base = kwargs.get("base", start_menu)
+    tried = []
+    for candidate in candidates:
+        parts = list(candidate) if isinstance(candidate, (list, tuple)) else [candidate]
+        path = os.path.join(base, *parts)
+        tried.append(path)
+        if os.path.exists(path):
+            run("explorer " + path)
+            return path
+    raise AssertionError(
+        "No shortcut found for this app.\nTried:\n  %s\nInstalled under %s:\n  %s"
+        % ("\n  ".join(tried), base, "\n  ".join(list_shortcuts(base)) or "(nothing)"))
+
+# List the shortcuts under a folder, two levels deep, relative to it.
+# Used to report what is really installed when launch_shortcut finds nothing.
+def list_shortcuts(base):
+    found = []
+    if not os.path.exists(base):
+        return found
+    for entry in sorted(os.listdir(base)):
+        full = os.path.join(base, entry)
+        if os.path.isdir(full):
+            for child in sorted(os.listdir(full)):
+                found.append(os.path.join(entry, child))
+        else:
+            found.append(entry)
+    return found
+
 # Given a partial file name and path find the file and return the path.
 # Useful for searching for a shortcut that changes names eg. PowerBI RS.
 def find_file(folder_path, partial_name):

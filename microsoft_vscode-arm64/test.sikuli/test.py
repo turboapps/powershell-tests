@@ -20,7 +20,7 @@ turbocmd = "turbo run vscode-arm64 --isolate=merge-user --using=python/python-ar
 run(turbocmd + extensions)
             
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "Microsoft VSCode ARM64.lnk"))
+util.launch_shortcut(["Visual Studio Code", "Visual Studio Code.lnk"], "Microsoft VSCode ARM64.lnk")
 if exists("vscode-signin.png",60):
     type(Key.ESC)
 wait("code_window_2.png",20)

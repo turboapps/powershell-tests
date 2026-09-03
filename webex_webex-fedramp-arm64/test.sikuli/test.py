@@ -17,7 +17,7 @@ wait("fedramp-login.png")
 run("turbo stop test")
 
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "Webex for Government ARM64.lnk"))
+util.launch_shortcut(["Webex", "Webex.lnk"], "Webex for Government ARM64.lnk")
 wait("webex_eula.png",120)
 click("webex_eula.png")
 wait("fedramp-login.png")

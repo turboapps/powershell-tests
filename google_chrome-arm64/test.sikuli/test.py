@@ -19,7 +19,7 @@ closeApp("Chrome")
 run("turbo stop test")
 
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "Chrome ARM64.lnk"))
+util.launch_shortcut("Google Chrome.lnk", "Chrome ARM64.lnk")
 wait("chrome_window.png")
 
 # Activate and maximize the app window.
