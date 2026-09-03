@@ -12,7 +12,10 @@ setAutoWaitTimeout(20)
 util.pre_test(no_min=True)
 
 # Test.
-wait("httpd-running.png")
+# The image's default startup file is httpd.exe itself (no cmd wrapper), and `httpd -X` with a
+# clean config prints nothing, so the console stays blank. Verify the server started by its
+# console window title (Apache icon + C:\Apache24\bin\httpd.exe) rather than a prompt.
+wait("httpd-window.png")
 run('explorer "http://localhost:8080"')
 wait("app.png")
 wait(5)
