@@ -69,13 +69,27 @@ def focus_reader():
         click(bar.getTarget().offset(500, 0))
         wait(1)
 
-# The help page opens in Edge. Identify the browser by its window title, not
-# by process name: App("Edge") also matches the msedgewebview2 runtime that
-# Reader's sign-in and AI panes run on, so isRunning() was true without any
-# browser window and App.close() either threw (no window) or killed the
-# WebView2 runtime and took the sign-in dialog down with it.
-def edge_window():
-    return App("Microsoft Edge")
+# The help page opens in Edge at a localized URL (helpx.adobe.com/<lang>/...),
+# so the browser is recognised by the address-bar prefix that every locale
+# shares. SikuliX's App("Edge") is not usable for this: matched by process
+# name it also hits the msedgewebview2 runtime behind Reader's sign-in and AI
+# panes (closing that killed the sign-in dialog), and App("Microsoft Edge")
+# did not resolve the browser window at all. Closing goes through the window
+# itself: click the address bar to focus Edge, then Alt+F4.
+def help_browser():
+    return exists("help_url_prefix.png", 1)
+
+def close_help_browser():
+    bar = exists("help_url_prefix.png", 10)
+    if not bar:
+        return
+    click(bar)
+    wait(1)
+    type(Key.F4, Key.ALT)
+    wait(2)
+    if exists("help_url_prefix.png", 3):
+        type("w", Key.CTRL + Key.SHIFT)
+        wait(2)
 
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resources", "secrets.txt"))
@@ -191,10 +205,7 @@ for attempt in range(30):
         dismiss_ai_assistant()
         focus_reader()
         type(Key.F1)
-    # The help URL is localized (helpx.adobe.com/<lang>/support/...), so an
-    # Edge window appearing is the browser signal; the URL capture is kept as
-    # the fast path for the English apps.
-    if exists(Pattern("reader_help_url.png"), 1) or edge_window().isRunning(0):
+    if help_browser():
         help_result = "browser"
         break
     if find_ai_panel(1):
@@ -207,15 +218,7 @@ assert help_result is not None, "F1 opened neither browser help nor AI Assistant
 # an Edge window left open would cover Reader's Sign in button.
 wait(3)
 dismiss_ai_assistant()
-edge = edge_window()
-if edge.isRunning(10):
-    try:
-        edge.close()
-    except Exception:
-        edge.focus()
-        wait(1)
-        type(Key.F4, Key.ALT)
-    wait(2)
+close_help_browser()
 
 # Test Adobe Login.
 dismiss_upsell()
