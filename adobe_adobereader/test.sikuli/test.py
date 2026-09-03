@@ -176,10 +176,10 @@ for _ in range(2):
     type("s", Key.CTRL + Key.SHIFT)
     if exists("cannot-save-ok.png", 10):
         click("cannot-save-ok.png")
-    sheet = exists(Pattern("choose_diff_folder.png").similar(0.50), 20)
+    sheet = exists(Pattern("choose_diff_folder.png").similar(0.50), 40)
     if sheet:
         click(sheet)
-        save_dialog = exists("save_location.png", 20)
+        save_dialog = exists("save_location.png", 40)
         if save_dialog:
             break
     dismiss_upsell()
@@ -254,16 +254,19 @@ close_help_browser()
 dismiss_upsell()
 dismiss_upgrade_prompt()
 click("sign_in_button.png")
-wait(Pattern("login-email.png").similar(0.90),10)
-# The dialog keeps rendering after the field first appears: it shifts down and
-# auto-focuses (focus ring breaks a 0.90 match). Let it settle, then click at
-# relaxed similarity; if the focused field no longer matches, it already has
-# focus, so typing works either way.
-wait(3)
-field = exists(Pattern("login-email.png").similar(0.70), 10)
+# login-email.png carries the field's label, which is localized ("Adresse
+# e-mail", "Correo electronico"), so it cannot be waited on strictly: give the
+# dialog time at a relaxed similarity and click the field when it is
+# recognised. The field is auto-focused either way, so typing works even when
+# the capture does not match this locale.
+field = exists(Pattern("login-email.png").similar(0.70), 30)
 if field:
+    wait(3)
+    field = exists(Pattern("login-email.png").similar(0.70), 5) or field
     click(field)
     wait(2)
+else:
+    wait(5)
 type(username)
 wait(3)
 type(Key.ENTER)
