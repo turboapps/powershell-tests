@@ -43,7 +43,7 @@ assert(util.file_exists(os.path.join(docs, "readme.txt"), 10))
 type(Key.F1)
 wait("help_url.png")
 wait(5)
-closeApp("Edge")
+util.close_app("Edge")
 click(Pattern("winscp_menu.png").targetOffset(170,-15)) # To gain focus.
 type(Key.F4, Key.ALT)
 wait("save_workspace.png",10)

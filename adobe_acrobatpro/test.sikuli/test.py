@@ -92,7 +92,7 @@ wait("point-2-point.png")
 # Check the "help" of the app.
 type(Key.F1)
 wait("help_url.png")
-closeApp("Edge")
+util.close_app("Edge")
 type(Key.F4, Key.ALT)
 wait(30)
 

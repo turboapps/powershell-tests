@@ -59,7 +59,7 @@ assert(util.file_exists(os.path.join(script_path, os.pardir, "resources", "creat
 # Check "help".
 type(Key.F1)
 wait("help_url.png")
-closeApp("Edge")
+util.close_app("Edge")
 wait(10)
 type("q", Key.CTRL)
 wait(10)

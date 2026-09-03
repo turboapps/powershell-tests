@@ -60,7 +60,7 @@ wait("open-doc.png")
 # Check "help".
 type(Key.F1)
 wait("help_url.png")
-closeApp("Edge")
+util.close_app("Edge")
 wait(10)
 type(Key.F4, Key.ALT)
 click(Pattern("save.png").targetOffset(101,25))

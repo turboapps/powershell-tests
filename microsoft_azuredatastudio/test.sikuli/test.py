@@ -78,7 +78,7 @@ click("menu_help.png")
 click(Pattern("open_website.png").targetOffset(-33,46))
 wait("help_url.png",60)
 if App("Edge").isRunning(10):
-    closeApp("Edge")
+    util.close_app("Edge")
 type(Key.F4, Key.ALT)
 wait(20)
 run("turbo stop sqlserver-express")

@@ -70,7 +70,7 @@ type(Key.F1)
 if exists("help-sign-in.png",30):
     click("help-sign-in.png")
 wait("help_url.png",15)
-closeApp("Edge")
+util.close_app("Edge")
 wait(10)
 type("q", Key.CTRL)
 wait(10)

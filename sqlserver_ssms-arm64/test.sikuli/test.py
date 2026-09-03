@@ -62,7 +62,7 @@ wait("query_result_3.png")
 type(Key.F2, Key.CTRL + Key.ALT)
 wait("help_url.png",60)
 if App("Edge").isRunning(10):
-    closeApp("Edge")
+    util.close_app("Edge")
 wait(10)
 type(Key.F4, Key.ALT)
 click(Pattern("save.png").targetOffset(70,116))

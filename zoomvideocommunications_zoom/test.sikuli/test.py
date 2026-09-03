@@ -58,7 +58,7 @@ wait("yes-sound.png")
 click("yes-sound.png")
 wait("end-test.png")
 click("end-test.png")
-closeApp("Edge")
+util.close_app("Edge")
 if exists("systray-arrow.png"):
     click("systray-arrow.png")
     wait(5)

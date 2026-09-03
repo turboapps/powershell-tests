@@ -63,14 +63,14 @@ paste("%userprofile%\\desktop\\fox.pdf")
 wait(2)
 type(Key.ENTER)
 wait("fox-output.png")
-closeApp("Edge")
+util.close_app("Edge")
 
 # Check "help".
 type(Key.F1)
 if exists("help-sign-in.png",15):
     click("help-sign-in.png")
 wait("bridge-user-guide.png")
-closeApp("Edge")
+util.close_app("Edge")
 wait(10)
 type(Key.F4, Key.ALT)
 wait(10)

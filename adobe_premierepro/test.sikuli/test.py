@@ -60,7 +60,7 @@ wait("timeline.png")
 # Check "help".
 type(Key.F1)
 wait("help_url.png")
-closeApp("Edge")
+util.close_app("Edge")
 wait(10)
 click("timeline.png") # Gain focus.
 type(Key.F4, Key.ALT)

@@ -32,7 +32,7 @@ wait(2)
 type(Key.TAB)
 wait(2)
 type(Key.ENTER)
-closeApp("Edge")
+util.close_app("Edge")
 if exists("new-webex.png",10):
     click("new-webex.png")
     click("always.png")

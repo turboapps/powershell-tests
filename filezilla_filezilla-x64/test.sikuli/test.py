@@ -38,7 +38,7 @@ wait("remote-file.png",60)
 click(Pattern("menu.png").targetOffset(59,0))
 click("menu_help.png")
 wait("help_url.png")
-closeApp("Edge")
+util.close_app("Edge")
 type(Key.F4, Key.ALT)
 wait(20)
 

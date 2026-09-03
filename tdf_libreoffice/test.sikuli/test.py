@@ -29,7 +29,7 @@ type(Key.F1)
 wait("read-help-online.png",30)
 click("read-help-online.png")
 wait("help-url.png",20)
-closeApp("Edge")
+util.close_app("Edge")
 
 # Test Writer functions
 wait("welcome.png",30)

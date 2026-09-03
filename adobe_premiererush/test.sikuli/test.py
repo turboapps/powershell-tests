@@ -45,7 +45,7 @@ click("loaded.png") # To gain focus.
 # Check "help".
 type(Key.F1)
 wait("help_url.png")
-closeApp("Edge")
+util.close_app("Edge")
 wait(10)
 type(Key.F4, Key.ALT)
 wait(10)
