@@ -26,7 +26,18 @@ click("eula-next.png")
 wait(10)
 
 # Basic operations.
+# The main window is not reliably focused once the EULA dialog closes on the CI
+# VMs, so Alt+F gets swallowed and the File menu never opens: this step failed
+# in 3 of 6 runs across three different pool VMs, while the same test passed 4/4
+# on a workstation. Activate the window first, and press Alt+F again if the menu
+# did not appear.
+util.activate_app_window("HEC-RAS", 10)
 type("f", Key.ALT)
+if not exists("open-project.png", 5):
+    type(Key.ESC)
+    wait(1)
+    util.activate_app_window("HEC-RAS", 10)
+    type("f", Key.ALT)
 click("open-project.png")
 click("def-project-folder.png")
 doubleClick("siam-example.png")
