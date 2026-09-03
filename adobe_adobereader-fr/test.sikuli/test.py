@@ -69,6 +69,17 @@ def focus_reader():
         click(bar.getTarget().offset(500, 0))
         wait(1)
 
+# The 32-bit Reader offers an upgrade to the 64-bit build in a modal that can
+# appear minutes after a document was opened, not only right after launch.
+# The two buttons are right-aligned at fixed positions in every locale, so the
+# capture is the boundary between the outlined "remind me later" button and
+# the blue "yes" button; "remind me later" is 74 px to the left of it.
+def dismiss_upgrade_prompt(timeout=1):
+    m = exists("upgrade-to-64.png", timeout)
+    if m:
+        click(m.getTarget().offset(-74, 0))
+        wait(2)
+
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resources", "secrets.txt"))
 username = credentials.get("username")
@@ -125,6 +136,7 @@ dismiss_ai_assistant()
 save_dialog = None
 for _ in range(2):
     dismiss_upsell()
+    dismiss_upgrade_prompt()
     focus_reader()
     type("s", Key.CTRL + Key.SHIFT)
     if exists("cannot-save-ok.png", 10):
@@ -142,6 +154,7 @@ wait(3)
 paste(save_location)
 type(Key.ENTER)
 dismiss_upsell()
+dismiss_upgrade_prompt()
 dismiss_ai_assistant()
 focus_reader()
 type("p", Key.CTRL)
@@ -161,25 +174,32 @@ click("choose-another-app.png")
 click("open-with-adobe.png")
 click("always.png")
 wait("reader_opened.png")
-if exists("upgrade-to-64.png",30):
-    click("upgrade-to-64.png")
+dismiss_upgrade_prompt(30)
 type(Key.F4, Key.ALT)
 wait(15)
 run("explorer " + save_location)
 wait("reader_opened.png",90)
-if exists("upgrade-to-64.png",30):
-    click("upgrade-to-64.png")
+dismiss_upgrade_prompt(30)
 
 # Check "help". Close the AI Assistant panel first so F1 reaches the app.
 # Depending on whether GenAI is active, F1 either opens the help page in the
 # system browser or submits a help query to the in-app AI Assistant.
 # Accept both outcomes.
 dismiss_upsell()
+dismiss_upgrade_prompt()
 dismiss_ai_assistant()
 focus_reader()
 type(Key.F1)
 help_result = None
-for _ in range(30):
+for attempt in range(30):
+    if attempt == 15:
+        # Nothing showed up within 15 s: a modal (upgrade prompt, upsell) may
+        # have taken the keystroke. Clear them, refocus and press F1 again.
+        dismiss_upsell()
+        dismiss_upgrade_prompt()
+        dismiss_ai_assistant()
+        focus_reader()
+        type(Key.F1)
     # The help URL is localized (helpx.adobe.com/<lang>/support/...), so an
     # Edge window appearing is the browser signal; the URL capture is kept as
     # the fast path for the English apps.
@@ -198,6 +218,7 @@ else:
 
 # Test Adobe Login.
 dismiss_upsell()
+dismiss_upgrade_prompt()
 click("sign_in_button.png")
 wait(Pattern("login-email.png").similar(0.90),10)
 # The dialog keeps rendering after the field first appears: it shifts down and

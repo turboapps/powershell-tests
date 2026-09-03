@@ -175,7 +175,14 @@ dismiss_ai_assistant()
 focus_reader()
 type(Key.F1)
 help_result = None
-for _ in range(30):
+for attempt in range(30):
+    if attempt == 15:
+        # Nothing showed up within 15 s: a modal (upgrade prompt, upsell) may
+        # have taken the keystroke. Clear them, refocus and press F1 again.
+        dismiss_upsell()
+        dismiss_ai_assistant()
+        focus_reader()
+        type(Key.F1)
     # The help URL is localized (helpx.adobe.com/<lang>/support/...), so an
     # Edge window appearing is the browser signal; the URL capture is kept as
     # the fast path for the English apps.
