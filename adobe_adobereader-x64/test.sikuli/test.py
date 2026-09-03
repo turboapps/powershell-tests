@@ -277,11 +277,21 @@ type(password)
 wait(3)
 type(Key.ENTER)
 # Adobe may follow a successful password with a "set up a passkey"
-# interstitial. Its text is localized, but the wand illustration is not; the
-# Skip button sits at a fixed offset below it. Skip it when it shows.
+# interstitial. The wand illustration at its top is locale-independent, but
+# the Skip button below it is not: the localized body text changes how far the
+# text wraps, so the button row sits at a different height in each locale and
+# no fixed offset from the wand reaches it. Click the button itself where a
+# capture of it exists, and fall back to the offset elsewhere.
+PASSKEY_SKIP = "passkey_skip.png" if os.path.exists(
+    os.path.join(script_path, "passkey_skip.png")) else None
+
 passkey = exists("passkey_prompt.png", 20)
 if passkey:
-    click(passkey.getTarget().offset(149, 354))
+    skip = exists(PASSKEY_SKIP, 5) if PASSKEY_SKIP else None
+    if skip:
+        click(skip)
+    else:
+        click(passkey.getTarget().offset(149, 354))
     wait(3)
 wait("account_icon.png",60)
 
