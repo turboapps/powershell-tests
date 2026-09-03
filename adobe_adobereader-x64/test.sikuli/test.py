@@ -69,6 +69,41 @@ def focus_reader():
         click(bar.getTarget().offset(500, 0))
         wait(1)
 
+# Reader's toolbar is not visible while another window covers it, and then
+# focus_reader() cannot click anything: F1 went to that window instead and
+# Edge answered it with its own help page. Close whatever is on top until
+# Reader's toolbar is reachable again.
+def ensure_reader_front(attempts=3):
+    for _ in range(attempts):
+        focus_reader()
+        if exists("reader_opened.png", 2):
+            return True
+        type(Key.F4, Key.ALT)
+        wait(2)
+    return False
+
+# The help page opens in Edge at a localized URL (helpx.adobe.com/<lang>/...),
+# so the browser is recognised by the address-bar prefix that every locale
+# shares. SikuliX's App("Edge") is not usable for this: matched by process
+# name it also hits the msedgewebview2 runtime behind Reader's sign-in and AI
+# panes (closing that killed the sign-in dialog), and App("Microsoft Edge")
+# did not resolve the browser window at all. Closing goes through the window
+# itself: click the address bar to focus Edge, then Alt+F4.
+def help_browser():
+    return exists("help_url_prefix.png", 1)
+
+def close_help_browser():
+    bar = exists("help_url_prefix.png", 10)
+    if not bar:
+        return
+    click(bar)
+    wait(1)
+    type(Key.F4, Key.ALT)
+    wait(2)
+    if exists("help_url_prefix.png", 3):
+        type("w", Key.CTRL + Key.SHIFT)
+        wait(2)
+
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resources", "secrets.txt"))
 username = credentials.get("username")
@@ -84,7 +119,7 @@ wait("pdf_example.png",90)
 
 # Basic operations.
 type("o", Key.CTRL)
-wait("open-file.png",15)
+wait("open-file.png",60)
 click("open-file.png")
 paste(os.path.join(script_path, os.pardir, "resources", "homeacrordrunified18_2025.pdf"))
 wait(2)
@@ -129,10 +164,10 @@ for _ in range(2):
     type("s", Key.CTRL + Key.SHIFT)
     if exists("cannot-save-ok.png", 10):
         click("cannot-save-ok.png")
-    sheet = exists(Pattern("choose_diff_folder.png").similar(0.50), 20)
+    sheet = exists(Pattern("choose_diff_folder.png").similar(0.50), 40)
     if sheet:
         click(sheet)
-        save_dialog = exists("save_location.png", 20)
+        save_dialog = exists("save_location.png", 40)
         if save_dialog:
             break
     dismiss_upsell()
@@ -172,46 +207,64 @@ wait("reader_opened.png",90)
 # Accept both outcomes.
 dismiss_upsell()
 dismiss_ai_assistant()
-focus_reader()
+ensure_reader_front()
 type(Key.F1)
 help_result = None
 for attempt in range(30):
-    if attempt == 15:
-        # Nothing showed up within 15 s: a modal (upgrade prompt, upsell) may
-        # have taken the keystroke. Clear them, refocus and press F1 again.
+    if attempt in (10, 20):
+        # Nothing showed up yet. Reader does not always act on F1 (a modal may
+        # have taken the keystroke, or the window was still settling), so
+        # clear what is on screen, refocus and send it again.
         dismiss_upsell()
         dismiss_ai_assistant()
-        focus_reader()
+        ensure_reader_front()
         type(Key.F1)
-    # The help URL is localized (helpx.adobe.com/<lang>/support/...), so an
-    # Edge window appearing is the browser signal; the URL capture is kept as
-    # the fast path for the English apps.
-    if exists(Pattern("reader_help_url.png"), 1) or App("Edge").isRunning(0):
+    if help_browser():
         help_result = "browser"
         break
     if find_ai_panel(1):
         help_result = "assistant"
         break
 assert help_result is not None, "F1 opened neither browser help nor AI Assistant"
-if help_result == "browser":
-    if App("Edge").isRunning(10):
-        closeApp("Edge")
-else:
-    dismiss_ai_assistant()
+# F1 can produce both outcomes at once: the AI panel is already open (summary
+# mode after reopening the file) and the help page still opens in Edge a few
+# seconds later. Whichever was detected first, clear both before moving on;
+# an Edge window left open would cover Reader's Sign in button.
+wait(3)
+dismiss_ai_assistant()
+close_help_browser()
 
 # Test Adobe Login.
 dismiss_upsell()
 click("sign_in_button.png")
-wait(Pattern("login-email.png").similar(0.90),10)
-# The dialog keeps rendering after the field first appears: it shifts down and
-# auto-focuses (focus ring breaks a 0.90 match). Let it settle, then click at
-# relaxed similarity; if the focused field no longer matches, it already has
-# focus, so typing works either way.
-wait(3)
-field = exists(Pattern("login-email.png").similar(0.70), 10)
+# The sign-in dialog is a separate window that does not always hold the
+# keyboard focus, so the email field has to be clicked rather than typed into
+# blind, and it comes in two layouts: a wide one with a marketing panel beside
+# the form (the English apps) and a compact one headed by the red Adobe
+# wordmark (the localized apps). login-email.png carries the field's localized
+# label ("Adresse e-mail") so it only matches the English layout, and the
+# wordmark only appears in the compact one - so wait for whichever shows up.
+field = None
+logo = None
+for _ in range(30):
+    field = exists(Pattern("login-email.png").similar(0.70), 1)
+    if field:
+        break
+    logo = exists("adobe_signin_logo.png", 1)
+    if logo:
+        break
+# The dialog keeps rendering after the anchor first appears and shifts down as
+# it settles, so a click placed from the first sighting can miss the field.
+# Let it settle, then locate the anchor again and click from that position.
+wait(5)
+field = exists(Pattern("login-email.png").similar(0.70), 3)
 if field:
     click(field)
-    wait(2)
+else:
+    logo = exists("adobe_signin_logo.png", 5) or logo
+    if logo:
+        click(logo.getTarget().offset(159, 173))
+wait(2)
 type(username)
 wait(3)
 type(Key.ENTER)
@@ -224,11 +277,21 @@ type(password)
 wait(3)
 type(Key.ENTER)
 # Adobe may follow a successful password with a "set up a passkey"
-# interstitial. Its text is localized, but the wand illustration is not; the
-# Skip button sits at a fixed offset below it. Skip it when it shows.
+# interstitial. The wand illustration at its top is locale-independent, but
+# the Skip button below it is not: the localized body text changes how far the
+# text wraps, so the button row sits at a different height in each locale and
+# no fixed offset from the wand reaches it. Click the button itself where a
+# capture of it exists, and fall back to the offset elsewhere.
+PASSKEY_SKIP = "passkey_skip.png" if os.path.exists(
+    os.path.join(script_path, "passkey_skip.png")) else None
+
 passkey = exists("passkey_prompt.png", 20)
 if passkey:
-    click(passkey.getTarget().offset(149, 354))
+    skip = exists(PASSKEY_SKIP, 5) if PASSKEY_SKIP else None
+    if skip:
+        click(skip)
+    else:
+        click(passkey.getTarget().offset(149, 354))
     wait(3)
 wait("account_icon.png",60)
 
