@@ -191,12 +191,12 @@ for _ in range(3):
     dismiss_ai_assistant()
     ensure_reader_front()
     type("s", Key.CTRL + Key.SHIFT)
-    if exists("cannot-save-ok.png", 5):
+    if exists("cannot-save-ok.png", 10):
         click("cannot-save-ok.png")
-    sheet = exists(Pattern("choose_diff_folder.png").similar(0.50), 20)
+    sheet = exists(Pattern("choose_diff_folder.png").similar(0.50), 40)
     if sheet:
         click(sheet)
-        save_dialog = exists("save_location.png", 20)
+        save_dialog = exists("save_location.png", 40)
         if save_dialog:
             break
     dismiss_upsell()
@@ -230,8 +230,18 @@ def find_pdf_row(timeout=45):
     deadline = time.time() + timeout
     previous = None
     while time.time() < deadline:
-        row = exists("test-pdf-file.png", 1) or exists("test-pdf-file-edge.png", 1)
-        if row:
+        # Score both renderings and take the better one rather than the first
+        # that clears the threshold: whichever icon the row is actually showing
+        # matches near 1.0, while the other one can still find a weak match
+        # somewhere else in the list (a log file whose name also ends in
+        # "test") and win purely by being checked first.
+        candidates = [m for m in (exists("test-pdf-file.png", 1),
+                                  exists("test-pdf-file-edge.png", 1)) if m]
+        if candidates:
+            row = candidates[0]
+            for other in candidates[1:]:
+                if other.getScore() > row.getScore():
+                    row = other
             here = row.getTarget()
             if previous and abs(here.x - previous.x) < 3 and abs(here.y - previous.y) < 3:
                 return row
@@ -319,22 +329,35 @@ PASSKEY_SKIP_OFFSETS = ((149, 354), (131, 400), (131, 446), (105, 400))
 LOGIN_EMAIL = Pattern("login-email.png").similar(0.70)
 LOGIN_PASSWORD = Pattern("login-password.png").similar(0.70)
 
-def signin_visible():
-    return (exists(LOGIN_PASSWORD, 0) or exists("adobe_signin_logo.png", 0)
+# Anchors that only ever appear on the sign-in host. The email field is not one
+# of them - it is an empty rounded box that Reader's own search field can match
+# - so it counts only once the host has been asked for, which is the only way
+# the English layout (no Adobe wordmark, no password box yet) can be seen at
+# all.
+def signin_anchored():
+    return (exists("adobe_signin_logo.png", 0) or exists(LOGIN_PASSWORD, 0)
             or exists("passkey_prompt.png", 0))
 
-# Bring the sign-in host back: Reader reuses the existing window, on the page
-# it was left on, when its Sign in button is clicked again.
-def open_signin():
-    for _ in range(3):
+def signin_visible():
+    return signin_anchored() or exists(LOGIN_EMAIL, 0)
+
+# Bring the sign-in host up (or back): Reader reuses the existing window, on the
+# page it was left on, when its Sign in button is clicked again. The host takes
+# its time to render, so click once and then wait for it rather than clicking
+# again every few seconds.
+def open_signin(timeout=60):
+    if signin_anchored():
+        return True
+    button = exists(Pattern("sign_in_button.png").similar(0.70), 5)
+    if not button:
+        return False
+    click(button)
+    deadline = time.time() + timeout
+    while time.time() < deadline:
         if signin_visible():
             return True
-        button = exists(Pattern("sign_in_button.png").similar(0.70), 3)
-        if not button:
-            return False
-        click(button)
-        wait(5)
-    return signin_visible() is not None
+        wait(2)
+    return False
 
 def enter_email():
     # Two layouts: a wide one with a marketing panel beside the form (the
@@ -389,7 +412,7 @@ def enter_password():
 # illustration; the Skip button below it is not (the localized body text wraps
 # differently, moving the button row), so click the button itself where a
 # capture of it exists and fall back to the offset elsewhere.
-def wait_signed_in(timeout=150):
+def wait_signed_in(timeout=240):
     deadline = time.time() + timeout
     tried = 0
     while time.time() < deadline:
@@ -412,7 +435,9 @@ def wait_signed_in(timeout=150):
             # start the exchange again.
             return False
         wait(2)
-    return False
+    # Signing in has been seen to take over 150 s on a loaded pool VM; give the
+    # icon one last look before reporting failure.
+    return exists("account_icon.png", 10) is not None
 
 signed_in = False
 for attempt in range(2):
@@ -431,6 +456,8 @@ for attempt in range(2):
     if submitted and wait_signed_in():
         signed_in = True
         break
+if not signed_in:
+    signed_in = exists("account_icon.png", 30) is not None
 assert signed_in, "Adobe sign-in did not complete: the account icon never appeared"
 
 # Quit the application. After sign-in a hidden helper window (the sign-in
