@@ -13,10 +13,16 @@ App().focus("Microsoft SQL Server Management Studio")
 wait("ssms_window.png",200)
 run("turbo stop test")
 
-# Launch the app.
-# The arm64 image's client-generated shortcut sits flat in the Start Menu, named from
-# the image Title ("SQL Server Management Studio ARM64") - no "Microsoft SQL Server Tools" folder.
-run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "SQL Server Management Studio"))
+# Launch the app. The shortcut carries a version suffix, so match on a prefix.
+# It sits either in the installer's "Microsoft SQL Server Tools" folder or, when the
+# image has no captured shortcuts, flat in the Start Menu under the image Title.
+shortcut = util.find_file(util.start_menu, "SQL Server Management Studio")
+if not shortcut:
+    tools = util.find_file(util.start_menu, "Microsoft SQL Server Tools")
+    shortcut = util.find_file(tools, "SQL Server Management Studio") if tools else None
+assert shortcut, ("No SQL Server Management Studio shortcut. Installed under %s:\n  %s"
+                  % (util.start_menu, "\n  ".join(util.list_shortcuts(util.start_menu))))
+run("explorer " + shortcut)
 wait(30)
 wait("ssms_window.png", 200)
 

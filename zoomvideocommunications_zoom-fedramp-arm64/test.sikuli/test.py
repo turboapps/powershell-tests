@@ -16,7 +16,7 @@ run("turbo stop test")
 wait(10)
 
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "Zoom for Government ARM64.lnk"))
+util.launch_shortcut(["Zoom", "Zoom Workplace.lnk"], "Zoom for Government ARM64.lnk")
 wait("zoom_window.png")
 if exists("dont-show-vdi.png",10):
     click("dont-show-vdi.png")
