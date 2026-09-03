@@ -36,7 +36,7 @@ type(Key.ESC)
 click("menu.png")
 click("menu_help.png")
 wait("npp_help_url.png")
-closeApp("Edge")
+util.close_app("Edge")
 type(Key.F4, Key.ALT)
 type(Key.F4, Key.ALT) # Close the explorer window
 wait(20)

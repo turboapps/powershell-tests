@@ -40,7 +40,7 @@ closeApp("Notepad")
 run("explorer " + os.path.join(util.desktop, "manual.html"))
 wait("html-sample.png")
 if App("Edge").isRunning(10):
-    closeApp("Edge")
+    util.close_app("Edge")
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
 wait(5)
 paste('turbo run tdf/libreoffice -d --enable=disablefontpreload -- ' + doc_file)

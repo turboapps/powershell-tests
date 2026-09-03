@@ -63,7 +63,7 @@ doubleClick(Pattern("sample-mp4.png").targetOffset(-6,7))
 # Check "Help".
 type(Key.F1)
 wait("help_url.png",30)
-closeApp("Edge")
+util.close_app("Edge")
 type("q",Key.CTRL)
 click("save_no.png")
 wait(10)

@@ -169,3 +169,26 @@ def check_running(max_retries=12, delay=5):
             return
         time.sleep(delay)
     assert "Running" not in output
+
+# Close an application by window name.
+#
+# SikuliX's App.close() intermittently raises IndexOutOfBoundsException when its
+# internal application list is momentarily empty. That fails the test even though
+# the application is running and was about to be closed anyway: it hit
+# goto_gotoconnect and both tableau tests in App Tests run 33676687141, each time
+# right after a help link had opened the browser, and powerbi before that. Fall
+# back to taskkill for the browsers, which a test only ever closes as cleanup and
+# which are safe to force-close.
+_EXECUTABLES = {
+    "edge": "msedge.exe",
+    "chrome": "chrome.exe",
+    "google chrome": "chrome.exe",
+}
+
+def close_app(name):
+    try:
+        closeApp(name)
+    except:
+        executable = _EXECUTABLES.get(name.lower())
+        if executable:
+            run("taskkill /F /IM " + executable)

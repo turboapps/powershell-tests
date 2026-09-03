@@ -57,7 +57,7 @@ click(Pattern("menu.png").targetOffset(25,-1))
 click(Pattern("menu_help.png").targetOffset(-50,-14))
 wait("help_url.png")
 if App("Edge").isRunning(10):
-    closeApp("Edge")
+    util.close_app("Edge")
 click("keeper-title-bar.png")
 type("q", Key.CTRL)
 

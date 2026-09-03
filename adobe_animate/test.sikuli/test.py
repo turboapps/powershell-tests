@@ -65,7 +65,7 @@ assert(util.file_exists(os.path.join(os.environ['USERPROFILE'], "Desktop\\test00
 # Test video.
 click("test-movie-button.png")
 wait("movie-url.png")
-closeApp("Edge")
+util.close_app("Edge")
 type("q",Key.CTRL)
 
 # Check if the session terminates.

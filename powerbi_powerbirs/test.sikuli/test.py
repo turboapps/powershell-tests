@@ -72,13 +72,7 @@ click("close_apply.png")
 click("menu_help.png")
 click("help_support.png")
 wait("help_url.png",20)
-# The help link opens in Edge (confirmed by help_url.png matching above). closeApp("Edge")
-# intermittently throws an App.close IndexOutOfBoundsException when SikuliX's app list is
-# momentarily empty, so fall back to taskkill - Edge is definitely running at this point.
-try:
-    closeApp("Edge")
-except:
-    run("taskkill /F /IM msedge.exe")
+util.close_app("Edge")
 wait(10)
 type(Key.F4, Key.ALT)
 click("close_no_save.png")

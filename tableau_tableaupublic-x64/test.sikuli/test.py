@@ -34,7 +34,7 @@ wait("keep-only-result.png")
 # Check "help".
 type(Key.F1)
 wait("help_url.png")
-closeApp("Edge")
+util.close_app("Edge")
 wait(10) # Wait for the complete close of the firewall alert.
 type(Key.F4, Key.ALT)
 if exists("save-changes-prompt.png"):
