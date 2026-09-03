@@ -227,9 +227,10 @@ ensure_reader_front()
 type(Key.F1)
 help_result = None
 for attempt in range(30):
-    if attempt == 15:
-        # Nothing showed up within 15 s: a modal (upgrade prompt, upsell) may
-        # have taken the keystroke. Clear them, refocus and press F1 again.
+    if attempt in (10, 20):
+        # Nothing showed up yet. Reader does not always act on F1 (a modal may
+        # have taken the keystroke, or the window was still settling), so
+        # clear what is on screen, refocus and send it again.
         dismiss_upsell()
         dismiss_upgrade_prompt()
         dismiss_ai_assistant()
@@ -254,19 +255,20 @@ close_help_browser()
 dismiss_upsell()
 dismiss_upgrade_prompt()
 click("sign_in_button.png")
-# login-email.png carries the field's label, which is localized ("Adresse
-# e-mail", "Correo electronico"), so it cannot be waited on strictly: give the
-# dialog time at a relaxed similarity and click the field when it is
-# recognised. The field is auto-focused either way, so typing works even when
-# the capture does not match this locale.
-field = exists(Pattern("login-email.png").similar(0.70), 30)
+# The sign-in dialog is a separate window that does not always hold the
+# keyboard focus, so the email field has to be clicked rather than typed into
+# blind. Its label is localized ("Adresse e-mail"), which makes the field
+# capture unreliable outside English; anchor on the Adobe wordmark in the
+# dialog header instead - identical in every locale - and click the field at
+# its fixed offset below it.
+logo = wait("adobe_signin_logo.png", 30)
+wait(3)
+field = exists(Pattern("login-email.png").similar(0.70), 5)
 if field:
-    wait(3)
-    field = exists(Pattern("login-email.png").similar(0.70), 5) or field
     click(field)
-    wait(2)
 else:
-    wait(5)
+    click(logo.getTarget().offset(159, 173))
+wait(2)
 type(username)
 wait(3)
 type(Key.ENTER)
