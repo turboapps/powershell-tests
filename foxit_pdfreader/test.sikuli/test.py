@@ -11,6 +11,18 @@ save_path =  os.path.join(util.desktop, "sample.pdf")
 setAutoWaitTimeout(50)
 util.pre_test()
 
+# Foxit 2026.2.0 opens a "Translate Document" suggestion in the notification
+# panel, and that panel overlays the sticky note the comment step clicks, so
+# comment_box.png could no longer be found (CI runs 33676687141 and its rerun
+# 33700259173 both died there; 2026.1.3 passed). Clear the notification
+# whenever it is showing. The panel is anchored to the note, so "Clear" is
+# clicked at a fixed offset from the message text.
+def dismiss_translate_notification():
+    notification = Pattern("translate-notification.png")
+    if exists(notification, 2):
+        click(notification.targetOffset(-143, -63))
+        wait(1)
+
 # Test of `turbo run`.
 wait("foxit_window.png")
 run("turbo stop test")
@@ -26,6 +38,7 @@ if exists("next-button.png",30):
     click("next-button.png")
     type(Key.ESC)
 wait("pdf_sample.png")
+dismiss_translate_notification()
 doubleClick(Pattern("pdf_sample.png").targetOffset(-182,-63))
 doubleClick(Pattern("pdf_sample.png").targetOffset(-182,-63)) # Need to do this twice.
 click("highlight-tool.png")
@@ -34,6 +47,7 @@ wait(Pattern("result_1.png").similar(0.60))
 type("n", Key.CTRL + Key.SHIFT)
 wait("comment_ready.png")
 click(Pattern("result_1.png").similar(0.60).targetOffset(79,-16))
+dismiss_translate_notification()
 click(Pattern("comment_box.png").targetOffset(-1,10))
 paste("test")
 type(Key.ESC)
