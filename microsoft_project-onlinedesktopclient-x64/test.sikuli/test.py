@@ -18,7 +18,6 @@ password = credentials.get("password")
 # Test of `turbo run`.
 click(Pattern("office_signin.png").targetOffset(-113,128))
 wait("office_signin_email.png")
-click("office_signin_email.png")
 paste(username)
 wait(2)
 type(Key.ENTER)
