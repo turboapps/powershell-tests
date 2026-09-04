@@ -395,6 +395,23 @@ PASSKEY_SKIP_OFFSETS = ((149, 354), (131, 400), (131, 446), (105, 400))
 LOGIN_EMAIL = Pattern("login-email.png").similar(0.70)
 LOGIN_PASSWORD = Pattern("login-password.png").similar(0.70)
 
+# The label above the password box is localized, and the show/hide eye at the
+# right end of the box is not - it is the same glyph in every language, and it
+# scores 1.000 on both the Spanish and the Dutch page. The box centre is 178 px
+# to its left. Prefer that to matching the label: even a correct localized
+# capture of the label only clears the threshold by a few hundredths.
+LOGIN_PASSWORD_EYE = Pattern("login_password_eye.png").similar(0.90)
+
+def find_password_box():
+    """Where to click to put the caret in the password field, or None."""
+    eye = exists(LOGIN_PASSWORD_EYE, 0)
+    if eye:
+        return eye.getTarget().offset(-178, 0)
+    box = exists(LOGIN_PASSWORD, 0)
+    if box:
+        return box.getTarget().offset(0, 12)
+    return None
+
 # Anchors that only ever appear on the sign-in host. The email field is not one
 # of them - it is an empty rounded box that Reader's own search field can match
 # - so it counts only once the host has been asked for, which is the only way
@@ -402,7 +419,7 @@ LOGIN_PASSWORD = Pattern("login-password.png").similar(0.70)
 # all.
 def signin_anchored():
     return (exists("adobe_signin_logo.png", 0) or exists(LOGIN_PASSWORD, 0)
-            or exists("passkey_prompt.png", 0))
+            or exists(LOGIN_PASSWORD_EYE, 0) or exists("passkey_prompt.png", 0))
 
 def signin_visible():
     return signin_anchored() or exists(LOGIN_EMAIL, 0)
@@ -461,12 +478,17 @@ def enter_password():
     # "Continue with password" field; use the password path. A click that
     # misses the field leaves the box empty, and Enter on an empty box does
     # nothing at all, so locate the field again once the page has settled.
-    box = exists(LOGIN_PASSWORD, 20)
-    if not box:
+    target = None
+    for _ in range(20):
+        target = find_password_box()
+        if target:
+            break
+        wait(1)
+    if not target:
         return False
     wait(2)
-    box = exists(LOGIN_PASSWORD, 5) or box
-    click(box.getTarget().offset(0, 12))
+    target = find_password_box() or target   # the page shifts while it settles
+    click(target)
     wait(2)
     type(password)
     wait(3)
