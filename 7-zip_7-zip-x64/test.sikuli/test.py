@@ -7,6 +7,7 @@ include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util
 sys.path.append(include_path)
 import util
 reload(util)
+import shutil
 addImagePath(include_path) # This is needed to include screenshots from "util".
 
 # Set the default waiting time.
@@ -14,6 +15,16 @@ setAutoWaitTimeout(20)
 
 # Operations before running individual test.
 util.pre_test()
+
+# Where the zip and unzip steps write. Remove leftovers from a previous run on
+# the same machine first: with the archive and the extracted folder already
+# present, 7-Zip's extract step raises a confirm-replace prompt the script does
+# not expect, 7-Zip stays open behind it, and the run fails at check_running
+# (seen on os-testvalidation, 2026-09-04). The file_exists asserts below would
+# also pass on the stale files even if this run's zip or unzip had failed.
+zip_folder = os.path.join(util.desktop, "7-zip-test")
+if os.path.exists(zip_folder):
+    shutil.rmtree(zip_folder)
 
 # `turbo run` should launch the app.
 wait("zip_add.png")
@@ -43,7 +54,6 @@ wait(3)
 click(Pattern("format_selection.png").targetOffset(-57,28))
 wait(3)
 click("zip_location.png")
-zip_folder = os.path.join(util.desktop, "7-zip-test")
 zip_path = os.path.join(zip_folder, "util.sikuli.zip")
 paste(zip_path)
 type(Key.ENTER)
