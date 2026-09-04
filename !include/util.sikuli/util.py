@@ -1,12 +1,144 @@
 # Common operations used in app test scripts.
 from sikuli import *
+import re
+import time
+from java.io import File
+from java.awt.image import BufferedImage
+from javax.imageio import ImageIO
 
 # Useful paths.
 desktop = os.path.join((os.environ["USERPROFILE"]), "Desktop")
 start_menu = os.path.join((os.environ["APPDATA"]), "Microsoft", "Windows", "Start Menu", "Programs")
 
+# ---------------------------------------------------------------------------
+# Per-step screenshots
+# ---------------------------------------------------------------------------
+# The SikuliX log records actions, not what the screen looked like, and the CI
+# harness's only screenshot is taken after the test has torn everything down.
+# So a passing run leaves nothing to compare a later failure against, and a
+# failure shows the desktop after SikuliX gave up rather than the screen it
+# gave up on. pre_test() therefore wraps the action functions (click, type,
+# wait, ...) in the calling test's namespace, and in util's own, so that every
+# action first saves a JPEG of the whole screen:
+#
+#     <Desktop>\<app>-steps\NNN-<action>-<target>.jpg   before each action
+#     <Desktop>\<app>-steps\NNN-FAILED-<action>-<target>.jpg   when it raises
+#
+# <target> is the reference image's base name, so a frame reads as
+# "007-click-zip_add". Desktop writes are host-visible under the harness's
+# --isolate=merge-user (that is how the test log gets out too), and the CI
+# harness (applab Invoke-AppTest.ps1) stages the folder into the
+# <app>-diagnostics artifact on every verdict.
+#
+# Frames are JPEG (a PNG of a 1080p desktop is several MB; a JPEG is a few
+# hundred KB), rate-limited so an exists() polling loop cannot flood the run,
+# and capped per run. Capture is best-effort throughout: a failure to save a
+# frame is logged once via Debug.user and never fails the test.
+
+_STEP_ACTIONS = ("click", "doubleClick", "rightClick", "hover", "dragDrop",
+                 "type", "paste", "wait", "exists", "find")
+_STEP_MIN_INTERVAL = 0.3   # seconds between frames (bounds polling loops)
+_STEP_MAX_FRAMES = 300     # hard cap per run; the FAILED frame is exempt
+_step_state = {"dir": None, "n": 0, "last": 0.0, "warned": False}
+
+# <Desktop>\<app>-steps, with <app> = the test's folder name (<app>\test.sikuli\test.py),
+# which is the CI matrix name the harness stages by.
+def _step_dir():
+    if _step_state["dir"] is None:
+        script = os.path.abspath(sys.argv[0])
+        app = os.path.basename(os.path.dirname(os.path.dirname(script)))
+        folder = os.path.join(desktop, app + "-steps")
+        if not os.path.isdir(folder):
+            os.makedirs(folder)
+        _step_state["dir"] = folder
+    return _step_state["dir"]
+
+# Name fragment for an action's target: reference image base name for a string
+# or Pattern, the class name for a Region/Location/Match, None for text/keys.
+def _step_label(target):
+    if isinstance(target, basestring):
+        if target.lower().endswith((".png", ".jpg")):
+            return os.path.splitext(os.path.basename(target))[0]
+        return None
+    try:
+        name = target.getFilename()
+        if name:
+            return os.path.splitext(os.path.basename(name))[0]
+    except:
+        pass
+    return target.__class__.__name__.lower()
+
+# Save one JPEG frame of the whole screen. Never raises.
+def _step_capture(tag):
+    try:
+        failed = tag.startswith("FAILED")
+        now = time.time()
+        if not failed:
+            if now - _step_state["last"] < _STEP_MIN_INTERVAL:
+                return
+            if _step_state["n"] >= _STEP_MAX_FRAMES:
+                if not _step_state["warned"]:
+                    _step_state["warned"] = True
+                    Debug.user("step screenshots: cap of %d frames reached, not saving more" % _STEP_MAX_FRAMES)
+                return
+        _step_state["n"] += 1
+        _step_state["last"] = now
+        safe = re.sub(r"[^A-Za-z0-9._-]+", "_", tag)[:80]
+        path = os.path.join(_step_dir(), "%03d-%s.jpg" % (_step_state["n"], safe))
+        # The JPEG writer rejects an image with an alpha channel; redraw as RGB.
+        img = SCREEN.capture().getImage()
+        rgb = BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_INT_RGB)
+        g = rgb.createGraphics()
+        g.drawImage(img, 0, 0, None)
+        g.dispose()
+        ImageIO.write(rgb, "jpg", File(path))
+    except:
+        if not _step_state["warned"]:
+            _step_state["warned"] = True
+            Debug.user("step screenshots: capture failed, frames may be missing: %s" % sys.exc_info()[1])
+
+def _step_wrap(name, original):
+    def wrapped(*args, **kwargs):
+        target = args[0] if args else None
+        # wait(3) / exists(2): a plain timeout, nothing on screen to name.
+        skip = name in ("wait", "exists", "find") and isinstance(target, (int, long, float))
+        label = None if skip else _step_label(target)
+        tag = name if label is None else name + "-" + label
+        if not skip:
+            _step_capture(tag)
+        try:
+            return original(*args, **kwargs)
+        except:
+            # The screen at the moment the action gave up (FindFailed, focus
+            # error, ...): the frame a failure investigation starts from.
+            _step_capture("FAILED-" + tag)
+            raise
+    wrapped._step_original = original
+    wrapped.__name__ = name
+    return wrapped
+
+# Replace the action functions in each namespace with capturing wrappers.
+# Idempotent: re-installing (tests call reload(util)) unwraps first, so a
+# function is never wrapped twice.
+def _install_step_hooks(namespaces):
+    for ns in namespaces:
+        for name in _STEP_ACTIONS:
+            fn = ns.get(name)
+            if fn is None:
+                continue
+            original = getattr(fn, "_step_original", None) or fn
+            ns[name] = _step_wrap(name, original)
+
 # Operations before running app test.
 def pre_test(no_min=False):
+    # Per-step screenshots for the calling test and for util's own helpers.
+    # Installed here rather than at import: every test does import + reload(util)
+    # + pre_test(), and the caller's namespace is only known from the call.
+    try:
+        _install_step_hooks([sys._getframe(1).f_globals, globals()])
+    except:
+        Debug.user("step screenshots: hook install failed, no frames this run: %s" % sys.exc_info()[1])
+
     # Workaround for the bug that when Num-Lock is on, Key.SHIFT does not work with arrow keys: https://answers.launchpad.net/sikuli/+question/143874.
     if Env.isLockOn(Key.NUM_LOCK):
         type(Key.NUM_LOCK)

@@ -24,6 +24,12 @@ function PrepareTest {
     Remove-Item "$env:USERPROFILE\Desktop\TEST-DONE-PASS" -Force -ErrorAction SilentlyContinue
     Remove-Item "$env:USERPROFILE\Desktop\TEST-DONE-FAIL" -Force -ErrorAction SilentlyContinue
 
+    # Per-step screenshots from a previous run (written by util.pre_test's hooks
+    # to <Desktop>\<app>-steps). Numbering restarts at 001 each run, so stale
+    # frames would be overwritten piecemeal and the leftovers mixed into what
+    # the CI harness stages as this run's frames.
+    Remove-Item "$env:USERPROFILE\Desktop\$name-steps" -Recurse -Force -ErrorAction SilentlyContinue
+
     # Parse the secrets file.
     $secrets = Get-Content $secretsFile | ConvertFrom-Csv -Header "Key", "Value"
     $domain = $secrets | Where-Object { $_.Key -eq "Domain" } | Select-Object -ExpandProperty Value
