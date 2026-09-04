@@ -149,7 +149,7 @@ click("open-file.png")
 paste(os.path.join(script_path, os.pardir, "resources", "homeacrordrunified18_2025.pdf"))
 wait(2)
 type(Key.ENTER)
-wait("reader_opened.png")
+assert wait_reader_window(), "Reader did not open the document"
 wait(3)
 dismiss_ai_assistant()
 doubleClick("welcome-orig.png")
@@ -157,9 +157,30 @@ wait(2)
 click("highlight.png")
 wait("welcome_highlighted.png")
 wait(3)
-click(Pattern("toolbar.png").targetOffset(0,107))
-click(Pattern("tool_sign.png").targetOffset(1,-34))
-wait("sign_window.png")
+# Fill & Sign: open the tool from the strip, then its "add a signature" dialog.
+# Both clicks land where they should and the dialog still does not always come
+# up inside the 30 s default - two CI runs ended with the window dimmed behind a
+# modal that never rendered, and the tool strip gone. Give the dialog longer and
+# start the pair of clicks over if nothing arrives, clearing whatever is on top
+# first (the upsell and the AI rail both take clicks meant for the strip).
+sign_dialog = None
+for _ in range(3):
+    dismiss_upsell()
+    dismiss_ai_assistant()
+    strip = exists("toolbar.png", 10)
+    if strip:
+        click(strip.getTarget().offset(0, 107))
+        tool = exists("tool_sign.png", 10)
+        if tool:
+            click(tool.getTarget().offset(1, -34))
+            sign_dialog = exists("sign_window.png", 40)
+            if sign_dialog:
+                break
+    # Escape closes a half-opened panel or flyout so the next attempt starts
+    # from the same state the first one did.
+    type(Key.ESC)
+    wait(2)
+assert sign_dialog is not None, "Fill & Sign did not open its signature dialog"
 type("turbo" + Key.ENTER)
 wait(3)
 click("sign_before.png")
@@ -178,6 +199,39 @@ if select_tool:
     type(Key.ESC)
     wait(1)
 dismiss_ai_assistant()
+# Reader's left rail - the "All tools" list, or the AI "Read" panel with its
+# suggestion pills - can hold the keyboard focus, and then Ctrl+Shift+S goes to
+# the rail instead of the document and the Save As sheet never opens. Two CI
+# runs failed that way with the Read panel on screen. The rail's close button
+# sits at a fixed offset from the toolbar anchor in every locale and in both
+# builds, so look for it there (and only there, so the bare X cannot match
+# something else) and close the rail when it is open.
+def close_side_panel():
+    bar = exists("reader_opened.png", 2)
+    if not bar:
+        return
+    anchor = bar.getTarget()
+    spot = Region(max(0, anchor.x + 150), max(0, anchor.y + 60), 70, 70)
+    m = spot.exists("panel_close.png", 1)
+    if m:
+        click(m)
+        wait(1)
+
+# The blue "Choose a different folder" button now has a capture in its own
+# language in every folder, so it is matched at the normal 0.70 rather than the
+# 0.50 a foreign label needed - the AI rail's suggestion pills, which used to
+# win that search at 0.517 and send a prompt to the AI Assistant instead of
+# opening the file dialog, cannot reach it any more. The search stays confined
+# to the document area as a second line of defence.
+def reader_content_region():
+    bar = exists("reader_opened.png", 3)
+    if not bar:
+        return SCREEN
+    anchor = bar.getTarget()
+    x = max(0, min(anchor.x + 250, SCREEN.getW() - 200))
+    y = max(0, anchor.y - 40)
+    return Region(x, y, min(1000, SCREEN.getW() - x), min(1000, SCREEN.getH() - y))
+
 # Save As: Reader's own "Save as" sheet first, then "Choose a different
 # folder" opens the system file dialog. A Reader upsell modal ("Unlock premium
 # tools") can pop up at any point and swallow the sheet, so dismiss it and
@@ -189,16 +243,21 @@ for _ in range(3):
     # The AI panel takes the keystroke as prompt text while it is open, so
     # it has to be cleared on every attempt, not only before the first one.
     dismiss_ai_assistant()
+    close_side_panel()
     ensure_reader_front()
     type("s", Key.CTRL + Key.SHIFT)
-    if exists("cannot-save-ok.png", 5):
+    if exists("cannot-save-ok.png", 10):
         click("cannot-save-ok.png")
-    sheet = exists(Pattern("choose_diff_folder.png").similar(0.50), 20)
+    sheet = reader_content_region().exists(
+        Pattern("choose_diff_folder.png").similar(0.70), 40)
     if sheet:
         click(sheet)
-        save_dialog = exists("save_location.png", 20)
+        save_dialog = exists("save_location.png", 40)
         if save_dialog:
             break
+    # Nothing came up. Escape closes a panel or flyout that took the shortcut
+    # and is a no-op otherwise, so the next attempt starts from a clean window.
+    type(Key.ESC)
     dismiss_upsell()
 if not save_dialog:
     wait("save_location.png", 5)
@@ -230,8 +289,18 @@ def find_pdf_row(timeout=45):
     deadline = time.time() + timeout
     previous = None
     while time.time() < deadline:
-        row = exists("test-pdf-file.png", 1) or exists("test-pdf-file-edge.png", 1)
-        if row:
+        # Score both renderings and take the better one rather than the first
+        # that clears the threshold: whichever icon the row is actually showing
+        # matches near 1.0, while the other one can still find a weak match
+        # somewhere else in the list (a log file whose name also ends in
+        # "test") and win purely by being checked first.
+        candidates = [m for m in (exists("test-pdf-file.png", 1),
+                                  exists("test-pdf-file-edge.png", 1)) if m]
+        if candidates:
+            row = candidates[0]
+            for other in candidates[1:]:
+                if other.getScore() > row.getScore():
+                    row = other
             here = row.getTarget()
             if previous and abs(here.x - previous.x) < 3 and abs(here.y - previous.y) < 3:
                 return row
@@ -302,13 +371,35 @@ close_help_browser()
 PASSKEY_SKIP = "passkey_skip.png" if os.path.exists(
     os.path.join(script_path, "passkey_skip.png")) else None
 
-# Where the Skip button sits relative to the wand illustration when the folder
-# has no capture of it. The body text wraps differently in each locale, which
-# moves the button row: the single offset this replaces misses the Spanish
-# button by 46 px (measured wand (361,484), Skip (492,884)). Try a few
-# positions, checking after each whether the interstitial went away. They only
-# ever step left and down - "Set up passkey" is immediately to the right of
-# Skip, and clicking that would start creating a passkey instead.
+# Reaching Skip without a capture of it. What changes between locales is the
+# words on the buttons and how far down the card they sit; what does not change
+# is the shape of the row - an outlined Skip pill, an 18 px gap, then the blue
+# "Set up passkey" button. passkey_primary_left.png is that blue button's
+# rounded left corner, cropped short of the first glyph, so it is geometry
+# rather than text and matches in any language; Skip is 38 px to its left.
+#
+# The search has to be confined to the card, anchored on the wand: Reader's own
+# blue pills match the same corner just as well (the Free trial button in the
+# tools rail scores 0.994, Share in the toolbar 0.845), and they sit outside
+# that region.
+PASSKEY_PRIMARY = "passkey_primary_left.png"
+
+def click_passkey_skip(anchor):
+    """Click Skip using the blue primary button as the anchor. True if clicked."""
+    left = max(0, anchor.x - 60)
+    top = max(0, anchor.y - 20)
+    card = Region(left, top,
+                  min(700, SCREEN.getW() - left), min(720, SCREEN.getH() - top))
+    m = card.exists(Pattern(PASSKEY_PRIMARY).similar(0.80), 1)
+    if not m:
+        return False
+    click(m.getTarget().offset(-38, 0))
+    return True
+
+# Last-resort offsets from the wand, for a card whose primary button cannot be
+# found either. They only ever step left and down - "Set up passkey" is
+# immediately to the right of Skip, and clicking that would start creating a
+# passkey instead.
 PASSKEY_SKIP_OFFSETS = ((149, 354), (131, 400), (131, 446), (105, 400))
 
 # login-password.png is the English capture in every folder but fr, and it
@@ -319,22 +410,52 @@ PASSKEY_SKIP_OFFSETS = ((149, 354), (131, 400), (131, 446), (105, 400))
 LOGIN_EMAIL = Pattern("login-email.png").similar(0.70)
 LOGIN_PASSWORD = Pattern("login-password.png").similar(0.70)
 
-def signin_visible():
-    return (exists(LOGIN_PASSWORD, 0) or exists("adobe_signin_logo.png", 0)
-            or exists("passkey_prompt.png", 0))
+# The label above the password box is localized, and the show/hide eye at the
+# right end of the box is not - it is the same glyph in every language, and it
+# scores 1.000 on both the Spanish and the Dutch page. The box centre is 178 px
+# to its left. Prefer that to matching the label: even a correct localized
+# capture of the label only clears the threshold by a few hundredths.
+LOGIN_PASSWORD_EYE = Pattern("login_password_eye.png").similar(0.90)
 
-# Bring the sign-in host back: Reader reuses the existing window, on the page
-# it was left on, when its Sign in button is clicked again.
-def open_signin():
-    for _ in range(3):
+def find_password_box():
+    """Where to click to put the caret in the password field, or None."""
+    eye = exists(LOGIN_PASSWORD_EYE, 0)
+    if eye:
+        return eye.getTarget().offset(-178, 0)
+    box = exists(LOGIN_PASSWORD, 0)
+    if box:
+        return box.getTarget().offset(0, 12)
+    return None
+
+# Anchors that only ever appear on the sign-in host. The email field is not one
+# of them - it is an empty rounded box that Reader's own search field can match
+# - so it counts only once the host has been asked for, which is the only way
+# the English layout (no Adobe wordmark, no password box yet) can be seen at
+# all.
+def signin_anchored():
+    return (exists("adobe_signin_logo.png", 0) or exists(LOGIN_PASSWORD, 0)
+            or exists(LOGIN_PASSWORD_EYE, 0) or exists("passkey_prompt.png", 0))
+
+def signin_visible():
+    return signin_anchored() or exists(LOGIN_EMAIL, 0)
+
+# Bring the sign-in host up (or back): Reader reuses the existing window, on the
+# page it was left on, when its Sign in button is clicked again. The host takes
+# its time to render, so click once and then wait for it rather than clicking
+# again every few seconds.
+def open_signin(timeout=60):
+    if signin_anchored():
+        return True
+    button = exists(Pattern("sign_in_button.png").similar(0.70), 5)
+    if not button:
+        return False
+    click(button)
+    deadline = time.time() + timeout
+    while time.time() < deadline:
         if signin_visible():
             return True
-        button = exists(Pattern("sign_in_button.png").similar(0.70), 3)
-        if not button:
-            return False
-        click(button)
-        wait(5)
-    return signin_visible() is not None
+        wait(2)
+    return False
 
 def enter_email():
     # Two layouts: a wide one with a marketing panel beside the form (the
@@ -372,14 +493,25 @@ def enter_password():
     # "Continue with password" field; use the password path. A click that
     # misses the field leaves the box empty, and Enter on an empty box does
     # nothing at all, so locate the field again once the page has settled.
-    box = exists(LOGIN_PASSWORD, 20)
-    if not box:
+    target = None
+    for _ in range(20):
+        target = find_password_box()
+        if target:
+            break
+        wait(1)
+    if not target:
         return False
     wait(2)
-    box = exists(LOGIN_PASSWORD, 5) or box
-    click(box.getTarget().offset(0, 12))
+    target = find_password_box() or target   # the page shifts while it settles
+    click(target)
     wait(2)
+    # SikuliX logs every keystroke it sends, and <app>-test.log is uploaded as a
+    # diagnostics artifact on every failed run of a public repository, so the
+    # account password was going out in clear text. Turn the action log off
+    # around the one line that carries it.
+    Settings.ActionLogs = False
     type(password)
+    Settings.ActionLogs = True
     wait(3)
     type(Key.ENTER)
     return True
@@ -389,21 +521,46 @@ def enter_password():
 # illustration; the Skip button below it is not (the localized body text wraps
 # differently, moving the button row), so click the button itself where a
 # capture of it exists and fall back to the offset elsewhere.
-def wait_signed_in(timeout=150):
+def wait_signed_in(timeout=240):
     deadline = time.time() + timeout
     tried = 0
+    scrolled = 0
     while time.time() < deadline:
         if exists("account_icon.png", 2):
             return True
+        # Look for the Skip button before the wand: once the card has been
+        # scrolled the wand can be off the top while the buttons are finally in
+        # view, and the button is the thing worth clicking either way.
+        skip = exists(PASSKEY_SKIP, 1) if PASSKEY_SKIP else None
+        if skip:
+            click(skip)
+            wait(3)
+            continue
         passkey = exists("passkey_prompt.png", 1)
         if passkey:
-            skip = exists(PASSKEY_SKIP, 2) if PASSKEY_SKIP else None
-            if skip:
-                click(skip)
-            else:
-                click(passkey.getTarget().offset(
-                    *PASSKEY_SKIP_OFFSETS[tried % len(PASSKEY_SKIP_OFFSETS)]))
+            anchor = passkey.getTarget()
+            if click_passkey_skip(anchor):
+                wait(3)
+                continue
+            # Neither capture matched, so the button row is not on screen: the
+            # 32-bit sign-in host is shorter than the card and cuts the row off
+            # below the fold, where no offset can reach it either. Scroll the
+            # card and look again; the blind offsets are only for a card whose
+            # primary button still cannot be found after that.
+            if scrolled < 4:
+                wheel(anchor, WHEEL_DOWN, 5)
+                scrolled += 1
+                wait(2)
+                continue
+            if tried < len(PASSKEY_SKIP_OFFSETS):
+                click(anchor.offset(*PASSKEY_SKIP_OFFSETS[tried]))
                 tried += 1
+                wait(3)
+                continue
+            # Nothing found the button. The password was already accepted at
+            # this point, so close the interstitial and let the outer retry see
+            # whether Reader came out of it signed in.
+            type(Key.ESC)
             wait(3)
             continue
         if not signin_visible():
@@ -412,7 +569,9 @@ def wait_signed_in(timeout=150):
             # start the exchange again.
             return False
         wait(2)
-    return False
+    # Signing in has been seen to take over 150 s on a loaded pool VM; give the
+    # icon one last look before reporting failure.
+    return exists("account_icon.png", 10) is not None
 
 signed_in = False
 for attempt in range(2):
@@ -431,6 +590,8 @@ for attempt in range(2):
     if submitted and wait_signed_in():
         signed_in = True
         break
+if not signed_in:
+    signed_in = exists("account_icon.png", 30) is not None
 assert signed_in, "Adobe sign-in did not complete: the account icon never appeared"
 
 # Quit the application. After sign-in a hidden helper window (the sign-in
@@ -445,6 +606,12 @@ wait(30)
 if exists("reader_opened.png", 3):
     type(Key.F4, Key.ALT)
     wait(30)
+# The session check that follows only allows 60 s for the session to go away,
+# so do not start counting until the window has actually gone.
+for _ in range(20):
+    if not exists("reader_opened.png", 1):
+        break
+    wait(3)
 
 # Check if the session terminates.
 util.check_running()
