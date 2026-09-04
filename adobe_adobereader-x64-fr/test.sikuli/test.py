@@ -137,7 +137,7 @@ click("open-file.png")
 paste(os.path.join(script_path, os.pardir, "resources", "homeacrordrunified18_2025.pdf"))
 wait(2)
 type(Key.ENTER)
-wait("reader_opened.png")
+assert wait_reader_window(), "Reader did not open the document"
 wait(3)
 dismiss_ai_assistant()
 doubleClick("welcome-orig.png")
@@ -166,6 +166,22 @@ if select_tool:
     type(Key.ESC)
     wait(1)
 dismiss_ai_assistant()
+# The blue "Choose a different folder" button has to be matched loosely (0.50):
+# the capture carries French text in most of these folders, so the label cannot
+# be part of the match. At that threshold it also matches the rounded
+# suggestion pills in Reader's AI "Read" rail and pale patches of the desktop
+# wallpaper - and clicking a pill sends a prompt to the AI Assistant, which
+# then swallows the next Ctrl+Shift+S, so every retry fails the same way.
+# Search only the document area: right of the rail, inside the window.
+def reader_content_region():
+    bar = exists("reader_opened.png", 3)
+    if not bar:
+        return SCREEN
+    anchor = bar.getTarget()
+    x = max(0, min(anchor.x + 250, SCREEN.getW() - 200))
+    y = max(0, anchor.y - 40)
+    return Region(x, y, min(1000, SCREEN.getW() - x), min(1000, SCREEN.getH() - y))
+
 # Save As: Reader's own "Save as" sheet first, then "Choose a different
 # folder" opens the system file dialog. A Reader upsell modal ("Unlock premium
 # tools") can pop up at any point and swallow the sheet, so dismiss it and
@@ -180,12 +196,16 @@ for _ in range(3):
     type("s", Key.CTRL + Key.SHIFT)
     if exists("cannot-save-ok.png", 10):
         click("cannot-save-ok.png")
-    sheet = exists(Pattern("choose_diff_folder.png").similar(0.50), 40)
+    sheet = reader_content_region().exists(
+        Pattern("choose_diff_folder.png").similar(0.50), 40)
     if sheet:
         click(sheet)
         save_dialog = exists("save_location.png", 40)
         if save_dialog:
             break
+    # Nothing came up. Escape closes a panel or flyout that took the shortcut
+    # and is a no-op otherwise, so the next attempt starts from a clean window.
+    type(Key.ESC)
     dismiss_upsell()
 if not save_dialog:
     wait("save_location.png", 5)
