@@ -426,8 +426,25 @@ def signin_anchored():
     return (exists("adobe_signin_logo.png", 0) or password_page()
             or exists("passkey_prompt.png", 0))
 
+# login-email.png is an empty rounded box, and so is Windows 11's taskbar search
+# pill: three runs matched it there and typed the address into Windows Search
+# instead of the dialog. Keep every search for that field inside the sign-in
+# host - the card, when the wordmark places it - and out of the taskbar strip
+# otherwise.
+def signin_region():
+    logo = exists("adobe_signin_logo.png", 0)
+    if logo:
+        anchor = logo.getTarget()
+        left, top = max(0, anchor.x - 140), max(0, anchor.y - 90)
+        return Region(left, top, min(800, SCREEN.getW() - left),
+                      min(800, SCREEN.getH() - top))
+    return Region(0, 0, SCREEN.getW(), max(200, SCREEN.getH() - 140))
+
+def find_email_field(timeout):
+    return signin_region().exists(LOGIN_EMAIL, timeout)
+
 def signin_visible():
-    return signin_anchored() or exists(LOGIN_EMAIL, 0)
+    return signin_anchored() or find_email_field(0)
 
 # Bring the sign-in host up (or back): Reader reuses the existing window, on the
 # page it was left on, when its Sign in button is clicked again. The host takes
@@ -457,14 +474,14 @@ def enter_email():
     field = None
     logo = None
     for _ in range(30):
-        field = exists(LOGIN_EMAIL, 1)
+        field = find_email_field(1)
         if field:
             break
         logo = exists("adobe_signin_logo.png", 1)
         if logo:
             break
     wait(5)
-    field = exists(LOGIN_EMAIL, 3)
+    field = find_email_field(3)
     if field:
         click(field)
     else:
