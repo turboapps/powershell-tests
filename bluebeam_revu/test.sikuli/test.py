@@ -56,7 +56,17 @@ click(email_box)
 type(username)
 type(Key.ENTER)
 wait("password-box.png")
-click("password-box.png")
+# The sign-in card keeps rendering after the password box first appears - the
+# "Select Region" dropdown at its top lands late and pushes the fields down - so
+# a click placed from the first sighting lands back on the Bluebeam ID field and
+# types the password into it. Let it settle, locate the box again, and fall back
+# to tabbing out of the ID field if it has moved out from under the match.
+wait(3)
+password_box = exists("password-box.png", 5)
+if password_box:
+    click(password_box)
+else:
+    type(Key.TAB)
 type(password)
 type(Key.ENTER)
 wait(5)
