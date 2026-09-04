@@ -157,9 +157,30 @@ wait(2)
 click("highlight.png")
 wait("welcome_highlighted.png")
 wait(3)
-click(Pattern("toolbar.png").targetOffset(0,107))
-click(Pattern("tool_sign.png").targetOffset(1,-34))
-wait("sign_window.png")
+# Fill & Sign: open the tool from the strip, then its "add a signature" dialog.
+# Both clicks land where they should and the dialog still does not always come
+# up inside the 30 s default - two CI runs ended with the window dimmed behind a
+# modal that never rendered, and the tool strip gone. Give the dialog longer and
+# start the pair of clicks over if nothing arrives, clearing whatever is on top
+# first (the upsell and the AI rail both take clicks meant for the strip).
+sign_dialog = None
+for _ in range(3):
+    dismiss_upsell()
+    dismiss_ai_assistant()
+    strip = exists("toolbar.png", 10)
+    if strip:
+        click(strip.getTarget().offset(0, 107))
+        tool = exists("tool_sign.png", 10)
+        if tool:
+            click(tool.getTarget().offset(1, -34))
+            sign_dialog = exists("sign_window.png", 40)
+            if sign_dialog:
+                break
+    # Escape closes a half-opened panel or flyout so the next attempt starts
+    # from the same state the first one did.
+    type(Key.ESC)
+    wait(2)
+assert sign_dialog is not None, "Fill & Sign did not open its signature dialog"
 type("turbo" + Key.ENTER)
 wait(3)
 click("sign_before.png")
