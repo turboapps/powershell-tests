@@ -83,5 +83,9 @@ type(Key.F4, Key.ALT)
 click("close_no_save.png")
 wait(20)
 
-# Check if the session terminates.
-util.check_running()
+# Check if the session terminates. Power BI Desktop is a large application whose
+# windowless children (the Analysis Services engine, WebView2) can outlive the main
+# window well past the default 60 s budget: the session still showed Running after
+# all 12 polls in App Tests runs 33676687141 and 33849047386 although the window was
+# already gone. Allow 36 x 5 s = 3 min; the polls return as soon as the session exits.
+util.check_running(max_retries=36)
