@@ -178,6 +178,24 @@ if select_tool:
     type(Key.ESC)
     wait(1)
 dismiss_ai_assistant()
+# Reader's left rail - the "All tools" list, or the AI "Read" panel with its
+# suggestion pills - can hold the keyboard focus, and then Ctrl+Shift+S goes to
+# the rail instead of the document and the Save As sheet never opens. Two CI
+# runs failed that way with the Read panel on screen. The rail's close button
+# sits at a fixed offset from the toolbar anchor in every locale and in both
+# builds, so look for it there (and only there, so the bare X cannot match
+# something else) and close the rail when it is open.
+def close_side_panel():
+    bar = exists("reader_opened.png", 2)
+    if not bar:
+        return
+    anchor = bar.getTarget()
+    spot = Region(max(0, anchor.x + 150), max(0, anchor.y + 60), 70, 70)
+    m = spot.exists("panel_close.png", 1)
+    if m:
+        click(m)
+        wait(1)
+
 # The blue "Choose a different folder" button has to be matched loosely (0.50):
 # the capture carries French text in most of these folders, so the label cannot
 # be part of the match. At that threshold it also matches the rounded
@@ -205,6 +223,7 @@ for _ in range(3):
     # The AI panel takes the keystroke as prompt text while it is open, so
     # it has to be cleared on every attempt, not only before the first one.
     dismiss_ai_assistant()
+    close_side_panel()
     ensure_reader_front()
     type("s", Key.CTRL + Key.SHIFT)
     if exists("cannot-save-ok.png", 10):
@@ -521,6 +540,12 @@ wait(30)
 if exists("reader_opened.png", 3):
     type(Key.F4, Key.ALT)
     wait(30)
+# The session check that follows only allows 60 s for the session to go away,
+# so do not start counting until the window has actually gone.
+for _ in range(20):
+    if not exists("reader_opened.png", 1):
+        break
+    wait(3)
 
 # Check if the session terminates.
 util.check_running()
