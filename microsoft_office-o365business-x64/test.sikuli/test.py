@@ -31,7 +31,6 @@ password = credentials.get("password")
 if exists("office_signin.png",120):
     click(Pattern("office_signin.png").targetOffset(-114,106))
     wait("office_signin_email.png",30)
-    click("office_signin_email.png")
     paste(username)
     type(Key.ENTER)
     if exists("office_signin_password.png",10):
@@ -60,7 +59,6 @@ run("explorer " + os.path.join(util.start_menu, "Word.lnk"))
 if exists("office_signin.png",30):
     click(Pattern("office_signin.png").targetOffset(-114,106))
     wait("office_signin_email.png",30)
-    click("office_signin_email.png")
     paste(username)
     type(Key.ENTER)
 if exists("office_signin_password.png",10):
