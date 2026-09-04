@@ -41,12 +41,18 @@ wait("klayout-open.png",60)
 # first, then wait for the dialog rather than sleeping blind, and press the hotkey
 # again if it did not open. The dialog check only gates the retry - the layout
 # itself is still the assertion, so this cannot fail a run on its own.
+# Match the dialog title crisply: at SikuliX's default 0.7 a half-drawn (or
+# half-closed) dialog matches, and the path would be pasted into a box that is
+# not ready. A CI run measured 100% on the settled dialog and 74% on a fading
+# one, so 0.9 separates them.
+open_dialog = Pattern("open-dialog.png").similar(0.9)
 util.activate_app_window("KLayout", 10)
 type("o", Key.CTRL + Key.SHIFT)
-if not exists("open-dialog.png", 10):
+if not exists(open_dialog, 10):
     util.activate_app_window("KLayout", 10)
     type("o", Key.CTRL + Key.SHIFT)
-    exists("open-dialog.png", 15)
+    exists(open_dialog, 15)
+wait(1)
 paste(certOutFile)
 wait(3)
 type(Key.ENTER)
@@ -77,16 +83,22 @@ drcfile = os.path.join(resources, "foundry.drc")
 # path went in a fixed 10 s after the click, into whatever had focus. When the
 # dialog is late or loses focus the path never lands, the dialog sits there with
 # an empty File name box and the run dies at doubleClick("foundry.png"). Wait
-# for the dialog, focus it, and paste again if it is still up afterwards -
-# retrying only while the dialog is open cannot import the macro twice.
+# for the dialog and focus it before pasting.
+import_dialog = Pattern("import-dialog.png").similar(0.9)
 click("import-drc.png")
-exists("import-dialog.png", 20)
+exists(import_dialog, 20)
 util.activate_app_window("Import Macro File", 5)
+wait(1)
 paste(drcfile)
 wait(3)
 type(Key.ENTER)
-if exists("import-dialog.png", 3):
+# Retry only when the macro really did not arrive AND the dialog is still
+# there. Checking the outcome first keeps the healthy run free of stray input:
+# a dialog caught mid-close used to trigger a pointless second paste into the
+# window behind it.
+if not exists("foundry.png", 10) and exists(import_dialog, 2):
     util.activate_app_window("Import Macro File", 5)
+    wait(1)
     paste(drcfile)
     wait(3)
     type(Key.ENTER)
