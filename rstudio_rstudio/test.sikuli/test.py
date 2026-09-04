@@ -73,4 +73,6 @@ click(Pattern("save_ws.png").targetOffset(-34,41))
 wait(10)
 
 # Check if the session terminates.
-util.check_running()
+# RStudio leaves an rsession child running for a while after its window closes,
+# which keeps the container session up past check_running default 60 s budget.
+util.check_running(max_retries=36)
