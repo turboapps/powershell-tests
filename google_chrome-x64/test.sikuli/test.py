@@ -11,11 +11,21 @@ setAutoWaitTimeout(30)
 util.pre_test()
 
 save_location = os.path.join(util.desktop, "print.pdf")
+html_location = os.path.join(util.desktop, "name with space.html")
+
+# Remove leftover output files from a previous run. The save-as and the print step
+# are each verified with util.file_exists against a fixed path, so a stale file
+# satisfies the assert even when the current save failed: the test then limps past
+# the real failure and dies later at an unrelated step (the saved page reopening
+# blank). A leftover .html also stops the Save As dialog on an overwrite prompt.
+for leftover in [save_location, html_location]:
+    if os.path.exists(leftover):
+        os.remove(leftover)
 
 # Test of `turbo run`.
 wait("chrome_window.png")
 wait(5)
-closeApp("Chrome")
+util.close_app("Chrome")
 run("turbo stop test")
 
 # Launch the app.
@@ -40,7 +50,7 @@ paste(os.path.join(util.desktop, "name with space"))
 click("save_type.png")
 click("save_type_correct.png")
 type(Key.ENTER)
-assert(util.file_exists(os.path.join(util.desktop, "name with space.html"), 10))
+assert(util.file_exists(html_location, 10))
 type(Key.ESC)
 type("l", Key.CTRL)
 paste("chrome://settings/")
@@ -50,7 +60,7 @@ wait("settings_page.png")
 # Check "help".
 type(Key.F1)
 wait("help_page.png")
-closeApp("Chrome")
+util.close_app("Chrome")
 
 # Set default browser.
 type("i", Key.WIN)
@@ -66,9 +76,9 @@ wait("set-default.png")
 click("set-default.png")
 wait(5)
 type(Key.F4, Key.ALT)
-run("explorer " + os.path.join(util.desktop, "name with space.html"))
+run("explorer " + html_location)
 wait("webpage.png")
-closeApp("Chrome")
+util.close_app("Chrome")
 run('explorer "https://google.com/"')
 wait("webpage.png") # To gain focus.
 wait(2)
@@ -88,8 +98,8 @@ type(Key.ENTER)
 assert(util.file_exists(save_location, 5))
 
 type(Key.ESC)
-closeApp("Chrome")
-closeApp("Chrome")
+util.close_app("Chrome")
+util.close_app("Chrome")
 wait(5)
 
 # Check if the session terminates.
