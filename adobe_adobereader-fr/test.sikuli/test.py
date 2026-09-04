@@ -164,22 +164,29 @@ wait(3)
 # start the pair of clicks over if nothing arrives, clearing whatever is on top
 # first (the upsell and the AI rail both take clicks meant for the strip).
 sign_dialog = None
-for _ in range(3):
+for attempt in range(3):
     dismiss_upsell()
     dismiss_ai_assistant()
-    strip = exists("toolbar.png", 10)
-    if strip:
-        click(strip.getTarget().offset(0, 107))
-        tool = exists("tool_sign.png", 10)
-        if tool:
-            click(tool.getTarget().offset(1, -34))
-            sign_dialog = exists("sign_window.png", 40)
-            if sign_dialog:
-                break
-    # Escape closes a half-opened panel or flyout so the next attempt starts
-    # from the same state the first one did.
-    type(Key.ESC)
-    wait(2)
+    if attempt:
+        # Put the window back the way the first attempt found it. The first
+        # click hides the tool strip behind whatever it opened, and without
+        # this the retry finds no toolbar.png, clicks nothing and is a no-op -
+        # which is exactly what x64-fr did before this.
+        type(Key.ESC)
+        wait(1)
+        ensure_reader_front()
+        wait(2)
+    strip = exists("toolbar.png", 20)
+    if not strip:
+        continue
+    click(strip.getTarget().offset(0, 107))
+    tool = exists("tool_sign.png", 15)
+    if not tool:
+        continue
+    click(tool.getTarget().offset(1, -34))
+    sign_dialog = exists("sign_window.png", 40)
+    if sign_dialog:
+        break
 assert sign_dialog is not None, "Fill & Sign did not open its signature dialog"
 type("turbo" + Key.ENTER)
 wait(3)
@@ -408,24 +415,23 @@ PASSKEY_SKIP_OFFSETS = ((149, 354), (131, 400), (131, 446), (105, 400))
 # click has left a focus ring on the field. Everything here therefore matches it
 # before clicking, never after.
 LOGIN_EMAIL = Pattern("login-email.png").similar(0.70)
-LOGIN_PASSWORD = Pattern("login-password.png").similar(0.70)
 
-# The label above the password box is localized, and the show/hide eye at the
-# right end of the box is not - it is the same glyph in every language, and it
-# scores 1.000 on both the Spanish and the Dutch page. The box centre is 178 px
-# to its left. Prefer that to matching the label: even a correct localized
-# capture of the label only clears the threshold by a few hundredths.
+# The show/hide eye at the right end of the password box is the only reliable
+# way to tell that page apart from the email page, and the only one that does
+# not depend on the language: 1.000 on the English, Spanish and Dutch password
+# pages, 0.544 on the email page. The label above the box is localized AND the
+# capture of it matches an empty email box at 0.614, which is what sent a
+# password into the email field on x64-es. The box centre is 178 px left of the
+# eye.
 LOGIN_PASSWORD_EYE = Pattern("login_password_eye.png").similar(0.90)
+
+def password_page():
+    return exists(LOGIN_PASSWORD_EYE, 0)
 
 def find_password_box():
     """Where to click to put the caret in the password field, or None."""
-    eye = exists(LOGIN_PASSWORD_EYE, 0)
-    if eye:
-        return eye.getTarget().offset(-178, 0)
-    box = exists(LOGIN_PASSWORD, 0)
-    if box:
-        return box.getTarget().offset(0, 12)
-    return None
+    eye = password_page()
+    return eye.getTarget().offset(-178, 0) if eye else None
 
 # Anchors that only ever appear on the sign-in host. The email field is not one
 # of them - it is an empty rounded box that Reader's own search field can match
@@ -433,8 +439,8 @@ def find_password_box():
 # the English layout (no Adobe wordmark, no password box yet) can be seen at
 # all.
 def signin_anchored():
-    return (exists("adobe_signin_logo.png", 0) or exists(LOGIN_PASSWORD, 0)
-            or exists(LOGIN_PASSWORD_EYE, 0) or exists("passkey_prompt.png", 0))
+    return (exists("adobe_signin_logo.png", 0) or password_page()
+            or exists("passkey_prompt.png", 0))
 
 def signin_visible():
     return signin_anchored() or exists(LOGIN_EMAIL, 0)
@@ -583,7 +589,7 @@ for attempt in range(2):
         break
     if not open_signin():
         continue
-    if exists(LOGIN_PASSWORD, 2):
+    if exists(LOGIN_PASSWORD_EYE, 2):
         submitted = enter_password()
     else:
         submitted = enter_email() and enter_password()
