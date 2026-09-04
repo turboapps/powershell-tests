@@ -41,7 +41,15 @@ type(Key.F4, Key.ALT)
 
 # Quit Teams.
 click("tray_more.png")
-rightClick("tray_icon.png")
+# The tray overflow flyout re-lays out when another icon appears in it - Edge
+# leaves a notification icon behind after it is closed - which moves the Teams
+# icon after it has been matched, so a right-click placed from the first match
+# lands on empty flyout and no context menu opens. Re-locate the icon on each
+# attempt and retry until the menu is up.
+for _ in range(3):
+    rightClick(wait("tray_icon.png",20))
+    if exists("tray_menu.png",5):
+        break
 click("tray_menu.png")
 wait(20)
 

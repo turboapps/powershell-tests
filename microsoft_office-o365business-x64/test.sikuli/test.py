@@ -11,31 +11,42 @@ setAutoWaitTimeout(20)
 
 util.pre_test()
 
+# Remove leftover output files from a previous run so the Save As dialogs do not
+# stop on an overwrite-confirmation prompt (a clean VM has none of these).
+documents_dir = os.path.join(os.environ["USERPROFILE"], "Documents")
+for output_file in ["First line.docx", "Book1.xlsx", "Title.pptx", "Database1.accdb", "Publication1.pub"]:
+    output_path = os.path.join(documents_dir, output_file)
+    if os.path.exists(output_path):
+        os.remove(output_path)
+
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resources", "secrets.txt"))
 username = credentials.get("username")
 password = credentials.get("password")
 
-# Test of `turbo run` and log in.
-wait("office_signin.png",120)
-click(Pattern("office_signin.png").targetOffset(-114,106))
-wait("office_signin_email.png",30)
-click("office_signin_email.png")
-paste(username)
-type(Key.ENTER)
-if exists("office_signin_password.png",10):
-    paste(password)
+# Test of `turbo run` and log in. The Microsoft sign-in prompt does not appear
+# when the VM is already signed in, so only run the sign-in steps if it shows;
+# otherwise carry on. (If the app is genuinely not signed in and thus not
+# functional, a later step fails.)
+if exists("office_signin.png",120):
+    click(Pattern("office_signin.png").targetOffset(-114,106))
+    wait("office_signin_email.png",30)
+    click("office_signin_email.png")
+    paste(username)
     type(Key.ENTER)
-if exists("yes-all-apps.png",10):
-    click("yes-all-apps.png")
-if exists("device-reg-done.png",15):
-    click("device-reg-done.png")
-if exists("office_signin_wrong.png",15):
-    type(Key.ENTER)
-if exists("office_signin_all_set.png",10):
-    type(Key.ENTER)
-if exists("privacy-close.png",20):
-    click("privacy-close.png")
+    if exists("office_signin_password.png",10):
+        paste(password)
+        type(Key.ENTER)
+    if exists("yes-all-apps.png",10):
+        click("yes-all-apps.png")
+    if exists("device-reg-done.png",15):
+        click("device-reg-done.png")
+    if exists("office_signin_wrong.png",15):
+        type(Key.ENTER)
+    if exists("office_signin_all_set.png",10):
+        type(Key.ENTER)
+    if exists("privacy-close.png",20):
+        click("privacy-close.png")
 wait(10) # wait for welcome window to go away
 wait("word_window.png",15)
 type(Key.F4, Key.ALT)
@@ -231,8 +242,14 @@ click("ppt_title_subtitle_2.png")
 paste("Subtitle")
 wait("ppt_title_subtitle_3.png")
 
-click(Pattern("ppt_new_slide.png").targetOffset(0,20))
-click("ppt_new_slide_menu.png")
+# Exit the subtitle text box, then add a new slide with Ctrl+M. After a Title
+# slide this inserts the Title and Content layout the rest of the block needs.
+# (Clicking the New Slide split button via automation is unreliable: the click
+# is frequently swallowed as a hover, and the layout dropdown will not open.)
+type(Key.ESC)
+type(Key.ESC)
+type("m", Key.CTRL)
+wait(2)
 if exists("ppt_got_it.png",5):
     click("ppt_got_it.png")
 click(Pattern("ppt_slide_created.png").targetOffset(-175,49))
