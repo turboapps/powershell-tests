@@ -14,7 +14,7 @@ output_path = os.path.join(util.desktop, "drop.mp4")
 # Minimize all windows then open the Turbo cmd prompt
 type("d", Key.WIN)
 wait(3)
-subprocess.Popen("turbo try ffmpeg/ffmpeg -n=test --enable=usedllinjection,cachefileinfo --network=test --isolate=merge --startup-file=cmd -d")
+subprocess.Popen("turbo try ffmpeg/ffmpeg -n=test --enable=usedllinjection,cachefileinfo --network=test --isolate=merge --startup-file=cmd -d" + util.read_extra())
 
 # Basic operations.
 wait("cmd_window.png")
