@@ -31,15 +31,18 @@ start_menu = os.path.join((os.environ["APPDATA"]), "Microsoft", "Windows", "Star
 # <app>-diagnostics artifact on every verdict.
 #
 # Frames are JPEG (a PNG of a 1080p desktop is several MB; a JPEG is a few
-# hundred KB), rate-limited so an exists() polling loop cannot flood the run,
-# and capped per run. Capture is best-effort throughout: a failure to save a
+# hundred KB) and capped per run. A repeat of the same action on the same
+# target within a couple of seconds - an exists() polling loop - is not saved
+# again; distinct steps always are, however fast they follow each other (a
+# time-based limit was tried first and dropped the click after every instant
+# type(Key.ENTER)). Capture is best-effort throughout: a failure to save a
 # frame is logged once via Debug.user and never fails the test.
 
 _STEP_ACTIONS = ("click", "doubleClick", "rightClick", "hover", "dragDrop",
                  "type", "paste", "wait", "exists", "find")
-_STEP_MIN_INTERVAL = 0.3   # seconds between frames (bounds polling loops)
-_STEP_MAX_FRAMES = 300     # hard cap per run; the FAILED frame is exempt
-_step_state = {"dir": None, "n": 0, "last": 0.0, "warned": False}
+_STEP_REPEAT_INTERVAL = 2.0   # seconds before the same action+target is saved again
+_STEP_MAX_FRAMES = 300        # hard cap per run; the FAILED frame is exempt
+_step_state = {"dir": None, "n": 0, "last": 0.0, "tag": None, "warned": False}
 
 # <Desktop>\<app>-steps, with <app> = the test's folder name (<app>\test.sikuli\test.py),
 # which is the CI matrix name the harness stages by.
@@ -74,7 +77,7 @@ def _step_capture(tag):
         failed = tag.startswith("FAILED")
         now = time.time()
         if not failed:
-            if now - _step_state["last"] < _STEP_MIN_INTERVAL:
+            if tag == _step_state["tag"] and now - _step_state["last"] < _STEP_REPEAT_INTERVAL:
                 return
             if _step_state["n"] >= _STEP_MAX_FRAMES:
                 if not _step_state["warned"]:
@@ -83,6 +86,7 @@ def _step_capture(tag):
                 return
         _step_state["n"] += 1
         _step_state["last"] = now
+        _step_state["tag"] = tag
         safe = re.sub(r"[^A-Za-z0-9._-]+", "_", tag)[:80]
         path = os.path.join(_step_dir(), "%03d-%s.jpg" % (_step_state["n"], safe))
         # The JPEG writer rejects an image with an alpha channel; redraw as RGB.
