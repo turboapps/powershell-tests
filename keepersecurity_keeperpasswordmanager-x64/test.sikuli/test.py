@@ -32,9 +32,22 @@ click(Pattern("login_email.png").targetOffset(-184,50))
 paste(username)
 type(Key.ENTER)
 
-# It might be stuck at MFA.
+# It might be stuck at MFA or device approval. When the master password screen
+# never appears the whole vault section below is skipped and the test still
+# reports a pass, so the record coverage can go missing without anyone noticing
+# - say out loud which path we took, and name device approval when that is why.
+#
+# As of 2026-09-04 that is where every run lands and the vault section below is
+# UNREACHABLE. Keeper answers this account with "Device Approval Needed" and
+# wants 2-step verification; every containerised run is a device it has never
+# seen, and the harness wipes the sandbox that would have remembered one. So
+# the record create/delete steps have not run in a long time - treat their
+# captures as unverified against the current build. Left alone for now:
+# reaching them needs the device approved without a human, either by entering
+# the 2FA code from the test or by dropping the approval requirement on the
+# account.
 if exists("login_password.png"):
-    wait("login_password.png")
+    Debug.user("master password screen shown - running the vault record checks")
     paste(password)
     type(Key.ENTER)
     click(Pattern("get_started.png").targetOffset(145,133))
@@ -51,11 +64,17 @@ if exists("login_password.png"):
     click("record_detail_delete.png")
     click(Pattern("record_detail_delete_ok.png").targetOffset(175,91))
     wait("keeper_window.png")
+elif exists("device_approval.png", 0):
+    Debug.user("Keeper is asking to approve this device - SKIPPED the vault record checks")
+else:
+    Debug.user("no master password screen - SKIPPED the vault record checks")
 
 # Check "help".
 click(Pattern("menu.png").targetOffset(25,-1))
 click(Pattern("menu_help.png").targetOffset(-50,-14))
-wait("help_url.png")
+# Edge starts cold inside the isolate container and the docs page is heavy, so
+# the default 30 s is too tight - run 33849047386 missed the URL by under 7 s.
+wait("help_url.png", 60)
 if App("Edge").isRunning(10):
     util.close_app("Edge")
 click("keeper-title-bar.png")
