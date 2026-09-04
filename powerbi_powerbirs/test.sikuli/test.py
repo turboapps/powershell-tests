@@ -59,6 +59,9 @@ wait(2)
 type(Key.ENTER)
 click(Pattern("import_financials.png").targetOffset(-41,-2))
 click("import_load.png")
+# Load spawns the mashup engine and only then opens the Data pane; on a slow
+# pool VM that took longer than the 30 s auto-wait (CI run 33849047386).
+wait("data_financials.png", 90)
 click(Pattern("data_financials.png").targetOffset(-40,2))
 click(Pattern("data_details.png").targetOffset(-45,-14))
 click(Pattern("data_details.png").targetOffset(-45,10))
