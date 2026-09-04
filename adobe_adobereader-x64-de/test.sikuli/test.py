@@ -205,13 +205,12 @@ def close_side_panel():
         click(m)
         wait(1)
 
-# The blue "Choose a different folder" button has to be matched loosely (0.50):
-# the capture carries French text in most of these folders, so the label cannot
-# be part of the match. At that threshold it also matches the rounded
-# suggestion pills in Reader's AI "Read" rail and pale patches of the desktop
-# wallpaper - and clicking a pill sends a prompt to the AI Assistant, which
-# then swallows the next Ctrl+Shift+S, so every retry fails the same way.
-# Search only the document area: right of the rail, inside the window.
+# The blue "Choose a different folder" button now has a capture in its own
+# language in every folder, so it is matched at the normal 0.70 rather than the
+# 0.50 a foreign label needed - the AI rail's suggestion pills, which used to
+# win that search at 0.517 and send a prompt to the AI Assistant instead of
+# opening the file dialog, cannot reach it any more. The search stays confined
+# to the document area as a second line of defence.
 def reader_content_region():
     bar = exists("reader_opened.png", 3)
     if not bar:
@@ -237,7 +236,7 @@ for _ in range(3):
     if exists("cannot-save-ok.png", 10):
         click("cannot-save-ok.png")
     sheet = reader_content_region().exists(
-        Pattern("choose_diff_folder.png").similar(0.50), 40)
+        Pattern("choose_diff_folder.png").similar(0.70), 40)
     if sheet:
         click(sheet)
         save_dialog = exists("save_location.png", 40)
