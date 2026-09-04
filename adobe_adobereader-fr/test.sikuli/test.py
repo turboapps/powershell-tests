@@ -372,13 +372,35 @@ close_help_browser()
 PASSKEY_SKIP = "passkey_skip.png" if os.path.exists(
     os.path.join(script_path, "passkey_skip.png")) else None
 
-# Where the Skip button sits relative to the wand illustration when the folder
-# has no capture of it. The body text wraps differently in each locale, which
-# moves the button row: the single offset this replaces misses the Spanish
-# button by 46 px (measured wand (361,484), Skip (492,884)). Try a few
-# positions, checking after each whether the interstitial went away. They only
-# ever step left and down - "Set up passkey" is immediately to the right of
-# Skip, and clicking that would start creating a passkey instead.
+# Reaching Skip without a capture of it. What changes between locales is the
+# words on the buttons and how far down the card they sit; what does not change
+# is the shape of the row - an outlined Skip pill, an 18 px gap, then the blue
+# "Set up passkey" button. passkey_primary_left.png is that blue button's
+# rounded left corner, cropped short of the first glyph, so it is geometry
+# rather than text and matches in any language; Skip is 38 px to its left.
+#
+# The search has to be confined to the card, anchored on the wand: Reader's own
+# blue pills match the same corner just as well (the Free trial button in the
+# tools rail scores 0.994, Share in the toolbar 0.845), and they sit outside
+# that region.
+PASSKEY_PRIMARY = "passkey_primary_left.png"
+
+def click_passkey_skip(anchor):
+    """Click Skip using the blue primary button as the anchor. True if clicked."""
+    left = max(0, anchor.x - 60)
+    top = max(0, anchor.y - 20)
+    card = Region(left, top,
+                  min(700, SCREEN.getW() - left), min(720, SCREEN.getH() - top))
+    m = card.exists(Pattern(PASSKEY_PRIMARY).similar(0.80), 1)
+    if not m:
+        return False
+    click(m.getTarget().offset(-38, 0))
+    return True
+
+# Last-resort offsets from the wand, for a card whose primary button cannot be
+# found either. They only ever step left and down - "Set up passkey" is
+# immediately to the right of Skip, and clicking that would start creating a
+# passkey instead.
 PASSKEY_SKIP_OFFSETS = ((149, 354), (131, 400), (131, 446), (105, 400))
 
 # login-password.png is the English capture in every folder but fr, and it
@@ -490,13 +512,15 @@ def wait_signed_in(timeout=240):
         passkey = exists("passkey_prompt.png", 1)
         if passkey:
             anchor = passkey.getTarget()
-            # The 32-bit sign-in host is shorter than the passkey card, so the
-            # button row can sit below the fold where no offset reaches it -
-            # scroll the card down and look again. Where the folder has a
-            # capture of the button, scrolling to bring it into view is the
-            # whole job; where it does not, the offsets are worth trying first
-            # because they are measured against an unscrolled card.
-            if PASSKEY_SKIP and scrolled < 4:
+            if click_passkey_skip(anchor):
+                wait(3)
+                continue
+            # Neither capture matched, so the button row is not on screen: the
+            # 32-bit sign-in host is shorter than the card and cuts the row off
+            # below the fold, where no offset can reach it either. Scroll the
+            # card and look again; the blind offsets are only for a card whose
+            # primary button still cannot be found after that.
+            if scrolled < 4:
                 wheel(anchor, WHEEL_DOWN, 5)
                 scrolled += 1
                 wait(2)
@@ -505,12 +529,6 @@ def wait_signed_in(timeout=240):
                 click(anchor.offset(*PASSKEY_SKIP_OFFSETS[tried]))
                 tried += 1
                 wait(3)
-                continue
-            if scrolled < 4:
-                wheel(anchor, WHEEL_DOWN, 5)
-                scrolled += 1
-                tried = 0
-                wait(2)
                 continue
             # Nothing found the button. The password was already accepted at
             # this point, so close the interstitial and let the outer retry see
