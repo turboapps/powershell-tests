@@ -419,18 +419,47 @@ def enter_password():
 def wait_signed_in(timeout=240):
     deadline = time.time() + timeout
     tried = 0
+    scrolled = 0
     while time.time() < deadline:
         if exists("account_icon.png", 2):
             return True
+        # Look for the Skip button before the wand: once the card has been
+        # scrolled the wand can be off the top while the buttons are finally in
+        # view, and the button is the thing worth clicking either way.
+        skip = exists(PASSKEY_SKIP, 1) if PASSKEY_SKIP else None
+        if skip:
+            click(skip)
+            wait(3)
+            continue
         passkey = exists("passkey_prompt.png", 1)
         if passkey:
-            skip = exists(PASSKEY_SKIP, 2) if PASSKEY_SKIP else None
-            if skip:
-                click(skip)
-            else:
-                click(passkey.getTarget().offset(
-                    *PASSKEY_SKIP_OFFSETS[tried % len(PASSKEY_SKIP_OFFSETS)]))
+            anchor = passkey.getTarget()
+            # The 32-bit sign-in host is shorter than the passkey card, so the
+            # button row can sit below the fold where no offset reaches it -
+            # scroll the card down and look again. Where the folder has a
+            # capture of the button, scrolling to bring it into view is the
+            # whole job; where it does not, the offsets are worth trying first
+            # because they are measured against an unscrolled card.
+            if PASSKEY_SKIP and scrolled < 4:
+                wheel(anchor, WHEEL_DOWN, 5)
+                scrolled += 1
+                wait(2)
+                continue
+            if tried < len(PASSKEY_SKIP_OFFSETS):
+                click(anchor.offset(*PASSKEY_SKIP_OFFSETS[tried]))
                 tried += 1
+                wait(3)
+                continue
+            if scrolled < 4:
+                wheel(anchor, WHEEL_DOWN, 5)
+                scrolled += 1
+                tried = 0
+                wait(2)
+                continue
+            # Nothing found the button. The password was already accepted at
+            # this point, so close the interstitial and let the outer retry see
+            # whether Reader came out of it signed in.
+            type(Key.ESC)
             wait(3)
             continue
         if not signin_visible():
