@@ -192,3 +192,23 @@ def close_app(name):
         executable = _EXECUTABLES.get(name.lower())
         if executable:
             run("taskkill /F /IM " + executable)
+
+# Paste text without racing the next clipboard write.
+#
+# SikuliX's paste() puts the text on the clipboard and sends Ctrl+V, then returns
+# without waiting for the target application to read it. Keystrokes are queued and
+# drained by the application at its own pace, while the clipboard write is
+# immediate and out of band, so a following paste() can replace the clipboard
+# while the previous Ctrl+V is still unprocessed and both pastes then insert the
+# same string. In App Tests run 33890588162 the PowerPoint bullets came out
+# "First line" / "Third line" / "Third line" and the run failed three steps later
+# at an image the wrong text could never match, pointing at the wrong step.
+#
+# Hold after the paste so the application has drained the clipboard before the
+# next call moves it on. Do not read the clipboard back to confirm the write:
+# reading it from inside the sikulixide container leaves the application's
+# container pasting nothing at all (verified on os-test2, where the Office
+# sign-in field came up empty on every attempt).
+def paste_text(text, settle=1):
+    paste(text)
+    wait(settle)
