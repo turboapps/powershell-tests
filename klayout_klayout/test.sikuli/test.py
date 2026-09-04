@@ -60,15 +60,36 @@ if not exists("drc.png", 5):
     util.activate_app_window("KLayout", 10)
     type("t", Key.ALT)
 click("drc.png")
+# The DRC submenu closes again as soon as anything takes focus, and the run
+# then dies on the submenu item rather than on the menu itself: reopen the
+# menu and click through again.
+if not exists("edit-drc.png", 5):
+    type(Key.ESC)
+    wait(1)
+    util.activate_app_window("KLayout", 10)
+    type("t", Key.ALT)
+    click("drc.png")
 click("edit-drc.png")
 wait(3)
 click("close-tip.png")
-click("import-drc.png")
-wait(10)
 drcfile = os.path.join(resources, "foundry.drc")
+# Importing the rule file was the same blind paste as opening the layout: the
+# path went in a fixed 10 s after the click, into whatever had focus. When the
+# dialog is late or loses focus the path never lands, the dialog sits there with
+# an empty File name box and the run dies at doubleClick("foundry.png"). Wait
+# for the dialog, focus it, and paste again if it is still up afterwards -
+# retrying only while the dialog is open cannot import the macro twice.
+click("import-drc.png")
+exists("import-dialog.png", 20)
+util.activate_app_window("Import Macro File", 5)
 paste(drcfile)
 wait(3)
 type(Key.ENTER)
+if exists("import-dialog.png", 3):
+    util.activate_app_window("Import Macro File", 5)
+    paste(drcfile)
+    wait(3)
+    type(Key.ENTER)
 doubleClick("foundry.png")
 click("play-drc.png")
 click("yes-save.png")
