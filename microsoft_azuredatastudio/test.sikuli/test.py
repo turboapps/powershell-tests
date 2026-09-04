@@ -79,6 +79,10 @@ click(Pattern("open_website.png").targetOffset(-33,46))
 wait("help_url.png",60)
 if App("Edge").isRunning(10):
     util.close_app("Edge")
+# Alt+F4 goes to whatever has focus, and after the browser is closed that is the
+# vanishing Edge window or the desktop, not Azure Data Studio - the app then stays
+# up and check_running below exhausts its retries on a session that never ended.
+util.activate_app_window("Azure Data Studio", 30)
 type(Key.F4, Key.ALT)
 wait(20)
 run("turbo stop sqlserver-express")
