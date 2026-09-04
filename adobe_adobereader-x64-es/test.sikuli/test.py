@@ -489,7 +489,13 @@ def enter_password():
     target = find_password_box() or target   # the page shifts while it settles
     click(target)
     wait(2)
+    # SikuliX logs every keystroke it sends, and <app>-test.log is uploaded as a
+    # diagnostics artifact on every failed run of a public repository, so the
+    # account password was going out in clear text. Turn the action log off
+    # around the one line that carries it.
+    Settings.ActionLogs = False
     type(password)
+    Settings.ActionLogs = True
     wait(3)
     type(Key.ENTER)
     return True
