@@ -577,10 +577,17 @@ function StandardTest {
         [bool]$shouldInstall = $true,
         [bool]$shouldTry = $true,
         [bool]$detached = $true,
-        [string]$localLogsDir
+        [string]$localLogsDir,
+        [string]$testExtra
     )
 
-    PrepareTest -image $image -localLogsDir $localLogsDir -extra $extra
+    # extra.txt (util.read_extra()) carries the flags for launches the test
+    # issues itself. That is -extra as the CI harness passed it; an executor that
+    # decorates -extra with launch-specific additions (--startup-file, app
+    # arguments after --) passes the undecorated value as -testExtra so those
+    # do not end up on the test's own command lines.
+    $forTest = if ($PSBoundParameters.ContainsKey('testExtra')) { $testExtra } else { $extra }
+    PrepareTest -image $image -localLogsDir $localLogsDir -extra $forTest
     PullTurboImages -image $image -using $using
 
     if ($shouldInstall) {

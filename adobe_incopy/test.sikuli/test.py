@@ -20,7 +20,7 @@ password = credentials.get("password")
 util.launch_adobe_cc(username, password)
 
 # Test of `turbo run`.
-subprocess.Popen("turbo run incopy --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --network=test --name=test")
+subprocess.Popen("turbo run incopy --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --network=test --name=test" + util.read_extra())
 wait(3)
 type(Key.ENTER)
 if exists("adobe_login_signout_others.png",120):

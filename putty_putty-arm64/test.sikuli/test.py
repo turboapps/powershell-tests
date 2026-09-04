@@ -21,7 +21,7 @@ run("turbo stop test")
 
 # Launch the telnet server
 hk_telnet_server = os.path.join(script_path, os.pardir, "resources", "hk-telnet-server.exe")
-subprocess.Popen("turbo run base -n=telnet --network=test --startup-file=" + hk_telnet_server + " -d")
+subprocess.Popen("turbo run base -n=telnet --network=test --startup-file=" + hk_telnet_server + " -d" + util.read_extra())
 wait("telnet-start.png")
 click("telnet-start.png")
             

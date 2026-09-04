@@ -20,7 +20,7 @@ util.launch_adobe_cc(username, password)
 # Test turbo run
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
 wait(10)
-paste('turbo run lightroom --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+paste('turbo run lightroom --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test' + util.read_extra())
 wait(5)
 type(Key.ENTER)
 wait("lightroom_window.png")
