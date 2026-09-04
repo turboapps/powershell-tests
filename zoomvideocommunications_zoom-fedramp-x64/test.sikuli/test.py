@@ -38,7 +38,12 @@ if exists("systray-arrow.png"):
 run('explorer "https://zoom.us/test"')
 wait("join-test-button.png")
 click("join-test-button.png")
-wait("url-handler-checkbox.png")
+# The Edge external-protocol dialog ("Open Zoom Workplace?") can take longer
+# than the default wait to appear, and the Join click is occasionally swallowed
+# while the page is still settling. Give it a longer window, then click again.
+if not exists("url-handler-checkbox.png",60):
+    click("join-test-button.png")
+wait("url-handler-checkbox.png",60)
 click("url-handler-checkbox.png")
 type(Key.TAB)
 wait(2)
