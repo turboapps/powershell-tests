@@ -348,3 +348,29 @@ def close_app(name):
 def paste_text(text, settle=1):
     paste(text)
     wait(settle)
+
+# Put a path into a Windows file dialog's "File name" field and confirm it.
+#
+# wait(field_image) only proves the dialog is painted, not that it owns the
+# keyboard. In App Tests run 33849047386 (videolan_vlc-x64) the first chord sent
+# to the freshly opened Open dialog lost its modifier: paste()'s Ctrl+V arrived
+# as a bare "v", Enter then raised "v - File not found", and the test died three
+# lines later at an image the wrong file could never match. Click the field
+# first so the dialog has settled and the field has focus, replace whatever a
+# stray keystroke may already have typed, paste, confirm, and retry if the
+# dialog rejects the name. The error box is checked for only briefly because
+# VLC's title overlay, which the next wait() matches, is on screen for just a
+# few seconds after playback starts.
+def open_file_in_dialog(field_image, path, error_image="file_not_found.png", attempts=3):
+    for attempt in range(attempts):
+        click(Pattern(field_image).targetOffset(40, 0))
+        wait(0.5)
+        type("a", Key.CTRL)
+        paste_text(path)
+        type(Key.ENTER)
+        if not exists(error_image, 1):
+            return True
+        Debug.user("open_file_in_dialog: dialog rejected the path on attempt %d of %d" % (attempt + 1, attempts))
+        type(Key.ENTER)  # OK is the default button of the "File not found" box
+        wait(1)
+    raise FindFailed("open_file_in_dialog: the dialog rejected '%s' %d times" % (path, attempts))
