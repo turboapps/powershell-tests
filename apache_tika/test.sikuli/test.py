@@ -23,7 +23,10 @@ wait("cmd_tika_help.png")
 paste("java -jar C:\\tika\\tika-app.jar -t " + os.path.join(script_path, os.pardir, "resources", "sample.pdf"))
 wait(3)
 type(Key.ENTER)
-wait("cmd_tika_parsed.png")
+# Tika rebuilds the PDFBox on-disk font cache on every fresh container
+# (~30 s on the pool VMs), so the first parse in each container needs more
+# than the 30 s default wait.
+wait("cmd_tika_parsed.png", 120)
 run("turbo stop test")
 
 # Launch the app.
@@ -37,7 +40,8 @@ click(Pattern("file_name.png").targetOffset(36,1))
 paste(os.path.join(script_path, os.pardir, "resources", "sample.pdf"))
 wait(3)
 type(Key.ENTER)
-wait("tika_parsed.png")
+# Same font-cache rebuild as above: the GUI runs in its own container.
+wait("tika_parsed.png", 120)
 
 # Check "help".
 click("tika_menu_2.png")
