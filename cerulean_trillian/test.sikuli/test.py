@@ -33,7 +33,7 @@ wait("menu.png")
 # Launch a second instance of the app and login as a second user
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
 wait(5)
-type('turbo try trillian --offline --name=trytrillian -d')
+type('turbo ' + util.try_verb() + ' trillian --offline --name=trytrillian -d' + util.read_extra())
 type(Key.ENTER)
 wait("login-prompt.png",120)
 type(Key.ENTER)

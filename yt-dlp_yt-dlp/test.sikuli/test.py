@@ -18,7 +18,7 @@ run("turbo stop test")
 wait(2)
 
 # YouTube might block IP. Use BBC instead.
-run("turbo run yt-dlp https:////www.bbc.com//reel//video//p0jr4z6k//why-tonnes-of-mummified-cats-ended-up-in-england --isolate=merge-user -- -o " + output_path)
+run("turbo run yt-dlp https:////www.bbc.com//reel//video//p0jr4z6k//why-tonnes-of-mummified-cats-ended-up-in-england --isolate=merge-user" + util.read_extra() + " -- -o " + output_path)
 assert(util.file_exists(output_path, 5))
 wait(5)
 

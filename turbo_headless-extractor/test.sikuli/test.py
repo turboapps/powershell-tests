@@ -16,4 +16,4 @@ assert(util.file_exists(os.path.join(util.desktop, "links.txt"), 5))
 wait(30)
 
 # Check if the session terminates.
-assert("test" not in run("turbo sessions"))
+util.check_stopped("test")

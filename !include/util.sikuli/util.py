@@ -1,6 +1,7 @@
 # Common operations used in app test scripts.
 from sikuli import *
 import re
+import shutil
 import time
 from java.io import File
 from java.awt.image import BufferedImage
@@ -296,15 +297,148 @@ def close_firewall_alert_continue(wait_time = 200):
     if exists("firewall.png"):
         click(Pattern("firewall.png").targetOffset(95,29))
 
+# Extra turbo flags the CI harness passed to executor.ps1 as -extra (e.g.
+# "--vm=<xvm> --diagnostic"). PrepareTest writes them to <app>\extra.txt so a
+# test that launches turbo itself - from a Command Prompt or a subprocess rather
+# than through Test.ps1's TryTurboApp/RunTurboApp - can append them to its own
+# command line:
+#
+#     type("turbo try trillian --offline --name=trytrillian -d" + util.read_extra())
+#
+# Returns "" when there is no file or it is empty, otherwise the flags with a
+# leading space so the call above needs no separator.
+def read_extra():
+    script = os.path.abspath(sys.argv[0])
+    path = os.path.join(os.path.dirname(os.path.dirname(script)), "extra.txt")
+    try:
+        with open(path) as f:
+            extra = f.read().strip()
+    except IOError:
+        return ""
+    return (" " + extra) if extra else ""
+
+# "try" or "run" for a launch the test issues itself. `turbo try` removes the
+# session - sandbox and VM logs included - as soon as it ends, so on a diagnostic
+# run (--diagnostic in the harness's -extra) the launch is made with `run` and
+# the session persists until the next PrepareTest's `turbo rm -a`. Mirrors
+# Test.ps1's TryTurboApp:
+#
+#     subprocess.Popen("turbo " + util.try_verb() + " ffmpeg/ffmpeg -n=test ..." + util.read_extra())
+def try_verb():
+    return "run" if "--diagnostic" in read_extra().split() else "try"
+
+# Assert that the named session has ended. A `try` session is removed from
+# `turbo sessions` when it ends; a `run` session (what a diagnostic run uses, see
+# try_verb) stays listed as stopped. Either counts as ended; a session still
+# listed as Running does not.
+def check_stopped(name="test"):
+    for line in run("turbo sessions").splitlines():
+        if name in line.split():
+            assert "Running" not in line, "session %s is still running: %s" % (name, line.strip())
+            return
+
 # Check if the most recently created Turbo session is terminated.
 # It is usually the session for the app to be tested.
 def check_running(max_retries=12, delay=5):
     for attempt in range(max_retries):
         output = run("turbo sessions -l")
         if "Running" not in output:
+            # The session has ended: its VM logs are complete and about to be
+            # wiped if the test launches the app again, so copy them out now.
+            collect_vm_logs()
             return
         time.sleep(delay)
     assert "Running" not in output
+
+# Turbo VM logs.
+#
+# A container started with --diagnostic writes its VM diagnostic log to
+# <sandbox>\logs\xclog_0x<pid>.txt. The client deletes and recreates that folder
+# every time the same container starts again (a relaunch from the installed
+# shortcut, a file-association check), so a launch's logs survive only if they
+# are copied out before the next launch. They are copied at the points where a
+# session is known to have ended, not by polling: here from check_running(), and
+# by Test.ps1's CollectVmLogs after the sikulix test returned (which also covers
+# a failure, where the session is usually still running). Both write the same
+# layout, <Desktop>\<app>-vm-logs\<container id>\<logs tree>, which the CI
+# harness (applab Invoke-AppTest.ps1) stages as the <app>-vm-logs artifact.
+#
+# Only sandboxes holding an xclog_* file are copied, so on a run without
+# --diagnostic this costs one directory listing. An existing copy is overwritten
+# when the source is the same file grown (same first bytes, not smaller) and kept
+# as <name>.1, .2, ... when a different file has reappeared under the same name
+# (pid reuse across launches). Best-effort: never fails the test.
+_vm_logs_state = {"root": None}
+
+def collect_vm_logs():
+    try:
+        root = _vm_logs_sandbox_root()
+        if not os.path.isdir(root):
+            return
+        script = os.path.abspath(sys.argv[0])
+        app = os.path.basename(os.path.dirname(os.path.dirname(script)))
+        dest_root = os.path.join(desktop, app + "-vm-logs")
+        for cid in os.listdir(root):
+            logs = os.path.join(root, cid, "logs")
+            if not os.path.isdir(logs):
+                continue
+            if not [f for f in os.listdir(logs) if f.lower().startswith("xclog_")]:
+                continue
+            for dirpath, dirnames, filenames in os.walk(logs):
+                rel = os.path.relpath(dirpath, logs)
+                for name in filenames:
+                    src = os.path.join(dirpath, name)
+                    dst = os.path.normpath(os.path.join(dest_root, cid, rel, name))
+                    try:
+                        _vm_logs_copy(src, dst)
+                    except:
+                        Debug.user("vm logs: %s not copied: %s" % (src, sys.exc_info()[1]))
+    except:
+        Debug.user("vm logs: collection failed: %s" % sys.exc_info()[1])
+
+# The sandbox root the client is using, resolved once per run. `turbo config
+# --reset` in PrepareTest leaves the default location; a relocated storage path
+# is honoured when the client reports one.
+def _vm_logs_sandbox_root():
+    if _vm_logs_state["root"] is None:
+        root = os.path.join(os.environ["LOCALAPPDATA"], "Turbo", "Containers", "sandboxes")
+        try:
+            import json
+            cfg = json.loads(run("turbo config --format=json"))[0]["result"]["configuration"]
+            if cfg.get("containerStoragePath"):
+                root = os.path.expandvars(cfg["containerStoragePath"])
+        except:
+            pass
+        _vm_logs_state["root"] = root
+    return _vm_logs_state["root"]
+
+def _vm_logs_copy(src, dst):
+    if os.path.exists(dst):
+        src_len = os.path.getsize(src)
+        dst_len = os.path.getsize(dst)
+        if src_len < dst_len or not _vm_logs_same_head(src, dst, dst_len):
+            n = 1
+            while os.path.exists("%s.%d" % (dst, n)):
+                n += 1
+            os.rename(dst, "%s.%d" % (dst, n))
+        elif src_len == dst_len:
+            return
+    d = os.path.dirname(dst)
+    if not os.path.isdir(d):
+        os.makedirs(d)
+    shutil.copyfile(src, dst)
+
+# True when the first min(512, length) bytes of both files match: the same log
+# file (grown or unchanged) rather than a new launch's log under a reused name.
+def _vm_logs_same_head(a, b, length):
+    n = min(512, length)
+    if n <= 0:
+        return True
+    with open(a, "rb") as fa:
+        ha = fa.read(n)
+    with open(b, "rb") as fb:
+        hb = fb.read(n)
+    return ha == hb
 
 # Close an application by window name.
 #

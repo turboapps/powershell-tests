@@ -35,7 +35,7 @@ run("turbo stop test")
 wait(20)
 
 # Check if the session terminates.
-assert("test" not in run("turbo sessions"))
+util.check_stopped("test")
 
 # Check if wingetcreate is installed successfully by winget.
 wait(3)

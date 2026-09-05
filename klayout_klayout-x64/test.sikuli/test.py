@@ -112,4 +112,4 @@ closeApp("Macro Development")
 closeApp("KLayout")
 
 # Check if the session terminates.
-assert("test" not in run("turbo sessions"))
+util.check_stopped("test")
