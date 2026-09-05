@@ -18,7 +18,18 @@ wait("npcap-agree.png")
 click("npcap-agree.png")
 click("npcap-install.png")
 wait(30)
+# click() waits for the enabled "Next >" (a greyed one does not match), so this
+# also covers an install slower than 30 s.
 click("npcap-next.png")
+# In CI the single Next click has been dropped with the button enabled and the
+# installer left on "Installation Complete" (applab run 33849047386, also seen
+# on xvm 26.9.1/26.9.20). Check the outcome and re-click instead of trusting
+# one blind click; the Finish click below stays the assertion.
+for _ in range(3):
+    if exists("npcap-finish.png", 15):
+        break
+    if exists("npcap-next.png", 2):
+        click("npcap-next.png")
 click("npcap-finish.png")
 
 # Launch the app.
