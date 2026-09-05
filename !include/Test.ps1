@@ -162,13 +162,20 @@ function TryTurboApp {
         [bool]$detached = $True
     )
 
-    $command = "try $image --name=test --enable=disablefontpreload,usedllinjection,cachefileinfo --network=test --disable-proxy-resolve-via-proxy"
+    # `try` removes the session - sandbox and VM logs included - the moment it
+    # ends, so on a diagnostic run (--diagnostic in -extra) the same launch is
+    # made with `run`: the session then persists until the next PrepareTest's
+    # `turbo rm -a`, and CollectVmLogs / util.check_running() can copy its logs
+    # after it has stopped. Everything else about the command is identical.
+    # util.try_verb() makes the same choice for launches a test issues itself.
+    $verb = if ($extra -match '(^|\s)--diagnostic(\s|$)') { "run" } else { "try" }
+    $command = "$verb $image --name=test --enable=disablefontpreload,usedllinjection,cachefileinfo --network=test --disable-proxy-resolve-via-proxy"
 
     # Construct the Turbo command.
     if (-not [string]::IsNullOrWhiteSpace($using)) {
         $command += " --using=$using"
     }
-    
+
     if (-not [string]::IsNullOrWhiteSpace($isolate)) {
         $command += " --isolate=$isolate"
     }

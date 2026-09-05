@@ -317,6 +317,26 @@ def read_extra():
         return ""
     return (" " + extra) if extra else ""
 
+# "try" or "run" for a launch the test issues itself. `turbo try` removes the
+# session - sandbox and VM logs included - as soon as it ends, so on a diagnostic
+# run (--diagnostic in the harness's -extra) the launch is made with `run` and
+# the session persists until the next PrepareTest's `turbo rm -a`. Mirrors
+# Test.ps1's TryTurboApp:
+#
+#     subprocess.Popen("turbo " + util.try_verb() + " ffmpeg/ffmpeg -n=test ..." + util.read_extra())
+def try_verb():
+    return "run" if "--diagnostic" in read_extra().split() else "try"
+
+# Assert that the named session has ended. A `try` session is removed from
+# `turbo sessions` when it ends; a `run` session (what a diagnostic run uses, see
+# try_verb) stays listed as stopped. Either counts as ended; a session still
+# listed as Running does not.
+def check_stopped(name="test"):
+    for line in run("turbo sessions").splitlines():
+        if name in line.split():
+            assert "Running" not in line, "session %s is still running: %s" % (name, line.strip())
+            return
+
 # Check if the most recently created Turbo session is terminated.
 # It is usually the session for the app to be tested.
 def check_running(max_retries=12, delay=5):
