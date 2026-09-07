@@ -17,13 +17,10 @@ type(Key.ENTER)
 
 # Test of the app.
 wait("ready.png", 120) # It takes time for the model to warm up.
-# No Win+D here. Showing the desktop minimizes the server console, and nothing
-# reliably restores it: App("conhost").focus() raised it in run 33943398106 but
-# did nothing across all five runs of 34090380526..34090412066, which sat on a
-# bare desktop until the wait for the timing summary gave up. Leaving it mapped
-# costs nothing -- the command prompt below opens on top of it, and closing that
-# prompt uncovers the console again, so the summary is on screen without anyone
-# having to focus anything.
+# Win+D is load-bearing: the server console keeps the top of the z-order, so
+# without it the command prompt opened below lands underneath and cmd_window.png
+# is clipped out of existence (run 34091540254, which never got past the click).
+type("d", Key.WIN)
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk")) # launch another command prompt
 wait(5)
 click("cmd_window.png")
@@ -48,13 +45,20 @@ wait(5)
 type("exit")
 wait(2)
 type(Key.ENTER)
-# "exit" above closed the command prompt, so the server console -- hosted by
-# conhost.exe, unlike the prompt, which Windows Terminal hosts on Win11 24H2 --
-# is uncovered and its timing summary is on screen. Raise it anyway in case
-# something else took the foreground, and poll rather than trust one focus():
-# App().focus() reports success either way, so a wait() alone cannot tell "not
-# printed yet" from "never came forward".
-if not util.focus_and_wait("conhost", "success.png", attempts=12, poll=5):
+# Restore the server console that Win+D minimized and read the timing summary
+# it prints when it finishes a request.
+#
+# Match the session name, not the console host. This used to be
+# App("conhost").focus(), which matched the window title Turbo gives the
+# session -- "C:\WINDOWS\system32\conhost.exe @test#c5c0ad03" on xvm 26.3.18.
+# On 26.9.x the same window is titled "...\cmd.exe @test#fd709707", so
+# "conhost" matched nothing, focus() restored nothing, and the test waited out
+# its timeout against a bare desktop. That is the whole of the 26.3.18 /
+# 26.9.x split in this test's history: 26.3.18.1034 and the 26.3.18 pool VM
+# passed (runs 33849047386, 33943398106) while 26.9.20.1047 and 26.9.26.1052
+# failed (33849072018, 33949816065, 33949826631). "@test#" comes from
+# --name=test above and is in both titles.
+if not util.focus_and_wait("@test#", "success.png", attempts=12, poll=5):
     wait("success.png")  # still absent: fail with the usual FindFailed
 wait(5)
 run("turbo stop test")
