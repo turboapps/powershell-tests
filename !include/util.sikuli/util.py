@@ -384,3 +384,23 @@ def open_file_in_dialog(field_image, path, error_image="file_not_found.png", att
         type(Key.ENTER)  # OK is the default button of the "File not found" box
         wait(1)
     raise FindFailed("open_file_in_dialog: the dialog rejected '%s' %d times" % (path, attempts))
+
+# Bring a window to the front and wait for something on it, re-asserting the
+# focus between polls.
+#
+# App().focus(name) is not reliable on its own when the window has been
+# minimized: in App Tests run 33949826631 (ggerganov_llama-cpp) a single
+# App("conhost").focus() restored nothing, the terminal stayed in front, and
+# the wait that followed timed out against a bare desktop. Nothing on screen
+# says the focus failed, so poll instead of trusting one call, and re-focus
+# each round in case another window takes the foreground back.
+#
+# Returns True as soon as the image is found, False if it never appears; the
+# caller decides whether that is fatal.
+def focus_and_wait(window, image, attempts=30, poll=10):
+    for attempt in range(attempts):
+        App(window).focus()
+        if exists(image, poll):
+            return True
+    Debug.user("focus_and_wait: %s not found on '%s' after %d attempts" % (image, window, attempts))
+    return False
