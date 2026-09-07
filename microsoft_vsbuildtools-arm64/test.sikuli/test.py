@@ -11,6 +11,7 @@ setAutoWaitTimeout(20)
 util.pre_test(no_min=True)
 
 # Test cpp nodejs project.
+wait("node-cmd-prompt.png",30)
 type('cd my-node-cpp-app' + Key.ENTER)
 wait(3)
 type('npm install node-addon-api@8' + Key.ENTER)

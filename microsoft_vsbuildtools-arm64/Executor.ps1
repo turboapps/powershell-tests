@@ -15,4 +15,8 @@ $app = "nodejs/nodejs-arm64"
 $using = "python/python-arm64,microsoft/vsbuildtools-arm64"
 $extra = $extra + " --enable=usedllinjection --working-dir=" + $PSScriptRoot + "\resources "
 
-StandardTest -image $app -using $using -isolate $isolate -extra $extra -shouldInstall $False -localLogsDir $localLogsDir
+PrepareTest -image $image -localLogsDir $localLogsDir
+PullTurboImages -image $app -using $using
+TryTurboApp -image $app -using $using -isolate $isolate -extra $extra -detached $True
+HidePowerShellWindow
+$TestResult = StartTest -image $image -localLogsDir $localLogsDir
