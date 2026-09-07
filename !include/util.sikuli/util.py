@@ -388,12 +388,13 @@ def open_file_in_dialog(field_image, path, error_image="file_not_found.png", att
 # Bring a window to the front and wait for something on it, re-asserting the
 # focus between polls.
 #
-# App().focus(name) is not reliable on its own when the window has been
-# minimized: in App Tests run 33949826631 (ggerganov_llama-cpp) a single
-# App("conhost").focus() restored nothing, the terminal stayed in front, and
-# the wait that followed timed out against a bare desktop. Nothing on screen
-# says the focus failed, so poll instead of trusting one call, and re-focus
-# each round in case another window takes the foreground back.
+# App().focus(name) is not reliable on its own, and it reports nothing when it
+# fails. In App Tests runs 34090380526..34090412066 (ggerganov_llama-cpp) a
+# single App("conhost").focus() on a minimized console restored nothing and the
+# wait that followed timed out against a bare desktop -- indistinguishable, from
+# the log, from the window being up but the content not printed yet. So poll
+# instead of trusting one call, and re-focus each round in case another window
+# takes the foreground back.
 #
 # Returns True as soon as the image is found, False if it never appears; the
 # caller decides whether that is fatal.
