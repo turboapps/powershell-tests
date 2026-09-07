@@ -613,5 +613,11 @@ for _ in range(20):
         break
     wait(3)
 
-# Check if the session terminates.
-util.check_running()
+# Check if the session terminates. Acrobat Reader closes its window on Ctrl+Q
+# but its process tree - AcroRd32 itself, the AcroCEF sign-in/AI hosts and
+# AdobeCollabSync - can stay resident well past the default 60 s budget, which
+# keeps the Turbo session Running (App Tests runs 33849047386, 33949816065 and
+# 34004340665: no Reader window in the step frames, every process in the
+# container's VM log still alive). Allow 36 x 5 s = 3 min; the polls return as
+# soon as the session exits, so a clean teardown costs nothing.
+util.check_running(max_retries=36)

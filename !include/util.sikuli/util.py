@@ -298,12 +298,22 @@ def close_firewall_alert_continue(wait_time = 200):
 
 # Check if the most recently created Turbo session is terminated.
 # It is usually the session for the app to be tested.
+#
+# A container goes away only once its last process has exited, so an app that
+# leaves a helper behind after its window closes keeps the session Running long
+# after the test is finished with it. On the runs that pass, the session is
+# already gone at the first poll, so the assertion on its own says nothing about
+# how close a failing run came: record how long the wait actually took, and what
+# `turbo sessions -l` still listed when the budget ran out.
 def check_running(max_retries=12, delay=5):
     for attempt in range(max_retries):
         output = run("turbo sessions -l")
         if "Running" not in output:
+            if attempt:
+                Debug.user("check_running: the session went away after %d s" % (attempt * delay))
             return
         time.sleep(delay)
+    Debug.user("check_running: still Running after %d s\n%s" % (max_retries * delay, output))
     assert "Running" not in output
 
 # Close an application by window name.
