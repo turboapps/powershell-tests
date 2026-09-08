@@ -360,6 +360,65 @@ def check_running(max_retries=12, delay=5):
     Debug.user("check_running: still Running after %d s\n%s" % (max_retries * delay, output))
     assert "Running" not in output
 
+# Give the most recently created session a bounded chance to end on its own,
+# then stop it and assert that the stop worked.
+#
+# Some apps close their window and leave their process tree behind: Acrobat
+# Reader keeps AcroRd32, the AcroCEF sign-in/AI hosts and AdobeCollabSync alive
+# for minutes after Ctrl+Q (App Tests 34097578991: still Running after 180 s;
+# the 09-06 diagnostic run's VM log showed every process alive 366 s later,
+# with new RdrCEF renderers still spawning). On the runs that pass the session
+# is gone at the first poll, so the outcome is bimodal and no wait is long
+# enough to be safe. That is the app's behaviour, not the product's, so record
+# it and move on: after `grace` seconds stop the session ourselves and check
+# that the container can be torn down - which is the part that is Turbo's job.
+#
+# paintdotnet and azuredatastudio already stop their session before
+# check_running(); this does the same, but only when the app has not exited by
+# itself, so a clean quit still shows up as one in the log.
+#
+# The session is stopped by id, never with `turbo stop -a`: the sikulixide
+# container running this very script is a session too.
+def end_session(grace=60, delay=5):
+    started = time.time()
+    while True:
+        output = run("turbo sessions -l")
+        if "Running" not in output:
+            Debug.user("end_session: the session exited on its own after %d s" % int(time.time() - started))
+            collect_vm_logs()
+            return True
+        if time.time() - started >= grace:
+            break
+        time.sleep(delay)
+    session = _latest_session_id()
+    Debug.user("end_session: still Running after %d s, stopping %s\n%s" % (grace, session or "?", output))
+    if not session:
+        # Nothing to address the stop to; fall through to the assertion so the
+        # listing above is what the failure reports.
+        assert "Running" not in output
+    run("turbo stop " + session)
+    check_running()
+    return False
+
+# Id of the most recently created session, from `turbo sessions -l
+# --format=json` (full id), falling back to the first column of the plain
+# listing (an 8-hex prefix, which `turbo stop` also resolves). None if neither
+# yields one.
+def _latest_session_id():
+    try:
+        import json
+        rows = json.loads(run("turbo sessions -l --format=json"))
+        containers = rows[0]["result"]["containers"]
+        if containers:
+            return containers[0]["id"]
+    except:
+        pass
+    for line in run("turbo sessions -l").splitlines():
+        token = line.split(None, 1)[0] if line.strip() else ""
+        if re.match(r"^[0-9a-f]{8,}$", token):
+            return token
+    return None
+
 # Turbo VM logs.
 #
 # A container started with --diagnostic writes its VM diagnostic log to
