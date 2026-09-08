@@ -578,6 +578,7 @@ function Write-TestDoneMarker {
 function StandardTest {
     param (
         [string]$image,
+        [string]$app,
         [string]$using,
         [string]$isolate,
         [string]$extra,
@@ -594,14 +595,24 @@ function StandardTest {
     # arguments after --) passes the undecorated value as -testExtra so those
     # do not end up on the test's own command lines.
     $forTest = if ($PSBoundParameters.ContainsKey('testExtra')) { $testExtra } else { $extra }
+
+    # -image names the test: it selects the test.sikuli that runs and the
+    # <name>-test.log / -executor.log / -steps / -vm-logs the CI harness reads
+    # back (Invoke-AppTest.ps1 looks for <app>-test.log under the job's app
+    # name). A test that exercises one product through another's front end -
+    # microsoft/vsbuildtools compiling a native addon at a nodejs prompt -
+    # passes that front end as -app, so only the container launch uses it.
+    # Without -app the two are the same image, as they are for most tests.
+    $launch = if ([string]::IsNullOrWhiteSpace($app)) { $image } else { $app }
+
     PrepareTest -image $image -localLogsDir $localLogsDir -extra $forTest
-    PullTurboImages -image $image -using $using
+    PullTurboImages -image $launch -using $using
 
     if ($shouldInstall) {
-        InstallTurboApp -image $image -using $using -isolate $isolate -extra $extra
+        InstallTurboApp -image $launch -using $using -isolate $isolate -extra $extra
     }
     if ($shouldTry) {
-    TryTurboApp -image $image -using $using -isolate $isolate -extra $extra -detached $detached
+    TryTurboApp -image $launch -using $using -isolate $isolate -extra $extra -detached $detached
     }
     HidePowerShellWindow
     $TestResult = StartTest -image $image -localLogsDir $localLogsDir
