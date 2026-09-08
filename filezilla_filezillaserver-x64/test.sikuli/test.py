@@ -41,7 +41,15 @@ subprocess.Popen("turbo run base -n=cmd --network=test --startup-file=cmd -d" + 
 # much cheaper to start than the Edge one that made the same shape flaky in
 # opensearch (App Tests 34097555049 / 34097578991), but the margin is the
 # same one and nothing here needs it to be this tight. Poll and re-focus.
-if not util.focus_and_wait("cmd", "cmd_window.png", attempts=9, poll=10):
+#
+# Match the session on "@cmd#" rather than "cmd": -n=cmd above puts that
+# token in the console title on every build, while a bare "cmd" also matches
+# the harness's own console ("Administrator: C:\WINDOWS\system32\cmd.exe"),
+# and focusing that one would send the paste below to the wrong window. Same
+# reason llama-cpp matches "@test#". Turbo titles the session console
+# "...\conhost.exe @cmd#<id>" on 26.3.18 and "...\cmd.exe @cmd#<id>" on
+# 26.9.x, so the token survives that rename where "conhost" did not.
+if not util.focus_and_wait("@cmd#", "cmd_window.png", attempts=9, poll=10):
     wait("cmd_window.png")  # still absent: fail with the usual FindFailed
 wait(3)
 paste("ftp 127.0.0.1")
