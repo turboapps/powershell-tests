@@ -19,6 +19,20 @@ util.pre_test()
 # tell the two windows apart.
 TREESIZE_WINDOW = "select-scan-target.png"
 
+# Click TreeSize's "Easily Getting Started!" trial splash away if it is up, and
+# say whether it was.
+#
+# The splash is modal over the main window and does not answer Alt+F4 itself, so
+# every wait and every close has to be able to clear it. It also comes up more
+# than once: in App Tests runs 34269861733 and 34269865181 a second splash
+# arrived moments after the first had been dismissed, with the scan already
+# under way.
+def dismiss_trial_splash(timeout=2):
+    if exists("continue-with-trial.png", timeout):
+        click("continue-with-trial.png")
+        return True
+    return False
+
 # Wait for a shell context menu launch to reach its scan of (target_image),
 # dismissing the "Easily Getting Started!" trial splash on the way.
 #
@@ -37,8 +51,7 @@ def wait_for_scan(target_image, timeout=180):
     while time.time() < deadline:
         if exists(target_image, 5):
             return
-        if exists("continue-with-trial.png", 2):
-            click("continue-with-trial.png")
+        dismiss_trial_splash()
     raise FindFailed("%s: TreeSize did not scan it within %d s" % (target_image, timeout))
 
 # Close a TreeSize window and confirm it is gone before the test moves on.
@@ -54,33 +67,28 @@ def wait_for_scan(target_image, timeout=180):
 # matching at 0.834 - so no shell context menu opened and the test died at the
 # next image, three lines from the actual fault.
 #
-# Wait the window out instead of guessing at a settle, and re-send Alt+F4 only
-# after re-focusing the app, so a stray keystroke can never close Explorer out
-# from under the right-clicks that follow.
-def close_window(anchor, settle=90, attempts=2):
-    for attempt in range(attempts):
-        type(Key.F4, Key.ALT)
-        if wait_gone(anchor, settle):
-            return
-        Debug.user("close_window: %s still on screen %d s after Alt+F4 (attempt %d of %d)"
-                   % (anchor, settle, attempt + 1, attempts))
-        if not util.activate_app_window("TreeSize", 10):
-            break
-    raise FindFailed("%s: the window did not close" % anchor)
-
-# True once (anchor) is off the screen, False if it is still there at (timeout).
+# So keep clearing the splash and re-sending Alt+F4 until the window is really
+# gone. A splash that turns up after the scan target became readable is what
+# broke App Tests run 34269857819: one Alt+F4 had already been sent, the second
+# splash arrived on top of it, and the window then sat there for three minutes
+# with the app responding normally behind it.
+#
 # Polled with exists() rather than waitVanish() so each look leaves a step frame
-# and a window that never closes is visible in the diagnostics; the sleep
-# between looks keeps a still-open window from spinning the loop, since exists()
-# returns the moment it finds its image.
-def wait_gone(anchor, timeout, poll=5):
+# and a window that will not close is visible in the diagnostics. Alt+F4 is only
+# ever sent while the anchor is on screen, so it cannot fall through to Explorer
+# once TreeSize is gone.
+def close_window(anchor, timeout=180, poll=5):
     deadline = time.time() + timeout
     while True:
+        dismiss_trial_splash(1)
         if not exists(anchor, 1):
-            return True
+            return
+        type(Key.F4, Key.ALT)
         if time.time() >= deadline:
-            return False
+            break
         wait(poll)
+    Debug.user("close_window: %s still on screen after %d s of Alt+F4" % (anchor, timeout))
+    raise FindFailed("%s: the window did not close" % anchor)
 
 # Test of `turbo run`.
 wait("license-prompt.png")
