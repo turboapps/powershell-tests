@@ -34,8 +34,15 @@ type(Key.ENTER)
 
 # Test ftp.
 subprocess.Popen("turbo run base -n=cmd --network=test --startup-file=cmd -d" + util.read_extra())
-App().focus("cmd")
-wait("cmd_window.png",10)
+# `turbo run base -n=cmd ... -d` above is asynchronous, so this wait has to
+# cover the container being created before the console can even appear, and
+# App().focus("cmd") runs before that window exists, so it is a silent no-op
+# that nothing retries. 10 s has held so far because a bare cmd container is
+# much cheaper to start than the Edge one that made the same shape flaky in
+# opensearch (App Tests 34097555049 / 34097578991), but the margin is the
+# same one and nothing here needs it to be this tight. Poll and re-focus.
+if not util.focus_and_wait("cmd", "cmd_window.png", attempts=9, poll=10):
+    wait("cmd_window.png")  # still absent: fail with the usual FindFailed
 wait(3)
 paste("ftp 127.0.0.1")
 wait(3)
