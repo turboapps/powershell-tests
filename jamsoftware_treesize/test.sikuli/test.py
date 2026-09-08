@@ -67,27 +67,36 @@ def wait_for_scan(target_image, timeout=180):
 # matching at 0.834 - so no shell context menu opened and the test died at the
 # next image, three lines from the actual fault.
 #
-# So keep clearing the splash and re-sending Alt+F4 until the window is really
-# gone. A splash that turns up after the scan target became readable is what
-# broke App Tests run 34269857819: one Alt+F4 had already been sent, the second
-# splash arrived on top of it, and the window then sat there for three minutes
-# with the app responding normally behind it.
+# So send Alt+F4 once and then wait the window out, clearing the splash if one
+# turns up. A splash that arrives after the scan target became readable is what
+# broke App Tests run 34269857819: the close went into the splash, which
+# swallowed it, and the window then sat there for three minutes with the app
+# responding normally behind it. Clearing a splash therefore means the keystroke
+# was lost and has to be sent again - and that is the ONLY thing that re-sends
+# it, because a splash on screen is itself proof TreeSize is still up.
+#
+# Re-sending on a timer instead is what broke run 34271577102: the second Alt+F4
+# went out six seconds after the first, into the gap while TreeSize was still
+# tearing down (the step frames put the anchor at 0.96 when it was checked and
+# 0.34 two seconds later, when the keystroke went out), so Explorer took the
+# foreground and closed instead, and the right-clicks that followed had no window
+# to aim at.
 #
 # Polled with exists() rather than waitVanish() so each look leaves a step frame
-# and a window that will not close is visible in the diagnostics. Alt+F4 is only
-# ever sent while the anchor is on screen, so it cannot fall through to Explorer
-# once TreeSize is gone.
+# and a window that will not close is visible in the diagnostics.
 def close_window(anchor, timeout=180, poll=5):
     deadline = time.time() + timeout
+    type(Key.F4, Key.ALT)
     while True:
-        dismiss_trial_splash(1)
+        if dismiss_trial_splash(1):
+            wait(1)
+            type(Key.F4, Key.ALT)
         if not exists(anchor, 1):
             return
-        type(Key.F4, Key.ALT)
         if time.time() >= deadline:
             break
         wait(poll)
-    Debug.user("close_window: %s still on screen after %d s of Alt+F4" % (anchor, timeout))
+    Debug.user("close_window: %s still on screen %d s after Alt+F4" % (anchor, timeout))
     raise FindFailed("%s: the window did not close" % anchor)
 
 # Test of `turbo run`.
