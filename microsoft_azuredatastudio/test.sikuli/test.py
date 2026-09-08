@@ -14,9 +14,14 @@ App("Azure Data Studio").focus()
 wait("ads_window.png")
 run("turbo stop test")
 
-# Launch the app.
+# Launch the app. This is a cold container start of an Electron app plus the
+# mssql extension host, and it is the slowest step in the test: measured from
+# the step frames it takes ~10 s on an idle VM but ~33 s on a loaded one, so the
+# 30 s default above has no headroom and the window paints just after the wait
+# gives up (App Tests run 34097578991). The wait at line 14 above does not need
+# the same budget - that instance is already up from TryTurboApp -detached.
 run("explorer " + os.path.join(util.start_menu, "Azure Data Studio", "Azure Data Studio.lnk"))
-wait("ads_window.png")
+wait("ads_window.png", 120)
 
 # Basic operations.
 click("create_connection.png")
