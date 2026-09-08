@@ -15,4 +15,4 @@ $app = "nodejs/nodejs"
 $using = "python/python-x64,microsoft/vsbuildtools"
 $extra = $extra + " --enable=usedllinjection --working-dir=" + $PSScriptRoot + "\resources "
 
-StandardTest -image $app -using $using -isolate $isolate -extra $extra -shouldInstall $False -localLogsDir $localLogsDir
+StandardTest -image $image -app $app -using $using -isolate $isolate -extra $extra -shouldInstall $False -localLogsDir $localLogsDir
