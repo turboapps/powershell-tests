@@ -1,13 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "ms58OypLxcs=",
+  "dgSpecHash": "GO/+U1+A0N4=",
   "success": true,
-  "projectFilePath": "C:\\dev\\code\\powershell-tests\\microsoft_vscode-arm64\\resources\\Hello World\\Hello World.csproj",
-  "expectedPackageFiles": [
-    "C:\\Users\\david\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.27\\microsoft.netcore.app.ref.8.0.27.nupkg.sha512",
-    "C:\\Users\\david\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.27\\microsoft.windowsdesktop.app.ref.8.0.27.nupkg.sha512",
-    "C:\\Users\\david\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.27\\microsoft.aspnetcore.app.ref.8.0.27.nupkg.sha512",
-    "C:\\Users\\david\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\8.0.27\\microsoft.netcore.app.host.win-x64.8.0.27.nupkg.sha512"
-  ],
+  "projectFilePath": "C:\\Turbo\\VSCodeInvestigations\\vscode\\resources\\Hello World\\Hello World.csproj",
+  "expectedPackageFiles": [],
   "logs": []
 }
