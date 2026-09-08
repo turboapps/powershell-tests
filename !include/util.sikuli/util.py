@@ -400,17 +400,24 @@ def end_session(grace=60, delay=5):
     check_running()
     return False
 
-# Id of the most recently created session, from `turbo sessions -l
-# --format=json` (full id), falling back to the first column of the plain
-# listing (an 8-hex prefix, which `turbo stop` also resolves). None if neither
-# yields one.
+# Id of the most recently created session: the full id from `turbo sessions -l
+# --format=json`, falling back to the first column of the plain listing (an
+# 8-hex prefix, which `turbo stop` also resolves). None if neither yields one.
+#
+# SikuliX's run() returns the command's exit code as its own first line and the
+# output after it, so the JSON has to be found inside that text - json.loads()
+# on the whole string always throws. Probe run 34279763399 exercised this path
+# and caught exactly that: it fell through to the 8-hex prefix every time, and
+# the JSON branch was dead code that only cost an extra `turbo sessions -l`.
 def _latest_session_id():
     try:
         import json
-        rows = json.loads(run("turbo sessions -l --format=json"))
-        containers = rows[0]["result"]["containers"]
-        if containers:
-            return containers[0]["id"]
+        raw = run("turbo sessions -l --format=json")
+        start = raw.find("[")
+        if start >= 0:
+            containers = json.loads(raw[start:])[0]["result"]["containers"]
+            if containers:
+                return containers[0]["id"]
     except:
         pass
     for line in run("turbo sessions -l").splitlines():
