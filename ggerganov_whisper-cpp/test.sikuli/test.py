@@ -17,4 +17,4 @@ with open(output, 'r') as file:
     assert("our score and seven years ago" in content)
 
 # Check if the session terminates.
-assert("test" not in run("turbo sessions"))
+util.check_stopped("test")

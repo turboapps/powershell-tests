@@ -20,7 +20,7 @@ util.launch_adobe_cc(username, password)
 # Test turbo run
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
 wait(5)
-paste('turbo run animate --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test')
+paste('turbo run animate --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test' + util.read_extra())
 wait(2)
 type(Key.ENTER)
 if exists("adobe_login_signout_others.png",120):

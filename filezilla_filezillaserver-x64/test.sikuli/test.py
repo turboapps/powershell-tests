@@ -33,7 +33,7 @@ wait("import.png")
 type(Key.ENTER)
 
 # Test ftp.
-subprocess.Popen("turbo run base -n=cmd --network=test --startup-file=cmd -d")
+subprocess.Popen("turbo run base -n=cmd --network=test --startup-file=cmd -d" + util.read_extra())
 App().focus("cmd")
 wait("cmd_window.png",10)
 wait(3)

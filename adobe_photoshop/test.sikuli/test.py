@@ -20,7 +20,7 @@ util.launch_adobe_cc(username, password)
 # Test of `turbo run`.
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
 wait(5)
-paste('turbo run photoshop --using=creativeclouddesktop,isolate-edge-wc --isolate=merge-user --offline --enable=disablefontpreload --name=test')
+paste('turbo run photoshop --using=creativeclouddesktop,isolate-edge-wc --isolate=merge-user --offline --enable=disablefontpreload --name=test' + util.read_extra())
 type(Key.ENTER)
 
 # Minimize the command prompt
