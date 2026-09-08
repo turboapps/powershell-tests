@@ -71,7 +71,7 @@ wait("import_imported.png")
 type(Key.F4, Key.ALT)
 
 # Test of headless mode.
-run('turbo run nsa/ghidra --using eclipse/temurin --isolate=merge-user --trigger headless -- ' + project_path_headless + ' ghidra-project-headless -import ' + import_path + ' -processor x86:LE:64:default -overwrite')
+run('turbo run nsa/ghidra --using eclipse/temurin --isolate=merge-user --trigger headless' + util.read_extra() + ' -- ' + project_path_headless + ' ghidra-project-headless -import ' + import_path + ' -processor x86:LE:64:default -overwrite')
 assert(util.file_exists(os.path.join(project_path_headless, "ghidra-project-headless.gpr"), 5))
 
 # Check if the session terminates after closing the app.

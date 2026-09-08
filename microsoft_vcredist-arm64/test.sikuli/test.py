@@ -16,4 +16,4 @@ run("turbo stop test")
 wait(10)
 
 # Check if the session terminates.
-assert("test" not in run("turbo sessions"))
+util.check_stopped("test")

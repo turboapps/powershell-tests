@@ -8,4 +8,6 @@ $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 
 $image = "cerulean/trillian"
 
-StandardTest -image $image -using $using -localLogsDir $localLogsDir
+# -extra reaches the installi/try launches here and, via extra.txt, the second
+# `turbo try` the test types into a Command Prompt (util.read_extra()).
+StandardTest -image $image -extra $extra -localLogsDir $localLogsDir

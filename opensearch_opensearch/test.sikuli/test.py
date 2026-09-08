@@ -16,12 +16,12 @@ wait(30)
 wait(Pattern("opensearch_ready.png").similar(0.80),90)
 
 # Test.
-subprocess.Popen('turbo try base --using=isolate-edge-wc -n=edge --enable=usedllinjection --network=test --isolate=merge --startup-file="C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe" -d -- http://localhost:9200/_cat/indices?v')
+subprocess.Popen('turbo ' + util.try_verb() + ' base --using=isolate-edge-wc -n=edge --enable=usedllinjection --network=test --isolate=merge --startup-file="C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe" -d' + util.read_extra() + ' -- http://localhost:9200/_cat/indices?v')
 App().focus("Edge")
 wait("green-open.png",10)
 
 putfile = os.path.join(script_path, os.pardir, "resources", "put.bat")
-subprocess.Popen("turbo try base -n=curl --network=test --isolate=merge --startup-file=cmd -d -- /C " + putfile)
+subprocess.Popen("turbo " + util.try_verb() + " base -n=curl --network=test --isolate=merge --startup-file=cmd -d" + util.read_extra() + " -- /C " + putfile)
 wait(5)
 App().focus("Edge")
 wait(3)
@@ -35,4 +35,4 @@ run("turbo stop test")
 wait(10)
 
 # Check if the session terminates.
-assert("test" not in run("turbo sessions"))
+util.check_stopped("test")

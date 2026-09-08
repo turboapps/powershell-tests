@@ -6,7 +6,8 @@ function PrepareTest {
     param (
         [string]$image,
         [string]$secretsFile,
-        [string]$localLogsDir
+        [string]$localLogsDir,
+        [string]$extra
     )
     if ([string]::IsNullOrWhiteSpace($secretsFile)) {
         $secretsFile = Join-Path $PSScriptRoot "secrets.txt"
@@ -29,6 +30,18 @@ function PrepareTest {
     # frames would be overwritten piecemeal and the leftovers mixed into what
     # the CI harness stages as this run's frames.
     Remove-Item "$env:USERPROFILE\Desktop\$name-steps" -Recurse -Force -ErrorAction SilentlyContinue
+
+    # Turbo VM logs from a previous run (see CollectVmLogs), for the same reason.
+    Remove-Item "$env:USERPROFILE\Desktop\$name-vm-logs" -Recurse -Force -ErrorAction SilentlyContinue
+
+    # Extra turbo flags for tests that launch turbo themselves (from a Command
+    # Prompt or a subprocess) rather than through TryTurboApp/RunTurboApp: the
+    # test appends util.read_extra() to its command line. Written whenever the
+    # caller passes -extra, empty included, so a stale file from a previous run
+    # never leaks flags into this one.
+    if ($PSBoundParameters.ContainsKey('extra')) {
+        Set-Content -Path "$PSScriptRoot\..\$name\extra.txt" -Value $extra -ErrorAction SilentlyContinue
+    }
 
     # Parse the secrets file.
     $secrets = Get-Content $secretsFile | ConvertFrom-Csv -Header "Key", "Value"
@@ -149,13 +162,20 @@ function TryTurboApp {
         [bool]$detached = $True
     )
 
-    $command = "try $image --name=test --enable=disablefontpreload,usedllinjection,cachefileinfo --network=test --disable-proxy-resolve-via-proxy"
+    # `try` removes the session - sandbox and VM logs included - the moment it
+    # ends, so on a diagnostic run (--diagnostic in -extra) the same launch is
+    # made with `run`: the session then persists until the next PrepareTest's
+    # `turbo rm -a`, and CollectVmLogs / util.check_running() can copy its logs
+    # after it has stopped. Everything else about the command is identical.
+    # util.try_verb() makes the same choice for launches a test issues itself.
+    $verb = if ($extra -match '(^|\s)--diagnostic(\s|$)') { "run" } else { "try" }
+    $command = "$verb $image --name=test --enable=disablefontpreload,usedllinjection,cachefileinfo --network=test --disable-proxy-resolve-via-proxy"
 
     # Construct the Turbo command.
     if (-not [string]::IsNullOrWhiteSpace($using)) {
         $command += " --using=$using"
     }
-    
+
     if (-not [string]::IsNullOrWhiteSpace($isolate)) {
         $command += " --isolate=$isolate"
     }
@@ -307,6 +327,113 @@ public class Keyboard {
 
 }
 
+# Turbo VM logs.
+#
+# A container started with --diagnostic (the CI harness's vm_diagnostics run
+# passes it in -extra) writes its VM diagnostic log to
+# <sandbox>\logs\xclog_0x<pid>.txt. The client deletes and recreates that
+# folder every time the same container starts again, so a launch's logs
+# survive only if they are copied out before the next launch. They are copied
+# at the two points where a session is known to have ended, not by polling:
+# util.check_running() after a session terminated mid-test, and here after the
+# sikulix test returned - which also covers a failure, where the app's session
+# is usually still running with its dialogs on screen.
+#
+# Layout: <Desktop>\<app>-vm-logs\<container id>\<logs tree>. The CI harness
+# (applab Invoke-AppTest.ps1) stages that folder as the <app>-vm-logs artifact.
+# Only sandboxes holding an xclog_* file are copied, so on a run without
+# --diagnostic this is one directory listing and nothing else. An existing copy
+# is overwritten when the source is the same file grown, and kept as
+# <name>.1, .2, ... when a different file has reappeared under the same name
+# (pid reuse across launches). util.collect_vm_logs() implements the same rule.
+# Best-effort: never changes the test result.
+function CollectVmLogs {
+    param (
+        [string]$image
+    )
+    $name = $image -replace '[/]', '_'
+    $destRoot = "$env:USERPROFILE\Desktop\$name-vm-logs"
+
+    # `turbo config --reset` (PrepareTest) leaves the default location; honour a
+    # relocated storage path anyway when the client reports one.
+    $root = "$env:LOCALAPPDATA\Turbo\Containers\sandboxes"
+    try {
+        $cfg = (turbo config --format=json 2>$null | Out-String | ConvertFrom-Json)[0].result.configuration
+        if ($cfg.containerStoragePath) { $root = [Environment]::ExpandEnvironmentVariables($cfg.containerStoragePath) }
+    } catch { }
+    if (-not (Test-Path -LiteralPath $root)) { return }
+
+    foreach ($sb in @(Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue)) {
+        $logs = Join-Path $sb.FullName 'logs'
+        if (-not (Test-Path -LiteralPath $logs)) { continue }
+        if (-not @(Get-ChildItem -LiteralPath $logs -Filter 'xclog_*' -File -ErrorAction SilentlyContinue)) { continue }
+        foreach ($f in @(Get-ChildItem -LiteralPath $logs -File -Recurse -ErrorAction SilentlyContinue)) {
+            $dst = Join-Path (Join-Path $destRoot $sb.Name) $f.FullName.Substring($logs.Length + 1)
+            try {
+                CopyVmLog -src $f.FullName -dst $dst
+            } catch {
+                Write-Host "VM logs: $($f.FullName) not copied: $_"
+            }
+        }
+    }
+    if (Test-Path -LiteralPath $destRoot) {
+        Write-Host "VM logs collected in $destRoot"
+    }
+}
+
+function CopyVmLog {
+    param (
+        [string]$src,
+        [string]$dst
+    )
+    $srcLen = (Get-Item -LiteralPath $src).Length
+    if (Test-Path -LiteralPath $dst) {
+        $dstLen = (Get-Item -LiteralPath $dst).Length
+        if ($srcLen -lt $dstLen -or -not (SameVmLogHead -a $src -b $dst -len $dstLen)) {
+            $n = 1
+            while (Test-Path -LiteralPath "$dst.$n") { $n++ }
+            Move-Item -LiteralPath $dst -Destination "$dst.$n" -Force
+        } elseif ($srcLen -eq $dstLen) {
+            return
+        }
+    }
+    $dir = Split-Path $dst -Parent
+    if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    # Shared-read open: after a failure the app's session is still running and the
+    # VM holds the log open for writing, which fails File.Copy / Copy-Item with a
+    # sharing violation.
+    $in = [IO.File]::Open($src, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete)
+    try {
+        $out = [IO.File]::Create($dst)
+        try { $in.CopyTo($out) } finally { $out.Close() }
+    } finally {
+        $in.Close()
+    }
+}
+
+# True when the first min(512, len) bytes of both files match: the same log
+# file (grown or unchanged) rather than a new launch's log under a reused name.
+function SameVmLogHead {
+    param (
+        [string]$a,
+        [string]$b,
+        [long]$len
+    )
+    $n = [int][Math]::Min(512, $len)
+    if ($n -le 0) { return $true }
+    $ba = New-Object byte[] $n
+    $bb = New-Object byte[] $n
+    $fa = [IO.File]::Open($a, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete)
+    try { $ra = $fa.Read($ba, 0, $n) } finally { $fa.Close() }
+    $fb = [IO.File]::Open($b, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
+    try { $rb = $fb.Read($bb, 0, $n) } finally { $fb.Close() }
+    if ($ra -ne $rb) { return $false }
+    for ($i = 0; $i -lt $ra; $i++) {
+        if ($ba[$i] -ne $bb[$i]) { return $false }
+    }
+    return $true
+}
+
 # Start the SikuliX test for the app.
 function StartTest {
     param (
@@ -419,6 +546,14 @@ public class SikuliConsole {
         $runspace.Dispose()
     }
 
+    # The test is over: the last session's VM logs (or, on a failure, the
+    # still-running session's) are collected now. See CollectVmLogs.
+    try {
+        CollectVmLogs -image $image
+    } catch {
+        Write-Host "VM logs: collection failed: $_"
+    }
+
     return $exitCode
 
 }
@@ -449,10 +584,17 @@ function StandardTest {
         [bool]$shouldInstall = $true,
         [bool]$shouldTry = $true,
         [bool]$detached = $true,
-        [string]$localLogsDir
+        [string]$localLogsDir,
+        [string]$testExtra
     )
 
-    PrepareTest -image $image -localLogsDir $localLogsDir
+    # extra.txt (util.read_extra()) carries the flags for launches the test
+    # issues itself. That is -extra as the CI harness passed it; an executor that
+    # decorates -extra with launch-specific additions (--startup-file, app
+    # arguments after --) passes the undecorated value as -testExtra so those
+    # do not end up on the test's own command lines.
+    $forTest = if ($PSBoundParameters.ContainsKey('testExtra')) { $testExtra } else { $extra }
+    PrepareTest -image $image -localLogsDir $localLogsDir -extra $forTest
     PullTurboImages -image $image -using $using
 
     if ($shouldInstall) {

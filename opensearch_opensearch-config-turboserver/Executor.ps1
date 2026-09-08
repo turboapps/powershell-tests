@@ -14,7 +14,7 @@ $isolate = "merge-user"
 New-Item -Path "C:\opensearch" -ItemType Directory
 New-Item -Path "C:\opensearch\snapshots" -ItemType Directory
 
-PrepareTest -image $image -localLogsDir $localLogsDir
+PrepareTest -image $image -localLogsDir $localLogsDir -extra $extra
 PullTurboImages -image $app -using $using
 TryTurboApp -image $app -using $using -isolate $isolate -extra $extra -detached $True
 HidePowerShellWindow

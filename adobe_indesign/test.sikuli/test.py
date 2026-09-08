@@ -20,7 +20,7 @@ password = credentials.get("password")
 util.launch_adobe_cc(username, password)
 
 # Test turbo run
-subprocess.Popen("turbo run indesign --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --network=test --name=test")
+subprocess.Popen("turbo run indesign --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --network=test --name=test" + util.read_extra())
 if exists("adobe_login_signout_others.png",300):
     click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
     click(Pattern("adobe_login_continue.png").similar(0.80))
