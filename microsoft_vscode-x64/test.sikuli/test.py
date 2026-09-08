@@ -173,8 +173,8 @@ wait(3)
 doubleClick(Pattern("solution_c_sharp.png").targetOffset(-20,17))
 click("tab_c_sharp.png")
 click(Pattern("run_1.png").similar(0.60).targetOffset(-28,0))
-if exists("rebuild-yes.png",240):
-    click("rebuild-yes.png")
+#if exists("rebuild-yes.png",240):
+#    click("rebuild-yes.png")
 # The C# run needs a first dotnet restore and build; 20 s is the odd one out
 # here, every other language run in this test allows 240 s.
 wait(Pattern("result.png").similar(0.80),240)
