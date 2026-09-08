@@ -19,10 +19,10 @@ run("turbo stop test")
 util.launch_shortcut(["Postman", "Postman.lnk"], "Postman API Client ARM64.lnk")
 
 # Basic operations.
-if exists("light-client.png",20):
-    click("light-client.png")
-if exists("continue-without-account.png",20):
-    click("continue-without-account.png")
+#if exists("light-client.png",20):
+#    click("light-client.png")
+#if exists("continue-without-account.png",20):
+#    click("continue-without-account.png")
 wait("open-api-client.png")
 click("open-api-client.png")
 wait("get-url.png")

@@ -9,27 +9,25 @@ setAutoWaitTimeout(30)
 util.pre_test(no_min=True)
 
 # Test of `turbo run`.
-App().focus("Microsoft SQL Server Management Studio")
-wait("ssms_window.png",200)
-run("turbo stop test")
+deadline = time.time() + 90
+while not exists("ssms_window.png", 0):
+    if time.time() > deadline:
+        raise Exception("SSMS window did not appear within 90 seconds")
+    App("Microsoft SQL Server Management Studio").focus()
+    time.sleep(2)
+click("ssms-close-x.png")
+type(Key.ENTER)
 
-# Launch the app. The shortcut carries a version suffix, so match on a prefix.
-# It sits either in the installer's "Microsoft SQL Server Tools" folder or, when the
-# image has no captured shortcuts, flat in the Start Menu under the image Title.
-shortcut = util.find_file(util.start_menu, "SQL Server Management Studio")
-if not shortcut:
-    tools = util.find_file(util.start_menu, "Microsoft SQL Server Tools")
-    shortcut = util.find_file(tools, "SQL Server Management Studio") if tools else None
-assert shortcut, ("No SQL Server Management Studio shortcut. Installed under %s:\n  %s"
-                  % (util.start_menu, "\n  ".join(util.list_shortcuts(util.start_menu))))
-run("explorer " + shortcut)
+folder_path = util.get_shortcut_path_by_prefix(util.start_menu, "Microsoft SQL Server Tools")
+run("explorer " + util.get_shortcut_path_by_prefix(folder_path, "SQL Server Management Studio"))
 wait(30)
-wait("ssms_window.png", 200)
+wait("ssms_window.png",90)
+click("ssms_window.png")
 
 # Basic operations.
 click("server_name.png")
 type("localhost")
-click(Pattern("security.png").targetOffset(-62,11))
+click("security.png")
 type(Key.ENTER)
 wait("db_loaded.png")
 type("n", Key.CTRL)
@@ -65,14 +63,14 @@ type("SELECT * FROM Employees;" + Key.F5)
 wait("query_result_3.png")
 
 # Check "help".
-type(Key.F2, Key.CTRL + Key.ALT)
-wait("help_url.png",60)
-if App("Edge").isRunning(10):
-    util.close_app("Edge")
+type(Key.F1)
+wait(15)
+App().focus("Edge")
+wait("help_url.png",30)
+util.close_app("Edge")
 wait(10)
 type(Key.F4, Key.ALT)
-click(Pattern("save.png").targetOffset(70,116))
-wait(30)
+click("save.png")
 
 # Check if the session terminates.
 util.check_running()
