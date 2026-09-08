@@ -32,6 +32,7 @@ type(Key.F1)
 wait("vlc_help.png")
 type(Key.ESC)
 type(Key.F4, Key.ALT)
+type(Key.F4, Key.ALT)
 
 # Open avi with file association.
 rightClick("drop-desktop-icon.png")
