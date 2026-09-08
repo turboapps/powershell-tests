@@ -49,7 +49,7 @@ wait("new_project.png",120)
 click("new_project.png")
 wait("new_package.png")
 click("new_package.png")
-click("new_package_name.png")
+click(Pattern("new_package_name.png").targetOffset(41,7))
 type("test")
 click("new_package_create.png")
 wait("project_template.png")
@@ -73,6 +73,4 @@ click(Pattern("save_ws.png").targetOffset(-34,41))
 wait(10)
 
 # Check if the session terminates.
-# RStudio leaves an rsession child running for a while after its window closes,
-# which keeps the container session up past check_running default 60 s budget.
-util.check_running(max_retries=36)
+util.check_running()
