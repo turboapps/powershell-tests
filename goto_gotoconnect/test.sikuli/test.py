@@ -19,8 +19,25 @@ wait(5)
 
 # There is an issue that when the app is not fully closed (taskbar tray is on),
 # URL handler will not work. It is a native behavior.
-click(Pattern("menu.png").targetOffset(-96,1))
-wait(2)
+#
+# The single click on File is lost when the pool VM is contended: the menu bar
+# takes it as a window-activation click and latches File without ever opening
+# the dropdown, so the Quit item below is searched for the full 30 s and never
+# appears. That is the whole of this test's CI failure - 5 of 8 full-suite runs
+# across five different pool VMs, while 4 of 4 isolated dispatches passed.
+# Activate the window first, and re-open the menu until the dropdown is really
+# there. A run that exhausts the attempts still fails on the Quit item below,
+# with the same diagnosis it has today.
+util.activate_app_window("GoTo", 10)
+wait(1)
+for attempt in range(5):
+    click(Pattern("menu.png").targetOffset(-96,1))
+    if exists("menu_file.png", 5):
+        break
+    type(Key.ESC)
+    wait(1)
+    util.activate_app_window("GoTo", 10)
+    wait(1)
 click("menu_file.png")
 wait(10)
 
