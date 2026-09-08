@@ -30,8 +30,12 @@ wait("video.png")
 wait(10)
 type(Key.F1)
 wait("vlc_help.png")
+wait(3)
 type(Key.ESC)
+wait(3)
 type(Key.F4, Key.ALT)
+wait(3)
+app_window = App().focus("VLC media player")
 type(Key.F4, Key.ALT)
 
 # Open avi with file association.
