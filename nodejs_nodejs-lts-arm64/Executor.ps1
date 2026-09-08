@@ -11,7 +11,7 @@ New-NetFirewallRule -DisplayName "Allow node" -Direction Inbound -Protocol TCP -
 New-NetFirewallRule -DisplayName "Allow node" -Direction Inbound -Protocol UDP -LocalPort 3000 -Action Allow -Profile Any
 
 $image = "nodejs/nodejs-lts-arm64"
-$using = "python/python-arm64,microsoft/vsbuildtools"
+$using = "python/python-arm64,microsoft/vsbuildtools-arm64"
 # --startup-file=cmd: the image's default startup (cmd /k nodevars.bat) crashes at launch
 # on the win11-arm pool (VM bug - cmd.exe faults in ntdll with 0xC00000FF when the startup
 # file has commandLine args). Plain cmd works and node is on the container PATH regardless.

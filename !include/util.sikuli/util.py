@@ -339,15 +339,25 @@ def check_stopped(name="test"):
 
 # Check if the most recently created Turbo session is terminated.
 # It is usually the session for the app to be tested.
+#
+# A container goes away only once its last process has exited, so an app that
+# leaves a helper behind after its window closes keeps the session Running long
+# after the test is finished with it. On the runs that pass, the session is
+# already gone at the first poll, so the assertion on its own says nothing about
+# how close a failing run came: record how long the wait actually took, and what
+# `turbo sessions -l` still listed when the budget ran out.
 def check_running(max_retries=12, delay=5):
     for attempt in range(max_retries):
         output = run("turbo sessions -l")
         if "Running" not in output:
+            if attempt:
+                Debug.user("check_running: the session went away after %d s" % (attempt * delay))
             # The session has ended: its VM logs are complete and about to be
             # wiped if the test launches the app again, so copy them out now.
             collect_vm_logs()
             return
         time.sleep(delay)
+    Debug.user("check_running: still Running after %d s\n%s" % (max_retries * delay, output))
     assert "Running" not in output
 
 # Turbo VM logs.
@@ -482,3 +492,50 @@ def close_app(name):
 def paste_text(text, settle=1):
     paste(text)
     wait(settle)
+
+# Put a path into a Windows file dialog's "File name" field and confirm it.
+#
+# wait(field_image) only proves the dialog is painted, not that it owns the
+# keyboard. In App Tests run 33849047386 (videolan_vlc-x64) the first chord sent
+# to the freshly opened Open dialog lost its modifier: paste()'s Ctrl+V arrived
+# as a bare "v", Enter then raised "v - File not found", and the test died three
+# lines later at an image the wrong file could never match. Click the field
+# first so the dialog has settled and the field has focus, replace whatever a
+# stray keystroke may already have typed, paste, confirm, and retry if the
+# dialog rejects the name. The error box is checked for only briefly because
+# VLC's title overlay, which the next wait() matches, is on screen for just a
+# few seconds after playback starts.
+def open_file_in_dialog(field_image, path, error_image="file_not_found.png", attempts=3):
+    for attempt in range(attempts):
+        click(Pattern(field_image).targetOffset(40, 0))
+        wait(0.5)
+        type("a", Key.CTRL)
+        paste_text(path)
+        type(Key.ENTER)
+        if not exists(error_image, 1):
+            return True
+        Debug.user("open_file_in_dialog: dialog rejected the path on attempt %d of %d" % (attempt + 1, attempts))
+        type(Key.ENTER)  # OK is the default button of the "File not found" box
+        wait(1)
+    raise FindFailed("open_file_in_dialog: the dialog rejected '%s' %d times" % (path, attempts))
+
+# Bring a window to the front and wait for something on it, re-asserting the
+# focus between polls.
+#
+# App().focus(name) is not reliable on its own, and it reports nothing when it
+# fails. In App Tests runs 34090380526..34090412066 (ggerganov_llama-cpp) a
+# single App("conhost").focus() on a minimized console restored nothing and the
+# wait that followed timed out against a bare desktop -- indistinguishable, from
+# the log, from the window being up but the content not printed yet. So poll
+# instead of trusting one call, and re-focus each round in case another window
+# takes the foreground back.
+#
+# Returns True as soon as the image is found, False if it never appears; the
+# caller decides whether that is fatal.
+def focus_and_wait(window, image, attempts=30, poll=10):
+    for attempt in range(attempts):
+        App(window).focus()
+        if exists(image, poll):
+            return True
+    Debug.user("focus_and_wait: %s not found on '%s' after %d attempts" % (image, window, attempts))
+    return False

@@ -14,7 +14,6 @@ $image = "sqlserver/ssms-arm64"
 $using = "turbobuild/isolate-edge-wc"
 $isolate = "merge-user"
 
-
 PrepareTest -image $image -localLogsDir $localLogsDir
 
 # Run SQL Server Express to test Microsoft SQL Server Management Studio.

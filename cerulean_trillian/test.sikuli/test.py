@@ -25,10 +25,19 @@ wait("login-prompt.png",120)
 click("username.png")
 type(username1)
 type(Key.ENTER)
-wait("password.png",60)
+# On a fresh profile Trillian 6.6 does its first-run work while the account
+# lookup behind Next is in flight -- it builds the emoji map ("Generating
+# first-time emoji map (n%)...") and disables the login form until both are
+# done. On a loaded pool VM the map was still at 64% when a 60 s wait expired
+# and the dialog was still in the connecting state (Cancel shown, Next greyed)
+# seconds later: applab run 33949816065, cerulean_trillian line 28. Same run
+# on a quiet VM never even showed the progress bar. Give it 3 minutes.
+wait("password.png",180)
 type(password1)
 type(Key.ENTER)
-wait("menu.png")
+# First sign-in on a fresh profile also has to pull the contact list, which is
+# slower than the 20 s default on the same starved VMs.
+wait("menu.png",120)
 
 # Launch a second instance of the app and login as a second user
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
@@ -40,12 +49,13 @@ type(Key.ENTER)
 click("username.png")
 type(username2)
 type(Key.ENTER)
-wait("password.png",60)
+# Second profile, same first-run cost as above.
+wait("password.png",180)
 type(password2)
 type(Key.ENTER)
 wait(15)
 
-wait("menu.png")
+wait("menu.png",120)
 click("menu.png")
 click("send-msg.png")
 wait("checkbox.png")

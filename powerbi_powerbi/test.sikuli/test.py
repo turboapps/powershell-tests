@@ -61,6 +61,9 @@ wait(2)
 type(Key.ENTER)
 click(Pattern("import_financials.png").targetOffset(-41,-2))
 click("import_load.png")
+# Load spawns the mashup engine and only then opens the Data pane; on a slow
+# pool VM that took longer than the 30 s auto-wait (CI run 33849047386).
+wait("data_financials.png", 90)
 click(Pattern("data_financials.png").targetOffset(-40,2))
 click(Pattern("data_details.png").targetOffset(-45,-14))
 click(Pattern("data_details.png").targetOffset(-45,10))
@@ -80,5 +83,9 @@ type(Key.F4, Key.ALT)
 click("close_no_save.png")
 wait(20)
 
-# Check if the session terminates.
-util.check_running()
+# Check if the session terminates. Power BI Desktop is a large application whose
+# windowless children (the Analysis Services engine, WebView2) can outlive the main
+# window well past the default 60 s budget: the session still showed Running after
+# all 12 polls in App Tests runs 33676687141 and 33849047386 although the window was
+# already gone. Allow 36 x 5 s = 3 min; the polls return as soon as the session exits.
+util.check_running(max_retries=36)
