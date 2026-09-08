@@ -33,10 +33,8 @@ wait("vlc_help.png")
 wait(3)
 type(Key.ESC)
 wait(3)
-type(Key.F4, Key.ALT)
-wait(3)
 app_window = App().focus("VLC media player")
-type(Key.F4, Key.ALT)
+type("q", Key.CTRL)
 
 # Open avi with file association.
 rightClick("drop-desktop-icon.png")
@@ -44,7 +42,9 @@ click("open-with.png")
 click("open-with-vlc.png")
 wait("video.png")
 wait(10)
-type(Key.F4, Key.ALT)
+type(Key.ESC)
+click("pylon.png")
+type("q", Key.CTRL)
 
 # Other start up items should wock.
 run("explorer " + os.path.join(util.start_menu, "VideoLAN", "VLC media player - reset preferences and cache files.lnk"))
