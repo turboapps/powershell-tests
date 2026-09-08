@@ -386,19 +386,27 @@ def click_passkey_skip(anchor):
 # passkey instead.
 PASSKEY_SKIP_OFFSETS = ((149, 354), (131, 400), (131, 446), (105, 400))
 
-# login-password.png is the English capture in every folder but fr, and it
-# scores only 0.77 against the localized page (measured on the Spanish one) -
-# clearing the 0.70 default with little to spare, and dropping to 0.69 once the
-# click has left a focus ring on the field. Everything here therefore matches it
-# before clicking, never after.
+# login-password.png (the password-row capture; es, fr and nl have their own,
+# the rest carry the English one) is 85% empty rounded box, and the label above
+# it is too thin to tell the password row from the EMAIL row. Measured on the
+# 2026-09-07 step frames: it scores 0.705-0.723 on the email page (es and en,
+# right where the email field is) against 0.938 on the real password page - and
+# the English capture only reaches 0.742 on the German password page. So it
+# false-matches the email page about half the time at the 0.70 default, which is
+# how App Tests 34097555049/34097578991 (-x64-es, both runs) typed the account
+# password into the email box and then appended the username on the retry. It
+# is kept only as one of the "is the sign-in host up at all" anchors, where a
+# hit on the email page is a true positive anyway; it decides nothing else.
 LOGIN_EMAIL = Pattern("login-email.png").similar(0.70)
 LOGIN_PASSWORD = Pattern("login-password.png").similar(0.70)
 
 # The label above the password box is localized, and the show/hide eye at the
-# right end of the box is not - it is the same glyph in every language, and it
-# scores 1.000 on both the Spanish and the Dutch page. The box centre is 178 px
-# to its left. Prefer that to matching the label: even a correct localized
-# capture of the label only clears the threshold by a few hundredths.
+# right end of the box is not - it is the same glyph in every language. On the
+# 2026-09-07 step frames it scores 0.978-0.996 on the password page (en and es
+# 32-bit, de x64) and 0.613-0.616 everywhere else, the email page included, so
+# at 0.90 it has a margin of about 0.35 on both sides. It is therefore the one
+# thing that decides whether the password step is on screen, and the only anchor
+# for clicking into the box, whose centre is 178 px to its left.
 LOGIN_PASSWORD_EYE = Pattern("login_password_eye.png").similar(0.90)
 
 def find_password_box():
@@ -406,9 +414,6 @@ def find_password_box():
     eye = exists(LOGIN_PASSWORD_EYE, 0)
     if eye:
         return eye.getTarget().offset(-178, 0)
-    box = exists(LOGIN_PASSWORD, 0)
-    if box:
-        return box.getTarget().offset(0, 12)
     return None
 
 # Anchors that only ever appear on the sign-in host. The email field is not one
@@ -467,6 +472,9 @@ def enter_email():
             return False
         click(logo.getTarget().offset(159, 173))
     wait(2)
+    # Select whatever is already in the box first. A retry lands in a field
+    # that still holds the previous attempt's text, and typing would append.
+    type("a", Key.CTRL)
     type(username)
     wait(3)
     type(Key.ENTER)
@@ -489,6 +497,7 @@ def enter_password():
     target = find_password_box() or target   # the page shifts while it settles
     click(target)
     wait(2)
+    type("a", Key.CTRL)
     # SikuliX logs every keystroke it sends, and <app>-test.log is uploaded as a
     # diagnostics artifact on every failed run of a public repository, so the
     # account password was going out in clear text. Turn the action log off
@@ -566,7 +575,10 @@ for attempt in range(2):
         break
     if not open_signin():
         continue
-    if exists(LOGIN_PASSWORD, 2):
+    # The email page and the password page are told apart by the eye glyph
+    # alone - see the notes above LOGIN_PASSWORD (why the password-row capture
+    # cannot make this call) and LOGIN_PASSWORD_EYE (why the eye can).
+    if exists(LOGIN_PASSWORD_EYE, 2):
         submitted = enter_password()
     else:
         submitted = enter_email() and enter_password()
@@ -596,11 +608,12 @@ for _ in range(20):
         break
     wait(3)
 
-# Check if the session terminates. Acrobat Reader closes its window on Ctrl+Q
-# but its process tree - AcroRd32 itself, the AcroCEF sign-in/AI hosts and
-# AdobeCollabSync - can stay resident well past the default 60 s budget, which
-# keeps the Turbo session Running (App Tests runs 33849047386, 33949816065 and
-# 34004340665: no Reader window in the step frames, every process in the
-# container's VM log still alive). Allow 36 x 5 s = 3 min; the polls return as
-# soon as the session exits, so a clean teardown costs nothing.
-util.check_running(max_retries=36)
+# Check that the session can be ended. Acrobat Reader closes its window on
+# Ctrl+Q but its process tree - AcroRd32 itself, the AcroCEF sign-in/AI hosts
+# and AdobeCollabSync - can stay resident for minutes (App Tests 33849047386,
+# 33949816065, 34004340665, and 34097578991 where 3 min was still not enough;
+# the diagnostic run's VM log had every process alive 366 s after the quit and
+# new RdrCEF renderers still spawning). On the runs that pass the session is
+# gone at the first poll, so this is bimodal and no budget is safe. Give Reader
+# a minute to leave on its own, then stop the session and require that to work.
+util.end_session(grace=60)
