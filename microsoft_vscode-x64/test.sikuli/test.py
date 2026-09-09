@@ -172,30 +172,37 @@ type("w")
 wait(3)
 doubleClick(Pattern("solution_c_sharp.png").targetOffset(-20,17))
 click("tab_c_sharp.png")
-# PROBE D (diagnostic only). Probes A-C established: clicking the editor Run
-# button changes nothing on screen but its own 30x21 hover highlight, and no run
-# starts even after 900 s; a retry click cannot re-find the button because that
-# hover drops run_1.png from 0.63 to 0.555, under its own similar(0.60); and
-# Ctrl+F5 DOES reach VS Code, raising a "Select debugger" quick pick that nobody
-# ever confirmed. Confirm it here.
+# PROBE E (diagnostic only). Probe D: Ctrl+F5 raises the "Select debugger" quick
+# pick, but two Enters left it untouched - between the two Enter frames exactly
+# 18 px changed, a single column at x=674, i.e. the input caret blinking. No row
+# in that list is highlighted, so Enter has no active item to accept. Type into
+# the filter first: if the typed text lands in the box, keyboard delivery is
+# fine and the list just needs an active item.
 wait("code_c_sharp.png")
 csharp_run = Pattern("run_1.png").similar(0.60).targetOffset(-28,0)
 wait(csharp_run,240)
 click(csharp_run)
 if not exists("result.png",60):
-    Debug.user("PROBE D: Run click inert; invoking Ctrl+F5 from the keyboard")
+    Debug.user("PROBE E: Run click inert; invoking Ctrl+F5")
     mouseMove(Location(960,400))
     wait(2)
     type(Key.F5, Key.CTRL)
     if exists(Pattern("select-debugger.png").similar(0.70),60):
-        Debug.user("PROBE D: debugger picker up; accepting the suggested C#")
+        Debug.user("PROBE E: picker up; typing 'C#' into the filter")
+        type("C#")
+        wait(3)
+        Debug.user("PROBE E: pressing DOWN to activate the first row")
+        type(Key.DOWN)
+        wait(2)
+        Debug.user("PROBE E: pressing ENTER")
         type(Key.ENTER)
-        wait(5)
+        wait(8)
         if exists(Pattern("select-debugger.png").similar(0.70),5):
-            Debug.user("PROBE D: a second picker is up; accepting it too")
-            type(Key.ENTER)
+            Debug.user("PROBE E: picker still up after DOWN+ENTER")
+        else:
+            Debug.user("PROBE E: picker accepted")
     else:
-        Debug.user("PROBE D: no debugger picker appeared after Ctrl+F5")
+        Debug.user("PROBE E: no picker after Ctrl+F5")
 wait(Pattern("result.png").similar(0.80),300)
 wait(10)
 type("k", Key.CTRL)
