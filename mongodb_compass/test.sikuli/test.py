@@ -37,8 +37,6 @@ wait("connection-name.png")
 click("connection-name.png")
 paste("mongotest")
 type(Key.ENTER)
-if exists("connect-button.png",10):
-    click("connect-button.png")
 wait("server-name.png")
 click("server-name.png")
 wait("create-db-button.png")
