@@ -596,8 +596,8 @@ def open_file_in_dialog(field_image, path, error_image="file_not_found.png", att
         wait(1)
     raise FindFailed("open_file_in_dialog: the dialog rejected '%s' %d times" % (path, attempts))
 
-# Save the page a browser is showing as "Web Page, HTML only" through its
-# Save As dialog, and prove the file landed.
+# Save the page a browser is showing through its Save As dialog, as the file
+# type type_choice_image names, and prove the file landed.
 #
 # A Save As dialog gives a dropped modifier nowhere to show itself. The field
 # opens with the app's suggested name selected, so a paste() whose Ctrl is lost
@@ -613,7 +613,14 @@ def open_file_in_dialog(field_image, path, error_image="file_not_found.png", att
 # reopening the dialog and redoing the save is the only thing that can help.
 # Escape first on a retry to clear the download panel the wrong save popped up,
 # which would otherwise swallow the Ctrl+S.
-def save_page_as_html(field_image, type_image, path, result_path, attempts=3):
+#
+# Pick the file type by clicking the entry, as the chrome and edge tests do,
+# rather than by pressing Down from the top of the list: the dialog reopens on
+# the type it was last used with, so on a second attempt Down steps one past the
+# wanted entry instead of onto it. The sabotage probe for run 34295135821 caught
+# exactly that -- attempt 2 saved a .txt, and only attempt 3 happened to land
+# back on the .htm.
+def save_page_as_html(field_image, type_image, type_choice_image, path, result_path, attempts=3):
     for attempt in range(attempts):
         if attempt:
             type(Key.ESC)
@@ -621,11 +628,9 @@ def save_page_as_html(field_image, type_image, path, result_path, attempts=3):
         type("s", Key.CTRL)
         wait(field_image)
         paste_path_in_dialog(field_image, path)
-        click(Pattern(type_image).targetOffset(39, 1))
+        click(Pattern(type_image).targetOffset(39, 1))  # open the type list
         wait(2)
-        type(Key.DOWN)   # "Web Page, complete" -> "Web Page, HTML only"
-        wait(2)
-        type(Key.ENTER)  # commit the file type
+        click(type_choice_image)
         wait(2)
         type(Key.ENTER)  # Save
         if file_exists(result_path, 2):
