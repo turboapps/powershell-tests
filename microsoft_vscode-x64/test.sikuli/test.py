@@ -173,26 +173,32 @@ wait(3)
 doubleClick(Pattern("solution_c_sharp.png").targetOffset(-20,17))
 click("tab_c_sharp.png")
 wait(3)
-# The editor Run button is unreliable here. The click lands on it - the hover
+# The editor Run button is unreliable here: the click lands on it - the hover
 # highlight paints, and that 30x21 box is the only thing on the whole screen that
 # changes - but VS Code never acts on it and no run starts, even given 900 s.
-# Mouse clicks are simply not being delivered to the window during this stretch:
-# a click on the debugger picker's own row is ignored too. Keyboard input still
-# works, so fall back to it. Ctrl+F5 raises a "Select debugger" quick pick,
-# because this workspace carries no launch.json. That pick opens with no active
-# row, so a bare Enter is a no-op (two of them left it untouched for 300 s);
-# DOWN activates the suggested C# entry and Enter then accepts it.
+# The keyboard still works, so fall back to Ctrl+F5. Because this workspace
+# carries no launch.json, that walks two quick picks in turn.
 csharp_run = Pattern("run_1.png").similar(0.60).targetOffset(-28,0)
 wait(csharp_run,240)
 click(csharp_run)
 if not exists("result.png",60):
-    # Move off the button before anything else: the click leaves the cursor on it
-    # and that hover drops run_1.png from 0.63 to 0.555, under its own
-    # similar(0.60), so it can no longer be re-found while the mouse rests there.
+    # Move off the button first: the click leaves the cursor on it, and that hover
+    # drops run_1.png from 0.63 to 0.555 - under its own similar(0.60) - so it can
+    # no longer be re-found while the mouse rests there.
     mouseMove(Location(960,400))
     wait(2)
     type(Key.F5, Key.CTRL)
+    # "Select debugger" opens with NO active row, so a bare Enter is a no-op (two
+    # of them left it untouched for 300 s). DOWN activates the suggested C# entry.
     if exists(Pattern("select-debugger.png").similar(0.70),60):
+        type(Key.DOWN)
+        wait(2)
+        type(Key.ENTER)
+    # "Select Launch Configuration" follows, and this one opens with its first row
+    # already active, so DOWN moves on to "C#: Hello World" - the entry observed
+    # to actually print. Keyed on its own reference: the debugger one cannot tell
+    # these two apart reliably, both being "Select ..." in the same box.
+    if exists(Pattern("select-launch-config.png").similar(0.70),60):
         type(Key.DOWN)
         wait(2)
         type(Key.ENTER)
