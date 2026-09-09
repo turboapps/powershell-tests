@@ -172,20 +172,25 @@ type("w")
 wait(3)
 doubleClick(Pattern("solution_c_sharp.png").targetOffset(-20,17))
 click("tab_c_sharp.png")
-# PROBE B (diagnostic only): probe A proved a single Run click produces nothing
-# at all for 900 s, so the click is not being acted on rather than the run being
-# slow. Try, in order, the settle-wait + retry the Java block already uses, then
-# a keyboard Ctrl+F5. The step frames say which one produced the result.
+# PROBE C (diagnostic only). Established so far: the Run click changes nothing on
+# screen but its own hover highlight, and no run starts even after 900 s (probe
+# A); and a retry click can never re-find the button, because that hover drops
+# run_1.png from 0.63 to 0.555, under its own similar(0.60) (probe B).
+# So: unhover before re-finding, and try the keyboard instead of the mouse.
 wait("code_c_sharp.png")
 csharp_run = Pattern("run_1.png").similar(0.60).targetOffset(-28,0)
 wait(csharp_run,240)
 click(csharp_run)
 if not exists("result.png",120):
-    Debug.user("PROBE: first click produced nothing, clicking Run again")
-    click(csharp_run)
-    if not exists("result.png",120):
-        Debug.user("PROBE: second click produced nothing, trying Ctrl+F5")
-        type(Key.F5, Key.CTRL)
+    Debug.user("PROBE C: click did nothing; unhovering and trying Ctrl+F5")
+    mouseMove(Location(960,400))
+    wait(2)
+    type(Key.F5, Key.CTRL)
+    if not exists("result.png",240):
+        Debug.user("PROBE C: Ctrl+F5 did nothing; unhover then click Run again")
+        mouseMove(Location(960,400))
+        wait(2)
+        click(csharp_run)
 wait(Pattern("result.png").similar(0.80),240)
 wait(10)
 type("k", Key.CTRL)
