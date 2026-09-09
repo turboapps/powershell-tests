@@ -172,13 +172,21 @@ type("w")
 wait(3)
 doubleClick(Pattern("solution_c_sharp.png").targetOffset(-20,17))
 click("tab_c_sharp.png")
-click(Pattern("run_1.png").similar(0.60).targetOffset(-28,0))
-#if exists("rebuild-yes.png",240):
-#    click("rebuild-yes.png")
-# PROBE A (diagnostic only): single Run click, 900 s budget. If the C# run is
-# merely slow this passes and the step-frame timestamps say how long it took;
-# if the Run click is being dropped this still fails.
-wait(Pattern("result.png").similar(0.80),900)
+# PROBE B (diagnostic only): probe A proved a single Run click produces nothing
+# at all for 900 s, so the click is not being acted on rather than the run being
+# slow. Try, in order, the settle-wait + retry the Java block already uses, then
+# a keyboard Ctrl+F5. The step frames say which one produced the result.
+wait("code_c_sharp.png")
+csharp_run = Pattern("run_1.png").similar(0.60).targetOffset(-28,0)
+wait(csharp_run,240)
+click(csharp_run)
+if not exists("result.png",120):
+    Debug.user("PROBE: first click produced nothing, clicking Run again")
+    click(csharp_run)
+    if not exists("result.png",120):
+        Debug.user("PROBE: second click produced nothing, trying Ctrl+F5")
+        type(Key.F5, Key.CTRL)
+wait(Pattern("result.png").similar(0.80),240)
 wait(10)
 type("k", Key.CTRL)
 type("f")
