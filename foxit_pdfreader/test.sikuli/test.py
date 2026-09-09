@@ -110,8 +110,21 @@ rightClick("sample-pdf-desktop.png")
 click("open-with.png")
 click("choose-another-app.png")
 click("open-with-foxit-reader.png")
+# "Always" is the dialog's own confirm button: clicking it sets the association
+# and opens the file, so nothing further is needed here. This used to be
+# followed by a blind type(Key.ENTER), which had no dialog left to confirm and
+# went to whatever the shell had focused instead. When that was the taskbar
+# Start button - which is where focus lands after the Explorer right-click
+# chain often enough to matter - the Enter opened the Start menu, and the Start
+# menu sits over the middle of the screen and does not go away, so the wait
+# below timed out against a Foxit window that had opened the PDF perfectly well
+# behind it (App Tests runs 34295135821 and 34399259372: the FAILED frame shows
+# the document, the Start menu covering it, and the focus ring on the Start
+# button one frame earlier). The other 31 tests that drive this same Win11
+# "Select an app to open this .pdf file" dialog - the whole adobereader family
+# included - click Always and go straight to waiting for the window; foxit was
+# the only one sending the extra Enter.
 click("always.png")
-type(Key.ENTER)
 wait(Pattern("foxit_opened.png").similar(0.60))
 wait(5)
 click("foxit_opened.png")
