@@ -172,26 +172,31 @@ type("w")
 wait(3)
 doubleClick(Pattern("solution_c_sharp.png").targetOffset(-20,17))
 click("tab_c_sharp.png")
-# PROBE C (diagnostic only). Established so far: the Run click changes nothing on
-# screen but its own hover highlight, and no run starts even after 900 s (probe
-# A); and a retry click can never re-find the button, because that hover drops
-# run_1.png from 0.63 to 0.555, under its own similar(0.60) (probe B).
-# So: unhover before re-finding, and try the keyboard instead of the mouse.
+# PROBE D (diagnostic only). Probes A-C established: clicking the editor Run
+# button changes nothing on screen but its own 30x21 hover highlight, and no run
+# starts even after 900 s; a retry click cannot re-find the button because that
+# hover drops run_1.png from 0.63 to 0.555, under its own similar(0.60); and
+# Ctrl+F5 DOES reach VS Code, raising a "Select debugger" quick pick that nobody
+# ever confirmed. Confirm it here.
 wait("code_c_sharp.png")
 csharp_run = Pattern("run_1.png").similar(0.60).targetOffset(-28,0)
 wait(csharp_run,240)
 click(csharp_run)
-if not exists("result.png",120):
-    Debug.user("PROBE C: click did nothing; unhovering and trying Ctrl+F5")
+if not exists("result.png",60):
+    Debug.user("PROBE D: Run click inert; invoking Ctrl+F5 from the keyboard")
     mouseMove(Location(960,400))
     wait(2)
     type(Key.F5, Key.CTRL)
-    if not exists("result.png",240):
-        Debug.user("PROBE C: Ctrl+F5 did nothing; unhover then click Run again")
-        mouseMove(Location(960,400))
-        wait(2)
-        click(csharp_run)
-wait(Pattern("result.png").similar(0.80),240)
+    if exists(Pattern("select-debugger.png").similar(0.70),60):
+        Debug.user("PROBE D: debugger picker up; accepting the suggested C#")
+        type(Key.ENTER)
+        wait(5)
+        if exists(Pattern("select-debugger.png").similar(0.70),5):
+            Debug.user("PROBE D: a second picker is up; accepting it too")
+            type(Key.ENTER)
+    else:
+        Debug.user("PROBE D: no debugger picker appeared after Ctrl+F5")
+wait(Pattern("result.png").similar(0.80),300)
 wait(10)
 type("k", Key.CTRL)
 type("f")
