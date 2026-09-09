@@ -604,7 +604,7 @@ def open_file_in_dialog(field_image, path, error_image="file_not_found.png", att
 # types a bare "v" over it and the page saves as "v.htm" in whatever folder the
 # dialog happens to be showing -- no error box, no failed match, the save
 # genuinely succeeds under the wrong name in the wrong place. In App Tests run
-# 34295135821 (mozilla_firefox) it went to Downloads.htm and the test spent
+# 34295135821 (mozilla_firefox) it went to Downloads\v.htm and the test spent
 # 200 s in file_exists waiting for a Desktop file that was never going to
 # appear, then died on a bare assert that said nothing about why.
 #
