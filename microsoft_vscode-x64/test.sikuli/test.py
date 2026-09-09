@@ -172,36 +172,43 @@ type("w")
 wait(3)
 doubleClick(Pattern("solution_c_sharp.png").targetOffset(-20,17))
 click("tab_c_sharp.png")
-# PROBE F (diagnostic only). No wait on code_c_sharp.png - that reference is
-# unused by the shipped test and probes D/E showed it does not reliably match
-# (0.53 on a frame where tab/solution match 0.86/0.91). Straight to the question
-# probe E never reached: with the picker up, does typed input land in its filter,
-# and does an active row let ENTER through?
+# PROBE G (diagnostic only). Probe F: the keyboard works end to end - typing
+# filtered the picker, DOWN moved, ENTER activated - but "C#" plus DOWN landed on
+# "Install an extension for C#..." and opened the marketplace. So: do not type,
+# and try the unfiltered "C#" row two ways. Clicking that row also tests whether
+# clicks work at low x while the Run button click at x=1530 is inert.
 wait(3)
 csharp_run = Pattern("run_1.png").similar(0.60).targetOffset(-28,0)
 wait(csharp_run,240)
 click(csharp_run)
 if not exists("result.png",60):
-    Debug.user("PROBE F: Run click inert; invoking Ctrl+F5")
+    Debug.user("PROBE G: Run click inert; invoking Ctrl+F5")
     mouseMove(Location(960,400))
     wait(2)
     type(Key.F5, Key.CTRL)
-    if exists(Pattern("select-debugger.png").similar(0.70),60):
-        Debug.user("PROBE F: picker up; typing 'C#' into the filter")
-        type("C#")
-        wait(3)
-        Debug.user("PROBE F: DOWN to activate a row")
-        type(Key.DOWN)
-        wait(2)
-        Debug.user("PROBE F: ENTER")
-        type(Key.ENTER)
-        wait(10)
-        if exists(Pattern("select-debugger.png").similar(0.70),5):
-            Debug.user("PROBE F: picker STILL up after filter+DOWN+ENTER")
+    picker = Pattern("select-debugger.png").similar(0.70)
+    if exists(picker,60):
+        row = Pattern("debugger-csharp-row.png").similar(0.75)
+        if exists(row,10):
+            Debug.user("PROBE G: clicking the C# row (x~690)")
+            click(row)
+            wait(6)
+            if exists(picker,3):
+                Debug.user("PROBE G: low-x click did NOT take; trying DOWN+ENTER")
+                type(Key.DOWN)
+                wait(2)
+                type(Key.ENTER)
+                wait(8)
+                if exists(picker,3):
+                    Debug.user("PROBE G: picker STILL up after DOWN+ENTER")
+                else:
+                    Debug.user("PROBE G: DOWN+ENTER accepted the picker")
+            else:
+                Debug.user("PROBE G: low-x click accepted the picker")
         else:
-            Debug.user("PROBE F: picker accepted")
+            Debug.user("PROBE G: C# row image not found")
     else:
-        Debug.user("PROBE F: no picker after Ctrl+F5")
+        Debug.user("PROBE G: no picker after Ctrl+F5")
 wait(Pattern("result.png").similar(0.80),300)
 wait(10)
 type("k", Key.CTRL)
