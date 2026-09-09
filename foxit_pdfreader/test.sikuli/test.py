@@ -104,13 +104,39 @@ def close_foxit(attempts=3, settle=15):
                    % (attempt + 1, attempts))
     raise FindFailed("close_foxit: Foxit did not close on Alt+F4")
 
+# Wait for the named session to end, then take its VM logs.
+#
+# Scoped to the one session on purpose. util.check_running() asserts that
+# *nothing* is Running, which is right at the end of a test but not here:
+# `turbo sessions` also lists the sikulixide container this very script is
+# running inside, so at this point in the test it always finds that one and
+# fails. (Measured: runs 34413026906/34413037750/34413048443 on 26.9.26 and
+# 34413058542/34413069056 on 26.3.18.1034 all died here with the foxit session
+# already gone and only `sikulixide ... Running` left in the listing.)
+#
+# collect_vm_logs() is what check_running() would have done for us: the try
+# session's logs are wiped when the app is launched again a few lines below, so
+# they have to be copied out now or not at all.
+def wait_for_session_end(name="test", max_retries=12, delay=5):
+    for attempt in range(max_retries):
+        output = run("turbo sessions")
+        if not [l for l in output.splitlines() if name in l.split() and "Running" in l]:
+            if attempt:
+                Debug.user("wait_for_session_end: %s ended after %d s" % (name, attempt * delay))
+            util.collect_vm_logs()
+            return
+        wait(delay)
+    Debug.user("wait_for_session_end: %s still Running after %d s\n%s"
+               % (name, max_retries * delay, output))
+    assert False, "session %s did not end after the app was closed" % name
+
 # Test of `turbo run`.
 wait("foxit_window.png")
 close_foxit()
-# The container goes away once its last process has exited, so the session ends
-# on its own now. Assert that it has before the shortcut launch below starts a
-# new one - `turbo stop` used to guarantee this, and nothing else does now.
-util.check_running()
+# `turbo stop` used to be what ended this session; now the app exiting is, so
+# check the container really did go away before the shortcut launch starts a
+# new one.
+wait_for_session_end()
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Foxit PDF Reader", "Foxit PDF Reader.lnk"))
