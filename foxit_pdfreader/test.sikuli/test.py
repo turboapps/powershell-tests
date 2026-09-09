@@ -70,9 +70,47 @@ def highlight_sample_word(attempts=3, settle=20):
         raise FindFailed("highlight_sample_word: clicked Highlight but no highlight "
                          "appeared - the doubleClick did not select the word")
 
+# Close Foxit by asking Foxit, rather than stopping the container out from under
+# it.
+#
+# `turbo stop` does not just end the container. The injected VM DLL in every
+# container process runs TerminateSelfGracefullyCallback, which posts WM_CLOSE to
+# *every* top-level window that process owns - no visibility, WS_EX_TOOLWINDOW or
+# owner filter (vm/Vm/Engine/vm.cpp, _PostWmCloseIf) - and then TerminateProcess
+# after 10 s. A --diagnostic run measured 17 WM_CLOSE posts into
+# FoxitPDFReader.exe while it had one visible frame on screen, so the other 16
+# went to windows no user could ever close. Foxit does not survive that: one of
+# them belongs to PlgDynLoader.fpi, closing it makes the CWnd self-delete, and
+# the plug-in's static destructor deletes the same pointer again at FreeLibrary.
+# That double free (c0000374) writes a WER dump on every single run, and since
+# applab #108 a dump fails the run even when SikuliX passed.
+#
+# Measured 11/11 crashes when `turbo stop` ended it against 0/5 when Foxit was
+# closed first, on xvm 26.9.26.1052 and on the 26.3.18.1034 baseline alike - so
+# this is not a build regression, and closing the app is what avoids it. Alt+F4
+# reaches only the main frame and lets MFC unwind its children in order.
+#
+# Verify the window actually went, instead of trusting the keystroke: with
+# `turbo stop` gone nothing else ends this session, so a missed Alt+F4 would
+# otherwise surface much later as an unexplained "still Running". Polled with
+# exists() rather than waitVanish() so each look leaves a step frame.
+def close_foxit(attempts=3, settle=15):
+    for attempt in range(attempts):
+        type(Key.F4, Key.ALT)
+        for _ in range(settle):
+            if not exists("foxit_window.png", 1):
+                return
+        Debug.user("close_foxit: window still up after attempt %d of %d"
+                   % (attempt + 1, attempts))
+    raise FindFailed("close_foxit: Foxit did not close on Alt+F4")
+
 # Test of `turbo run`.
 wait("foxit_window.png")
-run("turbo stop test")
+close_foxit()
+# The container goes away once its last process has exited, so the session ends
+# on its own now. Assert that it has before the shortcut launch below starts a
+# new one - `turbo stop` used to guarantee this, and nothing else does now.
+util.check_running()
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Foxit PDF Reader", "Foxit PDF Reader.lnk"))
