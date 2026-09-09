@@ -559,24 +559,35 @@ def paste_text(text, settle=1):
     paste(text)
     wait(settle)
 
-# Put a path into a Windows file dialog's "File name" field and confirm it.
+# Put a path into a Windows file dialog's "File name" field, leaving it there
+# for the caller to confirm.
 #
 # wait(field_image) only proves the dialog is painted, not that it owns the
 # keyboard. In App Tests run 33849047386 (videolan_vlc-x64) the first chord sent
 # to the freshly opened Open dialog lost its modifier: paste()'s Ctrl+V arrived
-# as a bare "v", Enter then raised "v - File not found", and the test died three
-# lines later at an image the wrong file could never match. Click the field
-# first so the dialog has settled and the field has focus, replace whatever a
-# stray keystroke may already have typed, paste, confirm, and retry if the
-# dialog rejects the name. The error box is checked for only briefly because
-# VLC's title overlay, which the next wait() matches, is on screen for just a
-# few seconds after playback starts.
+# as a bare "v", which the dialog took for the whole file name. So click the
+# field first, which both settles the dialog and puts the caret in it, and clear
+# whatever a stray keystroke may already have typed before pasting.
+#
+# field_image is the "File name:" label; the click reaches past it into the
+# field itself.
+def paste_path_in_dialog(field_image, path):
+    click(Pattern(field_image).targetOffset(40, 0))
+    wait(0.5)
+    type("a", Key.CTRL)
+    paste_text(path)
+
+# Put a path into a Windows file dialog's "File name" field and confirm it.
+#
+# Pastes as paste_path_in_dialog does, then confirms and retries if the dialog
+# rejects the name -- which is how a dropped modifier showed itself in run
+# 33849047386: Enter raised "v - File not found" and the test died three lines
+# later at an image the wrong file could never match. The error box is checked
+# for only briefly because VLC's title overlay, which the next wait() matches,
+# is on screen for just a few seconds after playback starts.
 def open_file_in_dialog(field_image, path, error_image="file_not_found.png", attempts=3):
     for attempt in range(attempts):
-        click(Pattern(field_image).targetOffset(40, 0))
-        wait(0.5)
-        type("a", Key.CTRL)
-        paste_text(path)
+        paste_path_in_dialog(field_image, path)
         type(Key.ENTER)
         if not exists(error_image, 1):
             return True
@@ -584,6 +595,43 @@ def open_file_in_dialog(field_image, path, error_image="file_not_found.png", att
         type(Key.ENTER)  # OK is the default button of the "File not found" box
         wait(1)
     raise FindFailed("open_file_in_dialog: the dialog rejected '%s' %d times" % (path, attempts))
+
+# Save the page a browser is showing as "Web Page, HTML only" through its
+# Save As dialog, and prove the file landed.
+#
+# A Save As dialog gives a dropped modifier nowhere to show itself. The field
+# opens with the app's suggested name selected, so a paste() whose Ctrl is lost
+# types a bare "v" over it and the page saves as "v.htm" in whatever folder the
+# dialog happens to be showing -- no error box, no failed match, the save
+# genuinely succeeds under the wrong name in the wrong place. In App Tests run
+# 34295135821 (mozilla_firefox) it went to Downloads.htm and the test spent
+# 200 s in file_exists waiting for a Desktop file that was never going to
+# appear, then died on a bare assert that said nothing about why.
+#
+# So paste through paste_path_in_dialog, and then check the outcome rather than
+# trusting it: if the intended file is not there, the name did not go in, and
+# reopening the dialog and redoing the save is the only thing that can help.
+# Escape first on a retry to clear the download panel the wrong save popped up,
+# which would otherwise swallow the Ctrl+S.
+def save_page_as_html(field_image, type_image, path, result_path, attempts=3):
+    for attempt in range(attempts):
+        if attempt:
+            type(Key.ESC)
+            wait(1)
+        type("s", Key.CTRL)
+        wait(field_image)
+        paste_path_in_dialog(field_image, path)
+        click(Pattern(type_image).targetOffset(39, 1))
+        wait(2)
+        type(Key.DOWN)   # "Web Page, complete" -> "Web Page, HTML only"
+        wait(2)
+        type(Key.ENTER)  # commit the file type
+        wait(2)
+        type(Key.ENTER)  # Save
+        if file_exists(result_path, 2):
+            return True
+        Debug.user("save_page_as_html: '%s' was not written on attempt %d of %d" % (result_path, attempt + 1, attempts))
+    raise FindFailed("save_page_as_html: '%s' was never written in %d attempts" % (result_path, attempts))
 
 # Bring a window to the front and wait for something on it, re-asserting the
 # focus between polls.
