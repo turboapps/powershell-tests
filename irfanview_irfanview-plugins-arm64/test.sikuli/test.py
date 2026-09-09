@@ -19,7 +19,7 @@ wait(3)
 run("turbo stop test")
 
 # Launch the app.
-run("explorer " + os.path.join(util.desktop, "IrfanView.lnk"))
+run("explorer " + os.path.join(util.desktop, "IrfanView ARM64.lnk"))
 wait("irfanview-menu.png")
 app_window = App().focus("IrfanView") # Activate and maximize the app window.
 if app_window.isValid():
