@@ -106,13 +106,17 @@ def close_foxit(attempts=3, settle=15):
 
 # Wait for the named session to end, then take its VM logs.
 #
-# Scoped to the one session on purpose. util.check_running() asserts that
-# *nothing* is Running, which is right at the end of a test but not here:
-# `turbo sessions` also lists the sikulixide container this very script is
-# running inside, so at this point in the test it always finds that one and
-# fails. (Measured: runs 34413026906/34413037750/34413048443 on 26.9.26 and
-# 34413058542/34413069056 on 26.3.18.1034 all died here with the foxit session
-# already gone and only `sikulixide ... Running` left in the listing.)
+# Scoped to the one session on purpose - util.check_running() cannot work here,
+# and not by accident. It polls `turbo sessions -l`, and -l is --latest: one
+# session, the most recent. A `try` session is *removed* from the listing when
+# it ends, so the moment this one goes away the newest session becomes the
+# sikulixide container this very script runs inside - which is Running, and
+# stays Running for the rest of the test. check_running() is therefore
+# guaranteed to fail at this point rather than merely likely to; it only works
+# at the end of a test, where the newest session is the app's own. Measured on
+# the first cut: runs 34413026906/34413037750/34413048443 (26.9.26) and
+# 34413058542/34413069056 (26.3.18.1034) all died here, every one of them with
+# no foxit session in the listing at all and only `sikulixide ... Running`.
 #
 # collect_vm_logs() is what check_running() would have done for us: the try
 # session's logs are wiped when the app is launched again a few lines below, so
