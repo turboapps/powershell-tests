@@ -539,6 +539,42 @@ def close_app(name):
         if executable:
             run("taskkill /F /IM " + executable)
 
+# Wait for an app to be really gone before launching it again.
+#
+# A quit keystroke returns as soon as the app accepts it, and the window leaves
+# the screen and the taskbar well before the process tree does. Relaunching into
+# that gap finds an instance that still holds its single-instance lock but can no
+# longer answer, and Firefox answers with "Firefox is already running, but is not
+# responding" instead of opening the page. In App Tests run 34097555049 the
+# protocol launch went out 2 s after Ctrl+Shift+Q -- step frames 031 and 032 are
+# both a Firefox-less desktop -- and the wait that followed timed out against
+# that dialog.
+#
+# Both halves have to be quiet, because measured on the pool VMs they go quiet in
+# either order: a probe over three runs saw the session still Running 6 s after
+# the process had gone, and the process still alive while the session had already
+# ended. The lock that produces the dialog belongs to the process, and the
+# container teardown belongs to the session, so neither on its own is the answer.
+# Both-quiet took 0-8 s across six measurements, so the default bound is well
+# clear of it.
+#
+# Unlike check_running, which is the end-of-test assertion, this is a mid-test
+# settle: an app that outlasts the bound is being slow, which is worth a log line
+# and not worth failing a test that has not tested anything yet.
+def wait_app_quiet(executable, max_wait=60, poll=2):
+    waited = 0
+    while waited <= max_wait:
+        session_busy = "Running" in run("turbo sessions -l")
+        process_busy = executable in run('tasklist /FI "IMAGENAME eq ' + executable + '"')
+        if not session_busy and not process_busy:
+            if waited:
+                Debug.user("wait_app_quiet: %s went quiet after %d s" % (executable, waited))
+            return True
+        wait(poll)
+        waited += poll
+    Debug.user("wait_app_quiet: %s still had a session or a process after %d s" % (executable, max_wait))
+    return False
+
 # Paste text without racing the next clipboard write.
 #
 # SikuliX's paste() puts the text on the clipboard and sends Ctrl+V, then returns
@@ -664,3 +700,44 @@ def focus_and_wait(window, image, attempts=30, poll=10):
             return True
     Debug.user("focus_and_wait: %s not found on '%s' after %d attempts" % (image, window, attempts))
     return False
+
+# Drive a browser to a URL through its address bar, and prove it got there.
+#
+# Alt+D, the paste and Enter only reach the browser if the browser still holds
+# the foreground when they are sent, and a container the test launched moments
+# earlier can take it away. In App Tests run 34398082628 (opensearch_opensearch)
+# the curl container's console -- started one line earlier as
+#   turbo try base -n=curl ... --startup-file=cmd -- /C put.bat
+# -- raised itself *after* App().focus("Edge") and covered Edge's address bar,
+# so all three went to cmd.exe instead. Step frame 005 catches it mid-paste with
+# that console, titled "cmd.exe @curl#0cd0d95f", on top and focused; the FAILED
+# frame four lines later still shows the address bar on the previous URL.
+# Padding the wait() before the focus cannot fix that -- the console's timing is
+# the thing that varies -- so re-assert the focus each round and check the
+# outcome instead of trusting it.
+#
+# One retry is normally enough: that console is transient (cmd /C exits when the
+# batch does), and keystrokes that land in it are harmless -- the URL arrives at
+# a prompt, Enter reports an unrecognised command, and the window closes. The
+# check also covers the slower failure where the browser reaches the URL before
+# the container it is reporting on has finished its work, since a page that
+# renders the wrong thing fails done_image just as an unfocused browser does.
+#
+# Ctrl+A before the paste is belt and braces. Alt+D already selects the bar, but
+# if it went astray the paste would append to whatever is sitting there rather
+# than replace it. FindFailed on exhaustion keeps the suite's usual failure
+# signature, as open_file_in_dialog and save_page_as_html do.
+def navigate_browser(window, url, done_image, attempts=3, settle=3, timeout=30):
+    for attempt in range(attempts):
+        App(window).focus()
+        wait(settle)
+        type("d", Key.ALT)
+        wait(0.5)
+        type("a", Key.CTRL)
+        paste_text(url)
+        type(Key.ENTER)
+        if exists(done_image, timeout):
+            return True
+        Debug.user("navigate_browser: '%s' did not reach '%s' on attempt %d of %d"
+                   % (url, done_image, attempt + 1, attempts))
+    raise FindFailed("navigate_browser: '%s' never loaded in %d attempts" % (url, attempts))

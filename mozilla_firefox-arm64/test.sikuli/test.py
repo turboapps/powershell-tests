@@ -48,6 +48,7 @@ wait("settings_page.png")
 click("help-link.png")
 wait("help_page.png")
 type("q", Key.CTRL + Key.SHIFT)
+util.wait_app_quiet("firefox.exe")
 
 # Set default browser.
 type("i", Key.WIN)
@@ -69,6 +70,7 @@ if exists("choose-app-firefox.png",10):
     click("always.png")
 wait(Pattern("webpage.png").similar(0.60))
 type("q", Key.CTRL + Key.SHIFT)
+util.wait_app_quiet("firefox.exe")
 run('explorer "https://google.com/"')
 if exists("open-with-firefox.png",10):
     click("open-with-firefox.png")
