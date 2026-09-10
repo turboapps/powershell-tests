@@ -129,7 +129,21 @@ if exists("adobe_login_signout_others.png",60):
     click(Pattern("adobe_login_continue.png").similar(0.80))
 if exists("adobe_login_team.png",10):
     click(Pattern("adobe_login_continue.png").similar(0.80))
-wait("pdf_window.png",15)
+# The turbo run keeps this console in the foreground, and Acrobat does not
+# reliably raise itself above it. pdf_window.png anchors on the window's top-left
+# chrome at (6,4) 191x73, and in run 34529738531 the Command Prompt covered
+# (52,52)-(1165,680) - so the bottom of the match region was behind the console
+# and the wait timed out with Acrobat plainly up: the FAILED frame shows the
+# command's full output ("Using VM 26.9.29.1055 ... Running new session
+# test#f15a37e2") and the Acrobat window behind the console. Whether Acrobat wins
+# the z-order race is chance, which is why this is not a budget - #197 already
+# established that widening this wait changes nothing.
+#
+# So raise Acrobat before looking for it. focus() on a name that matches nothing
+# is a no-op, so the worst case is the behaviour this replaces; the plain wait()
+# below is still the assertion and still leaves the usual FAILED frame.
+if not util.focus_and_wait("Acrobat", "pdf_window.png", attempts=6, poll=5):
+    wait("pdf_window.png", 5)
 run("turbo stop test")
 closeApp("Command Prompt")
 
