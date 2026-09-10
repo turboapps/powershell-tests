@@ -74,7 +74,8 @@ def submit_email():
 # blank, "Loading... signin.bluebeam.com", re-renders the *email* step, then
 # swaps in the password fields) and took ~26 s on 2026-09-10, so give the first
 # attempt a generous look before deciding it never landed.
-submit_email()
+# PROBE: simulate the first click+type being swallowed by the Revu splash.
+# submit_email()
 if not exists(password_box_image, 60):
     # Still on the email step: the splash is long gone by now, so type into the
     # re-rendered card.
