@@ -27,11 +27,38 @@ TREESIZE_WINDOW = "select-scan-target.png"
 # than once: in App Tests runs 34269861733 and 34269865181 a second splash
 # arrived moments after the first had been dismissed, with the scan already
 # under way.
+#
+# The splash also lets go of the screen on its own, and clicking it is not what
+# always removes it: in App Tests run 34423192441 the link was clicked three
+# times and the splash was still up after each one, then went at the same moment
+# the scan result appeared. So the look and the click have to be one step. Click
+# the match exists() already returned rather than click("continue-with-trial.png"),
+# which runs a SECOND full-screen search - one that inherits the ambient
+# setAutoWaitTimeout(30) - and raises FindFailed when the splash left in the gap
+# between the two, which is the outcome this function wants. Run 34423171312 died
+# exactly there: the frame captured just before the click matches the link at
+# 0.96, the FAILED frame 30 s later shows no splash over a finished
+# C:\Program Files scan - the test's own success condition. The 26.9.29 run of
+# the same sweep clicked three times too and differed only in which call the
+# disappearance landed in: its exists(target, 5) tolerated it and moved on.
+#
+# Re-confirm in the match's own neighbourhood (a 172x31 search, not a screen
+# sweep) so a splash that has already gone does not get a stray click put into
+# whatever is underneath it - the results grid during a scan, but Explorer or
+# the desktop once close_window has TreeSize on its way out, where a stray click
+# plus the Alt+F4 below it closes the wrong window. Either way the answer is
+# True, because what the callers actually ask is whether a splash was in the
+# way: a splash on screen has already swallowed close_window's Alt+F4 whether or
+# not this function is the thing that cleared it, and close_window re-sends the
+# keystroke on True alone.
 def dismiss_trial_splash(timeout=2):
-    if exists("continue-with-trial.png", timeout):
-        click("continue-with-trial.png")
-        return True
-    return False
+    match = exists("continue-with-trial.png", timeout)
+    if match is None:
+        return False
+    around = Region(match.x - 6, match.y - 6, match.w + 12, match.h + 12)
+    if around.exists("continue-with-trial.png", 0):
+        click(match)
+    return True
 
 # Wait for a shell context menu launch to reach its scan of (target_image),
 # dismissing the "Easily Getting Started!" trial splash on the way.
