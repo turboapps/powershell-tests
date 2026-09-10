@@ -132,7 +132,10 @@ wait("word_result_5.png")
 
 type(Key.F1)
 wait("word_help.png")
-util.close_window("word_result_5.png")
+# F1 leaves the keyboard focus in the Help pane, which is a WebView2 hosted
+# out of process and swallows Alt+F4 whole; click back into the document
+# before closing (see util.close_window).
+util.close_window("word_result_5.png", refocus="word_result_5.png")
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 
 # Check if the session terminates.
