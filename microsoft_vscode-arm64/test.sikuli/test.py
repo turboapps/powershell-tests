@@ -8,6 +8,31 @@ addImagePath(include_path)
 setAutoWaitTimeout(50)
 util.pre_test()
 
+# Opening a folder raises the workspace-trust modal, and without trust the C# Dev
+# Kit refuses to run - the window stays in Restricted Mode and the run produces
+# no output at all, so no wait length can rescue it. x64 has carried this for a
+# while; arm64 only ever handled the *file*-trust prompt (remember-checkbox),
+# which is a different dialog, and never granted folder trust at all.
+def grant_workspace_trust(timeout=30):
+    if exists("trust_folder_yes.png", timeout):
+        click("trust_folder_yes.png")
+        wait(3)
+        return True
+    # No modal: the folder opened straight into Restricted Mode, either because
+    # VS Code remembers a previous decline or because it never prompted. Key on
+    # the Manage link, which is common to both banner wordings, and grant trust
+    # in the editor it opens.
+    if exists("restricted_mode_manage.png", 10):
+        click("restricted_mode_manage.png")
+        if exists("workspace_trust_window.png", 20):
+            click("workspace_trust_button.png")
+            wait(5)
+            if exists("workspace_trust_window.png", 3):
+                type("w", Key.CTRL)   # close the Workspace Trust tab
+                wait(2)
+    # Trust is granted once the Restricted Mode banner is gone.
+    return not exists("restricted_mode_manage.png", 5)
+
 def dismiss_signin():
     # ESC cancels the whole welcome wizard and leaves the window in the state the
     # rest of the test expects.
@@ -129,6 +154,9 @@ wait(2)
 type(Key.ENTER)
 wait("open_folder_select_folder.png")
 type(Key.ENTER)
+if not grant_workspace_trust(30):
+    raise FindFailed("workspace trust was never granted - the C# run cannot "
+                     "produce output in Restricted Mode")
 if exists("remember-checkbox.png",10):
     click("remember-checkbox.png")
     type(Key.TAB)
@@ -143,10 +171,25 @@ if exists("remember-checkbox.png",10):
 type("k", Key.CTRL)
 type("w")
 wait(3)
-# The Explorer tree can take well past the ambient timeout to populate after C#
-# Dev Kit loads the project.
-wait(Pattern("solution_c_sharp.png"), 180)
-doubleClick(Pattern("solution_c_sharp.png").targetOffset(-20,17))
+# The Explorer tree does not always populate. The pane shows the folder root
+# expanded with not a single row under it, and no wait rescues it: in run
+# 34520054848 solution_c_sharp.png still scored 0.34 in the final screenshot,
+# taken after a 180 s wait had already expired. The tree is only a means of
+# opening Program.cs, so do not depend on it - fall back to opening the file by
+# path, the way every other language in this test opens its own.
+if exists(Pattern("solution_c_sharp.png"), 180):
+    doubleClick(Pattern("solution_c_sharp.png").targetOffset(-20,17))
+else:
+    Debug.user("the Explorer tree never populated; opening Program.cs by path")
+    type("o", Key.CTRL)
+    wait("open_location.png")
+    paste(os.path.join(script_path, os.pardir, "resources", "Hello World",
+                       "Program.cs"))
+    wait(2)
+    type(Key.ENTER)
+    if not exists("tab_c_sharp.png", 60):
+        raise FindFailed("Program.cs never opened: the Explorer tree never "
+                         "populated and opening it by path failed too")
 click("tab_c_sharp.png")
 wait(3)
 # The editor Run button is unreliable here: on x64 the click lands on it - the
