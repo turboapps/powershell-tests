@@ -52,9 +52,6 @@ wait(10)
 run("explorer " + util.get_shortcut_path_by_prefix(util.desktop, "Bluebeam Revu"))
 wait_first_run(120)
 wait(15)
-click(email_box)
-type(username)
-type(Key.ENTER)
 # password-box.png is the "Password" label above a focused, blue-outlined box.
 # The empty "Bluebeam ID" box of the *email* step looks near enough to that to
 # score 0.704, which clears SikuliX's 0.7 default by 0.004 - so the click lands
@@ -62,10 +59,26 @@ type(Key.ENTER)
 # OpenCV TM_CCOEFF_NORMED: the ID field peaks at 0.704, a real password box at
 # 0.949-0.985. 0.85 sits clear of both.
 password_box_image = Pattern("password-box.png").similar(0.85)
-# Getting from the email step to the password step is a full web-view reload:
-# the card goes blank ("Loading... signin.bluebeam.com"), re-renders the *email*
-# step - empty ID box, "Next" button - and only then swaps in the password
-# fields. That took ~26 s on 2026-09-10, so do not rely on the ambient timeout.
+
+def submit_email():
+    click(email_box)
+    type(username)
+    type(Key.ENTER)
+
+# Revu's splash panel can still be on top of the sign-in card when the click
+# fires - it covers the whole field area - so the username lands on the splash
+# instead of the field and the card never leaves the email step (run
+# 34539429949). wait_first_run only proves the card is *visible*, and the
+# wait(15) above is a guess, so check the outcome instead: getting from the
+# email step to the password step is a full web-view reload (the card goes
+# blank, "Loading... signin.bluebeam.com", re-renders the *email* step, then
+# swaps in the password fields) and took ~26 s on 2026-09-10, so give the first
+# attempt a generous look before deciding it never landed.
+submit_email()
+if not exists(password_box_image, 60):
+    # Still on the email step: the splash is long gone by now, so type into the
+    # re-rendered card.
+    submit_email()
 wait(password_box_image, 120)
 # The card keeps rendering after the password box first appears - the "Select
 # Region" dropdown at its top lands late and pushes the fields down - so a click
