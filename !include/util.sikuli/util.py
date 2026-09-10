@@ -808,3 +808,159 @@ def _foreground_covers(region):
             and win.getY() <= region.getY()
             and win.getX() + win.getW() >= region.getX() + region.getW()
             and win.getY() + win.getH() >= region.getY() + region.getH())
+
+# ---------------------------------------------------------------------------
+# VS Code
+# ---------------------------------------------------------------------------
+# The x64 and arm64 VS Code tests are the same test twice, and every helper
+# below was duplicated in both. They drifted: arm64 was missing the workspace
+# trust grant, the retrying file open, the trust-aware window wait, the
+# session-aware relaunch, the verified extension install and the Python and
+# Java run guards, which is most of what made it fail where x64 passed. One
+# copy here, called from both.
+#
+# These live in util rather than a vscode-specific module on purpose:
+# pre_test() installs the per-step screenshot hooks into the calling test's
+# namespace and util's own, so a helper defined anywhere else would silently
+# stop producing step frames.
+
+# Opening a folder raises the workspace-trust modal, and without trust the C#
+# Dev Kit refuses to run ("Unable to execute C# Dev Kit command. Some features
+# execute code and can only run in a trusted workspace") - the window stays in
+# Restricted Mode and the run produces no output at all, so no wait length can
+# rescue it. Key on the button, and fall back to the Restricted Mode banner if
+# the modal has already been dismissed.
+def vscode_grant_workspace_trust(timeout=30):
+    if exists("trust_folder_yes.png", timeout):
+        click("trust_folder_yes.png")
+        wait(3)
+        return True
+    # No modal: the folder opened straight into Restricted Mode, either because
+    # VS Code remembers a previous decline or because it never prompted.
+    # restricted_mode_banner.png is the *file* wording ("Trust this window") and
+    # cannot match the folder banner ("Trust this folder"), so key on the Manage
+    # link, which is common to both, and grant trust in the editor it opens.
+    if exists("restricted_mode_manage.png", 10):
+        click("restricted_mode_manage.png")
+        if exists("workspace_trust_window.png", 20):
+            click("workspace_trust_button.png")
+            wait(5)
+            if exists("workspace_trust_window.png", 3):
+                type("w", Key.CTRL)   # close the Workspace Trust tab
+                wait(2)
+    # Trust is granted once the Restricted Mode banner is gone.
+    return not exists("restricted_mode_manage.png", 5)
+
+# The file-trust prompt only appears while the folder is still untrusted; once
+# trust has been granted VS Code remembers it, so it must be optional.
+def vscode_dismiss_file_trust():
+    if exists("remember-checkbox.png", 5):
+        click("remember-checkbox.png")
+        type(Key.TAB)
+        type(Key.SPACE)
+        if exists("trust-continue.png", 20):
+            click("trust-continue.png")
+
+# Ctrl+O opens the file dialog, but the pasted path is intermittently swallowed:
+# the autocomplete list takes the Enter and navigates into the folder instead of
+# opening the file, leaving the dialog up with an empty File name box, and the
+# tab wait that follows then fails. Confirm the tab actually opened and retry
+# once. Paths are normalised because the dialog resolves ".." oddly.
+def vscode_open_file(path, tab_image, timeout=60):
+    path = os.path.normpath(path)
+    for attempt in range(2):
+        if not exists("open_location.png", 2):
+            type("o", Key.CTRL)
+            wait("open_location.png")
+        wait(2)
+        paste(path)
+        wait(2)
+        type(Key.ENTER)
+        vscode_dismiss_file_trust()
+        if exists(tab_image, timeout):
+            return True
+    return False
+
+# turbo try -d launches VS Code detached and Windows does not always grant it
+# the foreground. When it does not, the taskbar shows the VS Code button
+# flashing for attention while the keyboard focus ring sits on the Start button,
+# and a keystroke never reaches the app - the frames either side of the ESC
+# differ by 0 px and the modal is still up.
+#
+# Do NOT dismiss this by clicking vscode-signin.png. That image is the modal's
+# "Continue without Signing In" button, and clicking it ADVANCES the wizard to
+# its "Make It Yours" theme page rather than closing it, so code_window_2 never
+# matches afterwards. ESC cancels the wizard outright.
+def vscode_dismiss_signin():
+    for attempt in range(3):
+        activate_app_window("Visual Studio Code", 3)
+        type(Key.ESC)
+        if not exists("vscode-signin.png", 5):
+            return True
+        Debug.user("vscode_dismiss_signin: the sign-in modal survived ESC "
+                   "(attempt %d)" % (attempt + 1))
+    return False
+
+# The folder-trust dialog ("Trust Folder & Continue") can surface tens of
+# seconds after a file is opened - well after vscode_open_file's own 20 s window
+# on trust-continue.png has closed - and it then sits on top of the window this
+# wait is looking for. Clear it before giving up.
+def vscode_wait_code_window(timeout=60):
+    if exists("code_window_2.png", 10):
+        return True
+    if exists("trust-continue.png", 3):
+        click("trust-continue.png")
+        wait(3)
+    return exists("code_window_2.png", timeout)
+
+# The extension install runs in a container whose cmd.exe crashes often enough
+# to cost a run: Turbo logged "Application exited: -1073741819" (0xC0000005)
+# 17 s in, and the dump was an NX execute fault at an address inside no loaded
+# module. Nothing checked that return value, so the run carried on with no
+# extensions and died 40 lines later on a missing Run button. merge-user puts
+# container writes in the real profile - the tests already lean on that for
+# hello_world.py - so the extension folders can be checked from here.
+def vscode_install_extensions(turbocmd, extensions, marker="ms-python.python",
+                              attempts=2):
+    extensions_dir = os.path.join(os.environ["USERPROFILE"], ".vscode",
+                                  "extensions")
+    for attempt in range(attempts):
+        run(turbocmd + extensions)
+        if find_file(extensions_dir, marker):
+            return True
+        Debug.user("vscode_install_extensions: %s is not in %s after attempt "
+                   "%d - the install container most likely crashed; retrying"
+                   % (marker, extensions_dir, attempt + 1))
+    return False
+
+# Alt+F4 closes an app's window, but its Turbo session can outlive it and a
+# launch that lands in that gap dies with "Failed to start application in
+# already running session" on a bare desktop: the client logs "Existing session
+# with same sandbox is not running" and then switches to LaunchInSession anyway,
+# hangs ~36 s and gives up. Wait for the session and the process to go quiet
+# first, and if the error dialog still appears, clear it and launch again.
+#
+# Not VS Code specific: any test that closes an app and relaunches it through
+# the file association can land in the same gap.
+def reopen_in_new_window(path, tab_image, executable, attempts=3):
+    for attempt in range(attempts):
+        # A lingering process keeps the session alive, so this closes the most
+        # common part of the window. It cannot close all of it: the client can
+        # have already decided the sandbox is dead while the stale session
+        # record outlives the process, and only the retry below saves that case.
+        wait_app_quiet(executable, 120)
+        run("explorer " + path)
+        # Wait for whichever lands first: the client blocks ~36 s before giving
+        # up and a healthy launch beats that easily, so polling for both avoids
+        # paying either timeout in the common case.
+        for poll in range(60):
+            if exists(tab_image, 2):
+                return True
+            if exists("turbo-session-error.png", 1):
+                Debug.user("reopen_in_new_window: Turbo refused the launch into "
+                           "a session it had already logged as not running; "
+                           "clearing the error and retrying")
+                click(Pattern("turbo-session-error.png").targetOffset(145, 34))
+                wait(5)
+                break
+    return False
