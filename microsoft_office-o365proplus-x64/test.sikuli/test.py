@@ -132,6 +132,10 @@ wait("word_result_5.png")
 
 type(Key.F1)
 wait("word_help.png")
+# PROBE ONLY - DO NOT MERGE. Hold until the Help pane has certainly taken the
+# keyboard focus, the state in which run 34540575598 could not close Word with
+# three Alt+F4. Passing here means the refocus click is what closes it.
+wait(20)
 # F1 leaves the keyboard focus in the Help pane, which is a WebView2 hosted
 # out of process and swallows Alt+F4 whole; click back into the document
 # before closing (see util.close_window).
