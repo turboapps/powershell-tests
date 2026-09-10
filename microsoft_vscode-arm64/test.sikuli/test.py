@@ -33,6 +33,75 @@ def grant_workspace_trust(timeout=30):
     # Trust is granted once the Restricted Mode banner is gone.
     return not exists("restricted_mode_manage.png", 5)
 
+# The file-trust prompt only appears while the folder is still untrusted; once
+# trust has been granted VS Code remembers it, so it must be optional. The old
+# inline copy in the C section used a bare wait(), which raises outright when the
+# dialog does not appear at all.
+def dismiss_file_trust():
+    if exists("remember-checkbox.png",5):
+        click("remember-checkbox.png")
+        type(Key.TAB)
+        type(Key.SPACE)
+        if exists("trust-continue.png",20):
+            click("trust-continue.png")
+
+# Ctrl+O opens the file dialog, but the pasted path is intermittently swallowed:
+# the autocomplete list takes the Enter and navigates into the folder instead of
+# opening the file, leaving the dialog up with an empty File name box, and the
+# tab wait that follows then fails. Confirm the tab actually opened and retry
+# once. Paths are normalised because the dialog resolves ".." oddly.
+def open_file(path, tab_image, timeout=60):
+    path = os.path.normpath(path)
+    for attempt in range(2):
+        if not exists("open_location.png", 2):
+            type("o", Key.CTRL)
+            wait("open_location.png")
+        wait(2)
+        paste(path)
+        wait(2)
+        type(Key.ENTER)
+        dismiss_file_trust()
+        if exists(tab_image, timeout):
+            return True
+    return False
+
+# The folder-trust dialog ("Trust Folder & Continue") can surface tens of seconds
+# after a file is opened - well after open_file's own 20 s window on
+# trust-continue.png has closed - and it then sits on top of the window this wait
+# is looking for. Clear it before giving up.
+def wait_code_window(timeout=60):
+    if exists("code_window_2.png", 10):
+        return True
+    if exists("trust-continue.png", 3):
+        click("trust-continue.png")
+        wait(3)
+    return exists("code_window_2.png", timeout)
+
+# Alt+F4 closes the VS Code window, but the Turbo session can outlive it and a
+# launch that lands in that gap dies with "Failed to start application in already
+# running session" on a bare desktop: the client logs "Existing session with same
+# sandbox is not running" and then switches to LaunchInSession anyway, hangs
+# ~36 s and gives up. Wait for the session and the process to go quiet first, and
+# if the error dialog still appears, clear it and launch again.
+def reopen_in_new_window(path, tab_image, attempts=3):
+    for attempt in range(attempts):
+        util.wait_app_quiet("Code.exe", 120)
+        run("explorer " + path)
+        # Wait for whichever lands first: the client blocks ~36 s before giving
+        # up and a healthy launch beats that easily, so polling for both avoids
+        # paying either timeout in the common case.
+        for poll in range(60):
+            if exists(tab_image, 2):
+                return True
+            if exists("turbo-session-error.png", 1):
+                Debug.user("reopen_in_new_window: Turbo refused the launch into "
+                           "a session it had already logged as not running; "
+                           "clearing the error and retrying")
+                click(Pattern("turbo-session-error.png").targetOffset(145,34))
+                wait(5)
+                break
+    return False
+
 def dismiss_signin():
     # ESC cancels the whole welcome wizard and leaves the window in the state the
     # rest of the test expects.
@@ -66,7 +135,29 @@ run("turbo stop test")
 # Install the extensions
 extensions = "code --install-extension ms-python.python --install-extension ms-vscode.cpptools --install-extension ms-vscode.cpptools-extension-pack --install-extension vscjava.vscode-java-pack --install-extension ms-dotnettools.csdevkit --install-extension dbaeumer.vscode-eslint --install-extension golang.go --install-extension shopify.ruby-extensions-pack --force"
 turbocmd = "turbo run vscode-arm64 --isolate=merge-user --using=python/python-arm64,eclipse/temurin-lts-arm64,microsoft/dotnet-sdk-arm64 --startup-file=cmd -- /C "
-run(turbocmd + extensions)
+# The install runs in a container whose cmd.exe crashes often enough to cost a
+# run: on x64 Turbo logged "Application exited: -1073741819" (0xC0000005) 17 s
+# in, and the dump was an NX execute fault at an address inside no loaded module.
+# Nothing checked that return value, so the run carried on with no extensions and
+# died 40 lines later on a missing Run button. merge-user puts container writes
+# in the real profile - the test already leans on that for hello_world.py - so
+# the extension folders can be checked from here.
+extensions_dir = os.path.join(os.environ["USERPROFILE"], ".vscode", "extensions")
+
+def install_extensions(attempts=2):
+    for attempt in range(attempts):
+        run(turbocmd + extensions)
+        if util.find_file(extensions_dir, "ms-python.python"):
+            return True
+        Debug.user("install_extensions: ms-python.python is not in %s after "
+                   "attempt %d - the install container most likely crashed; "
+                   "retrying" % (extensions_dir, attempt + 1))
+    return False
+
+if not install_extensions():
+    raise FindFailed("the VS Code extensions never installed: the install "
+                     "container exits with 0xC0000005, an NX execute fault in "
+                     "cmd.exe at an address in no loaded module")
             
 # Launch the app.
 util.launch_shortcut(["Visual Studio Code", "Visual Studio Code.lnk"], "Microsoft VSCode ARM64.lnk")
@@ -92,9 +183,8 @@ type(Key.ENTER)
 assert(util.file_exists(python_save_path, 5))
 click("tab_python.png")
 type(Key.F4, Key.ALT)
-wait(10)
-run("explorer " + python_save_path)
-wait("tab_python.png")
+if not reopen_in_new_window(python_save_path, "tab_python.png"):
+    raise FindFailed("hello_world.py never reopened in a new window")
 wait("restricted_mode_banner.png")
 wait(2)
 click(Pattern("restricted_mode_banner.png").targetOffset(219,2))
@@ -103,47 +193,54 @@ type(Key.ENTER, Key.CTRL)
 wait("restricted_mode_button.png")
 click("tab_python.png")
 wait("code_python.png")
-click(Pattern("run_1.png").similar(0.60).targetOffset(-28,0))
+# No Run affordance here means the Python extension is not in this window rather
+# than that the button is slow: VS Code is still offering "Do you want to install
+# the recommended 'Python' extension". Name that, instead of failing on a missing
+# image.
+python_run = Pattern("run_1.png").similar(0.60).targetOffset(-28,0)
+if not exists(python_run, 120) and exists("python-extension-recommendation.png", 5):
+    raise FindFailed("the Python extension is missing from this window - VS Code "
+                     "is still recommending it, so no Run button was contributed")
+click(python_run)
 wait("result_python.png")
 type("w", Key.CTRL) # Python window.
 wait(2)
 type("w", Key.CTRL) # Restricted Mode window.
 wait(2)
-wait("code_window_2.png")
+if not wait_code_window():
+    raise FindFailed("code_window_2.png never appeared")
 
 # Extension for C/C++.
-type("o", Key.CTRL)
-wait("open_location.png")
-paste(os.path.join(script_path, os.pardir, "resources", "hello_world.c"))
-wait(2)
-type(Key.ENTER)
-wait("remember-checkbox.png")
-click("remember-checkbox.png")
-type(Key.TAB)
-type(Key.SPACE)
-if exists("trust-continue.png",20):
-    click("trust-continue.png")
+if not open_file(os.path.join(script_path, os.pardir, "resources", "hello_world.c"),
+                 "tab_c.png", 60):
+    raise FindFailed("hello_world.c never opened")
 click("tab_c.png")
 wait("code_c.png")
 type("w", Key.CTRL) # C window.
 wait(2)
-wait("code_window_2.png")
+if not wait_code_window():
+    raise FindFailed("code_window_2.png never appeared")
 
 # Extension for Java.
-type("o", Key.CTRL)
-wait("open_location.png")
-paste(os.path.join(script_path, os.pardir, "resources", "hello_world.java"))
-wait(2)
-type(Key.ENTER)
-wait("tab_java.png",240)
+if not open_file(os.path.join(script_path, os.pardir, "resources", "hello_world.java"),
+                 "tab_java.png", 240):
+    raise FindFailed("hello_world.java never opened")
 click("tab_java.png")
 wait("code_java.png")
-wait(Pattern("run_1.png").similar(0.60).targetOffset(-28,0),240)
-click(Pattern("run_1.png").similar(0.60).targetOffset(-28,0))
+# The Run affordance appears before the Java extension pack has finished
+# activating ("Java: Activating..." / "Run: Importing projects"), and a run
+# started then produces no output at all. Give the first run a window, then click
+# Run again before failing.
+java_run = Pattern("run_1.png").similar(0.60).targetOffset(-28,0)
+wait(java_run,240)
+click(java_run)
+if not exists("result.png",120):
+    click(java_run)
 wait("result.png",240)
 type("w", Key.CTRL) # Jave window.
 wait(2)
-wait("code_window_2.png")
+if not wait_code_window():
+    raise FindFailed("code_window_2.png never appeared")
 
 # Extension for C#.
 type("k", Key.CTRL)
@@ -181,13 +278,9 @@ if exists(Pattern("solution_c_sharp.png"), 180):
     doubleClick(Pattern("solution_c_sharp.png").targetOffset(-20,17))
 else:
     Debug.user("the Explorer tree never populated; opening Program.cs by path")
-    type("o", Key.CTRL)
-    wait("open_location.png")
-    paste(os.path.join(script_path, os.pardir, "resources", "Hello World",
-                       "Program.cs"))
-    wait(2)
-    type(Key.ENTER)
-    if not exists("tab_c_sharp.png", 60):
+    if not open_file(os.path.join(script_path, os.pardir, "resources",
+                                  "Hello World", "Program.cs"),
+                     "tab_c_sharp.png", 60):
         raise FindFailed("Program.cs never opened: the Explorer tree never "
                          "populated and opening it by path failed too")
 click("tab_c_sharp.png")
@@ -225,24 +318,22 @@ wait(Pattern("result.png").similar(0.80),240)
 wait(10)
 type("k", Key.CTRL)
 type("f")
-wait("code_window_2.png")
+if not wait_code_window():
+    raise FindFailed("code_window_2.png never appeared")
 # Extension for JavaScript/TypeScript.
-type("o", Key.CTRL)
-wait("open_location.png")
-paste(os.path.join(script_path, os.pardir, "resources", "hello_world.ts"))
-wait(2)
-type(Key.ENTER)
+if not open_file(os.path.join(script_path, os.pardir, "resources", "hello_world.ts"),
+                 "tab_typescript.png", 60):
+    raise FindFailed("hello_world.ts never opened")
 click("tab_typescript.png")
 wait("code_typescript.png")
 type("w", Key.CTRL) # TypeScript window.
-wait("code_window_2.png")
+if not wait_code_window():
+    raise FindFailed("code_window_2.png never appeared")
 
 # Extension for Go.
-type("o", Key.CTRL)
-wait("open_location.png")
-paste(os.path.join(script_path, os.pardir, "resources", "hello_world.go"))
-wait(2)
-type(Key.ENTER)
+if not open_file(os.path.join(script_path, os.pardir, "resources", "hello_world.go"),
+                 "tab_go.png", 60):
+    raise FindFailed("hello_world.go never opened")
 if exists("no_go.png",15):
     click(Pattern("no_go.png").targetOffset(205,-10))
 click("tab_go.png")
@@ -250,18 +341,18 @@ wait("code_go.png")
 type("w", Key.CTRL) # Go window.
 wait(2)
 type("w", Key.CTRL) # Go for VS Code window.
-wait("code_window_2.png")
+if not wait_code_window():
+    raise FindFailed("code_window_2.png never appeared")
 
 # Extension for Ruby.
-type("o", Key.CTRL)
-wait("open_location.png")
-paste(os.path.join(script_path, os.pardir, "resources", "hello_world.rb"))
-wait(2)
-type(Key.ENTER)
+if not open_file(os.path.join(script_path, os.pardir, "resources", "hello_world.rb"),
+                 "tab_ruby.png", 60):
+    raise FindFailed("hello_world.rb never opened")
 click("tab_ruby.png")
 wait("code_ruby.png")
 type("w", Key.CTRL) # Ruby window.
-wait("code_window_2.png")
+if not wait_code_window():
+    raise FindFailed("code_window_2.png never appeared")
 
 # Check "help".
 click("menu_help.png")
