@@ -94,7 +94,13 @@ closeApp("Command Prompt")
 run("explorer " + os.path.join(util.start_menu, "Adobe Acrobat Pro.lnk"))
 
 # Basic operations.
-click("pdf_window.png",60)
+# The window can arrive just past 60 s. Validation run 34412874934 gave up here
+# and its FAILED frame already shows Acrobat: pdf_window.png scores 0.3542 when
+# the wait starts and 0.9493 the moment it expires. Only this launch is widened -
+# 120 s was tried at the first launch and at both reopens too and changed nothing
+# there, because those failures are not slow launches (see runs 34420994008 and
+# 34421003089).
+click("pdf_window.png",120)
 wait(5)
 type(" ", Key.ALT)   # open system menu
 wait(2)
