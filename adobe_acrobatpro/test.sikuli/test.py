@@ -21,6 +21,57 @@ password = credentials.get("password")
 # The location to save a file in the test.
 save_location = os.path.join(util.desktop, "Special_Offers_Deck.pdf")
 
+# Acrobat 2026.001.21771 puts a "Set up Acrobat" onboarding modal over the first
+# document view. It is never shown on the Home screen, so nothing before the
+# conversion sees it, and it breaks the page check two ways at once: the modal
+# dims the page behind it to about 9% brightness (the point-2-point logo region
+# reads 0..28 where the reference reads 31..255) and its top edge cuts off the
+# bottom 21% of the logo. point-2-point.png scores 0.34 against SikuliX' 0.7
+# threshold, so the wait timed out in every App Tests run since 2026-09-01 --
+# 34295135821 (xvm 26.9.26), 34295107851 (xvm 26.9.29) and the dedicated
+# 34366434740 failed there pixel for pixel the same.
+#
+# Not a slow VM: the conversion had finished in each of them, the PDF is open
+# and rendered in the failure frame. The modal has to be cleared, so no longer
+# wait could have helped.
+#
+# get-started.png is the modal's heading and matches it at 0.9998, so finding it
+# was never the problem -- dismissing it is. The three ESC presses this test
+# already had were never reached (it died at the conversion check every time),
+# so ESC has never been shown to close this modal. Click its X instead, 391 px
+# right and 33 px above the centre of the heading match, and confirm the modal
+# is gone; keep ESC only as the fallback.
+def dismiss_setup_acrobat(timeout=1):
+    m = exists("get-started.png", timeout)
+    if not m:
+        return False
+    click(m.getTarget().offset(391, -33))
+    for _ in range(10):
+        wait(1)
+        if not exists("get-started.png", 0.5):
+            return True
+    # The X was missed - the modal moved, or the click landed on the dimmed
+    # page instead. Try the keyboard before giving up on it.
+    type(Key.ESC)
+    wait(2)
+    if exists("get-started.png", 0.5):
+        Debug.user("dismiss_setup_acrobat: modal still on screen after X and ESC")
+    return True
+
+# Wait for the converted page, clearing the onboarding modal whenever it turns
+# up. The modal appears with the document view, which lands somewhere inside the
+# conversion wait, so poll for both rather than dismissing once up front. The
+# last attempt falls through to a plain wait() so a real failure still raises the
+# usual FindFailed on point-2-point.png and leaves the standard FAILED step frame
+# to investigate from.
+def wait_page_rendered(attempts=12, poll=10):
+    for _ in range(attempts):
+        dismiss_setup_acrobat()
+        if exists("point-2-point.png", poll):
+            return
+    wait("point-2-point.png", 5)
+
+
 # Login to Adobe Creative Cloud Desktop
 util.launch_adobe_cc(username, password)
 
@@ -43,7 +94,13 @@ closeApp("Command Prompt")
 run("explorer " + os.path.join(util.start_menu, "Adobe Acrobat Pro.lnk"))
 
 # Basic operations.
-click("pdf_window.png",60)
+# The window can arrive just past 60 s. Validation run 34412874934 gave up here
+# and its FAILED frame already shows Acrobat: pdf_window.png scores 0.3542 when
+# the wait starts and 0.9493 the moment it expires. Only this launch is widened -
+# 120 s was tried at the first launch and at both reopens too and changed nothing
+# there, because those failures are not slow launches (see runs 34420994008 and
+# 34421003089).
+click("pdf_window.png",120)
 wait(5)
 type(" ", Key.ALT)   # open system menu
 wait(2)
@@ -61,9 +118,7 @@ type(Key.ENTER)
 wait(5)
 wait("create-button.png",120)
 click("create-button.png")
-if exists("get-started.png",120):
-    type(Key.ESC)
-wait("point-2-point.png",20)
+wait_page_rendered()
 type("s", Key.CTRL + Key.SHIFT)
 wait("save_file_location.png")
 paste(save_location)
@@ -80,16 +135,12 @@ run("explorer " + save_location)
 wait("default_dialog.png")
 click("default_acrobat_pro.png")
 click("default_always.png")
-if exists("get-started.png"):
-    type(Key.ESC)
-wait("point-2-point.png")
+wait_page_rendered(3)
 type(Key.F4, Key.ALT)
 wait(3)
 
 run("explorer " + save_location)
-if exists("get-started.png"):
-    type(Key.ESC)
-wait("point-2-point.png")
+wait_page_rendered(3)
 
 # Check the "help" of the app.
 type(Key.F1)

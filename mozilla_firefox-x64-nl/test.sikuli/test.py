@@ -14,9 +14,10 @@ save_location = os.path.join(util.desktop, "print.pdf")
 htm_location = os.path.join(util.desktop, "name with space.htm")
 
 # Remove artifacts a previous run may have left on the desktop. Both saves below
-# are verified with util.file_exists asserts; a stale name with space.htm or
-# print.pdf would satisfy the assert even when the current save/print failed,
-# letting the test limp past a broken interaction and only FindFail later.
+# are judged by whether the file appeared; a stale name with space.htm or
+# print.pdf would pass that check even when the current save/print failed,
+# letting the test limp past a broken interaction and only FindFail later. It
+# would also rob save_page_as_html of the signal it retries on.
 for stale in (htm_location, save_location):
     if os.path.exists(stale):
         os.remove(stale)
@@ -36,17 +37,7 @@ paste("https://google.com/")
 type(Key.ENTER)
 wait(Pattern("webpage.png").similar(0.60))
 wait(3)
-type("s", Key.CTRL)
-wait("save.png")
-paste(os.path.join(util.desktop, "name with space"))
-click(Pattern("save_type.png").targetOffset(39,1))
-wait(2)
-type(Key.DOWN)
-wait(2)
-type(Key.ENTER)
-wait(2)
-type(Key.ENTER)
-assert(util.file_exists(htm_location, 20))
+util.save_page_as_html("save.png", "save_type.png", os.path.join(util.desktop, "name with space"), htm_location)
 type("l", Key.CTRL)
 wait(2)
 paste("about:preferences")
@@ -57,6 +48,7 @@ wait("help-link.png")
 click("help-link.png")
 wait("help_page.png")
 type("q", Key.CTRL + Key.SHIFT)
+util.wait_app_quiet("firefox.exe")
 
 # Set default browser.
 type("i", Key.WIN)
@@ -78,6 +70,7 @@ if exists("choose-app-firefox.png",10):
     click("always.png")
 wait(Pattern("webpage.png").similar(0.60))
 type("q", Key.CTRL + Key.SHIFT)
+util.wait_app_quiet("firefox.exe")
 run('explorer "https://google.com/"')
 if exists("open-with-firefox.png",10):
     click("open-with-firefox.png")

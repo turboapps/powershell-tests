@@ -539,6 +539,42 @@ def close_app(name):
         if executable:
             run("taskkill /F /IM " + executable)
 
+# Wait for an app to be really gone before launching it again.
+#
+# A quit keystroke returns as soon as the app accepts it, and the window leaves
+# the screen and the taskbar well before the process tree does. Relaunching into
+# that gap finds an instance that still holds its single-instance lock but can no
+# longer answer, and Firefox answers with "Firefox is already running, but is not
+# responding" instead of opening the page. In App Tests run 34097555049 the
+# protocol launch went out 2 s after Ctrl+Shift+Q -- step frames 031 and 032 are
+# both a Firefox-less desktop -- and the wait that followed timed out against
+# that dialog.
+#
+# Both halves have to be quiet, because measured on the pool VMs they go quiet in
+# either order: a probe over three runs saw the session still Running 6 s after
+# the process had gone, and the process still alive while the session had already
+# ended. The lock that produces the dialog belongs to the process, and the
+# container teardown belongs to the session, so neither on its own is the answer.
+# Both-quiet took 0-8 s across six measurements, so the default bound is well
+# clear of it.
+#
+# Unlike check_running, which is the end-of-test assertion, this is a mid-test
+# settle: an app that outlasts the bound is being slow, which is worth a log line
+# and not worth failing a test that has not tested anything yet.
+def wait_app_quiet(executable, max_wait=60, poll=2):
+    waited = 0
+    while waited <= max_wait:
+        session_busy = "Running" in run("turbo sessions -l")
+        process_busy = executable in run('tasklist /FI "IMAGENAME eq ' + executable + '"')
+        if not session_busy and not process_busy:
+            if waited:
+                Debug.user("wait_app_quiet: %s went quiet after %d s" % (executable, waited))
+            return True
+        wait(poll)
+        waited += poll
+    Debug.user("wait_app_quiet: %s still had a session or a process after %d s" % (executable, max_wait))
+    return False
+
 # Paste text without racing the next clipboard write.
 #
 # SikuliX's paste() puts the text on the clipboard and sends Ctrl+V, then returns
@@ -559,24 +595,35 @@ def paste_text(text, settle=1):
     paste(text)
     wait(settle)
 
-# Put a path into a Windows file dialog's "File name" field and confirm it.
+# Put a path into a Windows file dialog's "File name" field, leaving it there
+# for the caller to confirm.
 #
 # wait(field_image) only proves the dialog is painted, not that it owns the
 # keyboard. In App Tests run 33849047386 (videolan_vlc-x64) the first chord sent
 # to the freshly opened Open dialog lost its modifier: paste()'s Ctrl+V arrived
-# as a bare "v", Enter then raised "v - File not found", and the test died three
-# lines later at an image the wrong file could never match. Click the field
-# first so the dialog has settled and the field has focus, replace whatever a
-# stray keystroke may already have typed, paste, confirm, and retry if the
-# dialog rejects the name. The error box is checked for only briefly because
-# VLC's title overlay, which the next wait() matches, is on screen for just a
-# few seconds after playback starts.
+# as a bare "v", which the dialog took for the whole file name. So click the
+# field first, which both settles the dialog and puts the caret in it, and clear
+# whatever a stray keystroke may already have typed before pasting.
+#
+# field_image is the "File name:" label; the click reaches past it into the
+# field itself.
+def paste_path_in_dialog(field_image, path):
+    click(Pattern(field_image).targetOffset(40, 0))
+    wait(0.5)
+    type("a", Key.CTRL)
+    paste_text(path)
+
+# Put a path into a Windows file dialog's "File name" field and confirm it.
+#
+# Pastes as paste_path_in_dialog does, then confirms and retries if the dialog
+# rejects the name -- which is how a dropped modifier showed itself in run
+# 33849047386: Enter raised "v - File not found" and the test died three lines
+# later at an image the wrong file could never match. The error box is checked
+# for only briefly because VLC's title overlay, which the next wait() matches,
+# is on screen for just a few seconds after playback starts.
 def open_file_in_dialog(field_image, path, error_image="file_not_found.png", attempts=3):
     for attempt in range(attempts):
-        click(Pattern(field_image).targetOffset(40, 0))
-        wait(0.5)
-        type("a", Key.CTRL)
-        paste_text(path)
+        paste_path_in_dialog(field_image, path)
         type(Key.ENTER)
         if not exists(error_image, 1):
             return True
@@ -584,6 +631,54 @@ def open_file_in_dialog(field_image, path, error_image="file_not_found.png", att
         type(Key.ENTER)  # OK is the default button of the "File not found" box
         wait(1)
     raise FindFailed("open_file_in_dialog: the dialog rejected '%s' %d times" % (path, attempts))
+
+# Save the page a browser is showing as "Web Page, HTML only" through its
+# Save As dialog, and prove the file landed.
+#
+# A Save As dialog gives a dropped modifier nowhere to show itself. The field
+# opens with the app's suggested name selected, so a paste() whose Ctrl is lost
+# types a bare "v" over it and the page saves as "v.htm" in whatever folder the
+# dialog happens to be showing -- no error box, no failed match, the save
+# genuinely succeeds under the wrong name in the wrong place. In App Tests run
+# 34295135821 (mozilla_firefox) it went to Downloads\v.htm and the test spent
+# 200 s in file_exists waiting for a Desktop file that was never going to
+# appear, then died on a bare assert that said nothing about why.
+#
+# So paste through paste_path_in_dialog, and then check the outcome rather than
+# trusting it: if the intended file is not there, the name did not go in, and
+# reopening the dialog and redoing the save is the only thing that can help.
+# Escape first on a retry to clear the download panel the wrong save popped up,
+# which would otherwise swallow the Ctrl+S.
+#
+# The type only needs setting on the first attempt. A reopened Save As dialog
+# comes up on the type it was last used with -- probe frame 019 for run
+# 34295135821 shows the retry's dialog already on "Web Page, HTML only" -- so a
+# retry inherits the right type and must leave the list alone. Stepping into it
+# again is what broke the first cut of this retry: Down is relative, so from the
+# remembered entry it landed on "Text Files" and attempt 2 saved a .txt. Picking
+# the entry by image instead is no better; the wanted row matches at 0.757 when
+# the list opens elsewhere, and the already-selected row is drawn highlighted
+# and does not match at all.
+def save_page_as_html(field_image, type_image, path, result_path, attempts=3):
+    for attempt in range(attempts):
+        if attempt:
+            type(Key.ESC)
+            wait(1)
+        type("s", Key.CTRL)
+        wait(field_image)
+        paste_path_in_dialog(field_image, path)
+        if attempt == 0:
+            click(Pattern(type_image).targetOffset(39, 1))
+            wait(2)
+            type(Key.DOWN)   # "Web Page, complete" -> "Web Page, HTML only"
+            wait(2)
+            type(Key.ENTER)  # commit the file type
+            wait(2)
+        type(Key.ENTER)      # Save
+        if file_exists(result_path, 2):
+            return True
+        Debug.user("save_page_as_html: '%s' was not written on attempt %d of %d" % (result_path, attempt + 1, attempts))
+    raise FindFailed("save_page_as_html: '%s' was never written in %d attempts" % (result_path, attempts))
 
 # Bring a window to the front and wait for something on it, re-asserting the
 # focus between polls.
@@ -605,3 +700,111 @@ def focus_and_wait(window, image, attempts=30, poll=10):
             return True
     Debug.user("focus_and_wait: %s not found on '%s' after %d attempts" % (image, window, attempts))
     return False
+
+# Drive a browser to a URL through its address bar, and prove it got there.
+#
+# Alt+D, the paste and Enter only reach the browser if the browser still holds
+# the foreground when they are sent, and a container the test launched moments
+# earlier can take it away. In App Tests run 34398082628 (opensearch_opensearch)
+# the curl container's console -- started one line earlier as
+#   turbo try base -n=curl ... --startup-file=cmd -- /C put.bat
+# -- raised itself *after* App().focus("Edge") and covered Edge's address bar,
+# so all three went to cmd.exe instead. Step frame 005 catches it mid-paste with
+# that console, titled "cmd.exe @curl#0cd0d95f", on top and focused; the FAILED
+# frame four lines later still shows the address bar on the previous URL.
+# Padding the wait() before the focus cannot fix that -- the console's timing is
+# the thing that varies -- so re-assert the focus each round and check the
+# outcome instead of trusting it.
+#
+# One retry is normally enough: that console is transient (cmd /C exits when the
+# batch does), and keystrokes that land in it are harmless -- the URL arrives at
+# a prompt, Enter reports an unrecognised command, and the window closes. The
+# check also covers the slower failure where the browser reaches the URL before
+# the container it is reporting on has finished its work, since a page that
+# renders the wrong thing fails done_image just as an unfocused browser does.
+#
+# Ctrl+A before the paste is belt and braces. Alt+D already selects the bar, but
+# if it went astray the paste would append to whatever is sitting there rather
+# than replace it. FindFailed on exhaustion keeps the suite's usual failure
+# signature, as open_file_in_dialog and save_page_as_html do.
+def navigate_browser(window, url, done_image, attempts=3, settle=3, timeout=30):
+    for attempt in range(attempts):
+        App(window).focus()
+        wait(settle)
+        type("d", Key.ALT)
+        wait(0.5)
+        type("a", Key.CTRL)
+        paste_text(url)
+        type(Key.ENTER)
+        if exists(done_image, timeout):
+            return True
+        Debug.user("navigate_browser: '%s' did not reach '%s' on attempt %d of %d"
+                   % (url, done_image, attempt + 1, attempts))
+    raise FindFailed("navigate_browser: '%s' never loaded in %d attempts" % (url, attempts))
+
+# Give a container's console window the keyboard, and check that it took.
+#
+# StandardTest -> HidePowerShellWindow (Test.ps1) ends with
+# Shell.Application.MinimizeAll() and an ESC keystroke, and nothing after that
+# hands the container's console window the foreground. Whether it happens to own
+# the keyboard when a test starts typing is a race, and on the win11-arm pool the
+# nodejs arm64 tests lost it in 13 of the 15 App Tests results between 2026-09-06
+# and 09-09: every keystroke went to the taskbar Search box instead, Edge opened
+# on a Bing search for the run of concatenated commands, and the console sat at
+# its prompt untouched until the test gave up 4 minutes later. Waiting for an
+# image on the window cannot catch this - the console is visible the whole time,
+# it just is not focused - which is why the wait("node-cmd-prompt.png") those
+# tests already did passed and then typed into nothing.
+#
+# App(title).focus() is no help here either: a container console's title changes
+# while the test runs (cmd.exe -> node-gyp -> cmd.exe for nodejs), and App() name
+# matching on container consoles is already unreliable under xvm 26.9.x - a lone
+# App("conhost").focus() restored nothing in the ggerganov_llama-cpp runs above.
+# So click the window instead, located by an image the caller supplies, and then
+# ask which window is actually in front before trusting it.
+#
+# Returns the Match that was clicked so the caller can go on using it as an
+# anchor. Raises FindFailed only if the image never appears: once the window is
+# on screen the click is the fix, and the confirmation is a diagnostic that must
+# not itself be the reason a test fails.
+def focus_console(image, attempts=10, poll=3):
+    match = None
+    for attempt in range(attempts):
+        match = exists(image, poll)
+        if match is None:
+            continue
+        click(match.getTarget())
+        # A click in a console with QuickEdit mode on (the Windows 11 default)
+        # leaves a zero-width selection anchor; ESC drops it so that it cannot
+        # later grow into a selection, which would suspend the console's output.
+        type(Key.ESC)
+        # Let the activation land before asking what is in front, or the common
+        # case - the first click works - still reads the old foreground window
+        # and clicks again.
+        wait(1)
+        if _foreground_covers(match):
+            return match
+        Debug.user("focus_console: %s is on screen but another window is in front (attempt %d of %d)"
+                   % (image, attempt + 1, attempts))
+    if match is None:
+        raise FindFailed("focus_console: %s never appeared" % image)
+    Debug.user("focus_console: could not confirm focus on %s; typing anyway" % image)
+    return match
+
+# True when the foreground window's rectangle covers `region`.
+#
+# This only decides whether focus_console clicks again, so "cannot tell" counts
+# as good enough: a SikuliX build that will not report the focused window must
+# not turn into a test failure.
+def _foreground_covers(region):
+    try:
+        win = App.focusedWindow()
+    except:
+        Debug.user("focus_console: cannot read the foreground window: %s" % sys.exc_info()[1])
+        return True
+    if win is None:
+        return False
+    return (win.getX() <= region.getX()
+            and win.getY() <= region.getY()
+            and win.getX() + win.getW() >= region.getX() + region.getW()
+            and win.getY() + win.getH() >= region.getY() + region.getH())
