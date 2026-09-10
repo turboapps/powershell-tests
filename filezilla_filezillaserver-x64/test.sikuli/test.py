@@ -34,8 +34,20 @@ type(Key.ENTER)
 
 # Test ftp.
 subprocess.Popen("turbo run base -n=cmd --network=test --startup-file=cmd -d" + util.read_extra())
-App().focus("cmd")
-wait("cmd_window.png",10)
+# App().focus("cmd") here ran before the container existed, so it was a silent
+# no-op, and the 10 s that followed was the last tight wait left in this file.
+# In App Tests run 34419239508 the container's console painted 6.183 s after the
+# Turbo CLI logged its command line -- measured in the VM logs: session host
+# +2.624 s, conhost +4.621 s, cmd.exe +5.402 s, ShowWindow +5.543 s, last
+# WriteConsole +6.183 s -- and turbo.exe's own cold start sits in front of that,
+# unlogged. The wait expired about half a second short: cmd_window.png scores
+# 0.9877 on the very frame captured at the FindFailed. Poll and re-focus instead.
+#
+# The window matcher is "@cmd#", not "cmd": a bare "cmd" also matches the
+# harness's own console window, so it can focus the wrong one. The token comes
+# from -n=cmd above and appears only in the container console's title.
+if not util.focus_and_wait("@cmd#", "cmd_window.png", attempts=12, poll=5):
+    wait("cmd_window.png")  # still absent: fail with the usual FindFailed
 wait(3)
 paste("ftp 127.0.0.1")
 wait(3)
