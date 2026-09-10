@@ -104,15 +104,26 @@ def wait_code_window(timeout=60):
 # error dialog still appears, clear it and launch again.
 def reopen_in_new_window(path, tab_image, attempts=3):
     for attempt in range(attempts):
+        # A lingering Code.exe keeps the session alive, so this closes the most
+        # common part of the window. It cannot close all of it: in run
+        # 34419196293 the client had already decided the sandbox was dead, so
+        # the stale record outlived the process and only the retry below saves
+        # that case.
         util.wait_app_quiet("Code.exe", 120)
         run("explorer " + path)
-        if exists(tab_image, 90):
-            return True
-        if exists("turbo-session-error.png", 5):
-            Debug.user("reopen_in_new_window: Turbo refused the launch, clearing "
-                       "the error and retrying")
-            click(Pattern("turbo-session-error.png").targetOffset(145,34))
-            wait(5)
+        # Wait for whichever lands first. The client blocks ~36 s before it
+        # gives up, and a healthy launch beats that easily, so polling for both
+        # avoids paying either timeout in the common case.
+        for poll in range(60):
+            if exists(tab_image, 2):
+                return True
+            if exists("turbo-session-error.png", 1):
+                Debug.user("reopen_in_new_window: Turbo refused the launch into "
+                           "a session it had already logged as not running; "
+                           "clearing the error and retrying")
+                click(Pattern("turbo-session-error.png").targetOffset(145,34))
+                wait(5)
+                break
     return False
 
 # Test of `turbo run`.
@@ -124,7 +135,31 @@ run("turbo stop test")
 # Install the extensions
 extensions = "code --install-extension ms-python.python --install-extension ms-vscode.cpptools --install-extension ms-vscode.cpptools-extension-pack --install-extension vscjava.vscode-java-pack --install-extension ms-dotnettools.csdevkit --install-extension dbaeumer.vscode-eslint --install-extension golang.go --install-extension shopify.ruby-extensions-pack --force"
 turbocmd = "turbo run vscode-x64 --isolate=merge-user --using=python/python-x64,eclipse/temurin-lts,microsoft/dotnet-sdk-x64:8 --startup-file=cmd -- /C "
-run(turbocmd + extensions)
+# The install runs in a container whose cmd.exe crashes often enough to cost a
+# run: in run 34510865844 Turbo logged "Application exited: -1073741819"
+# (0xC0000005) 17 s in, and the dump in that artifact is an NX execute fault
+# (parameter[0]=8) at 0x1941F60C0 - an address inside no loaded module, the
+# XVM 26.9.x signature. Nothing checked that return value, so the run carried on
+# with no extensions and died 40 lines later on a missing Run button, with VS
+# Code still offering to install Python. merge-user puts container writes in the
+# real profile - the test already leans on that for hello_world.py below - so
+# the extension folders can be checked from here.
+extensions_dir = os.path.join(os.environ["USERPROFILE"], ".vscode", "extensions")
+
+def install_extensions(attempts=2):
+    for attempt in range(attempts):
+        run(turbocmd + extensions)
+        if util.find_file(extensions_dir, "ms-python.python"):
+            return True
+        Debug.user("install_extensions: ms-python.python is not in %s after "
+                   "attempt %d - the install container most likely crashed; "
+                   "retrying" % (extensions_dir, attempt + 1))
+    return False
+
+if not install_extensions():
+    raise FindFailed("the VS Code extensions never installed: the install "
+                     "container exits with 0xC0000005, an NX execute fault in "
+                     "cmd.exe at an address in no loaded module")
             
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Visual Studio Code", "Visual Studio Code.lnk"))
