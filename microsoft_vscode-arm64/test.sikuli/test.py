@@ -8,9 +8,22 @@ addImagePath(include_path)
 setAutoWaitTimeout(50)
 util.pre_test()
 
+# turbo try -d launches VS Code detached and Windows does not always grant it the
+# foreground. When it does not, the taskbar shows the VS Code button flashing for
+# attention while the keyboard focus ring sits on the Start button, and a
+# keystroke never reaches the app: on the runs that fail at the wait below, the
+# frames either side of the old type(Key.ESC) differ by 0 px and the modal is
+# still up. vscode-signin.png is the modal's own "Continue without Signing In"
+# button, so click it rather than trusting a keystroke, and click again if the
+# first click only served to activate the window.
+def dismiss_signin():
+    click("vscode-signin.png")
+    if exists("vscode-signin.png", 5):
+        click("vscode-signin.png")
+
 # Test of `turbo run`.
 if exists("vscode-signin.png",60):
-    type(Key.ESC)
+    dismiss_signin()
 wait("code_window_2.png",20)
 run("turbo stop test")
 
@@ -22,7 +35,7 @@ run(turbocmd + extensions)
 # Launch the app.
 util.launch_shortcut(["Visual Studio Code", "Visual Studio Code.lnk"], "Microsoft VSCode ARM64.lnk")
 if exists("vscode-signin.png",60):
-    type(Key.ESC)
+    dismiss_signin()
 wait("code_window_2.png",20)
 click("code_window_2.png")
 # Activate and maximize the app window.
@@ -109,12 +122,52 @@ if exists("remember-checkbox.png",10):
     click("remember-checkbox.png")
     type(Key.TAB)
     type(Key.SPACE)
+# The C# Dev Kit opens its release-announcement markdown preview as the active
+# tab the first time it activates, and it sits in front of the code - runs
+# 34509070551, 34509081355 and 34509092247 all failed in this section with
+# "Preview WBD-hybrid announcement.md" covering the editor. Its title carries the
+# release name, so it cannot be matched reliably; close every editor instead and
+# let the test open the tab it wants next. x64 has carried this guard for a
+# while, arm64 never got it.
+type("k", Key.CTRL)
+type("w")
+wait(3)
+# The Explorer tree can take well past the ambient timeout to populate after C#
+# Dev Kit loads the project.
+wait(Pattern("solution_c_sharp.png"), 180)
 doubleClick(Pattern("solution_c_sharp.png").targetOffset(-20,17))
 click("tab_c_sharp.png")
-click(Pattern("run_1.png").similar(0.60).targetOffset(-28,0))
-if exists("rebuild-yes.png",240):
-    click("rebuild-yes.png")
-wait(Pattern("result.png").similar(0.80),20)
+wait(3)
+# The editor Run button is unreliable here: on x64 the click lands on it - the
+# hover highlight paints, and that 30x21 box is the only thing on the whole
+# screen that changes - but VS Code never acts on it and no run starts, even
+# given 900 s. The keyboard still works, so fall back to Ctrl+F5. Because this
+# workspace carries no launch.json, that walks two quick picks in turn. The old
+# 20 s result wait here was also the odd one out; every other run in this test
+# allows 240 s.
+csharp_run = Pattern("run_1.png").similar(0.60).targetOffset(-28,0)
+wait(csharp_run,240)
+click(csharp_run)
+if not exists("result.png",60):
+    # Move off the button first: the click leaves the cursor on it, and that
+    # hover drops run_1.png below its own similar(0.60), so it can no longer be
+    # re-found while the mouse rests there.
+    mouseMove(Location(960,400))
+    wait(2)
+    type(Key.F5, Key.CTRL)
+    # "Select debugger" opens with NO active row, so a bare Enter is a no-op;
+    # DOWN activates the suggested C# entry.
+    if exists(Pattern("select-debugger.png").similar(0.70),60):
+        type(Key.DOWN)
+        wait(2)
+        type(Key.ENTER)
+    # "Select Launch Configuration" follows, and opens with its first row already
+    # active, so DOWN moves on to "C#: Hello World".
+    if exists(Pattern("select-launch-config.png").similar(0.70),60):
+        type(Key.DOWN)
+        wait(2)
+        type(Key.ENTER)
+wait(Pattern("result.png").similar(0.80),240)
 wait(10)
 type("k", Key.CTRL)
 type("f")
