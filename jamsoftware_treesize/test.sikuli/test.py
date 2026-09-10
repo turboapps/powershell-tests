@@ -33,10 +33,15 @@ TREESIZE_TITLE = "TreeSize (Administrator)"
 # arrived moments after the first had been dismissed, with the scan already
 # under way.
 #
-# The splash also lets go of the screen on its own, and clicking it is not what
-# always removes it: in App Tests run 34423192441 the link was clicked three
-# times and the splash was still up after each one, then went at the same moment
-# the scan result appeared. So the look and the click have to be one step. Click
+# Each click dismisses the splash that is up, but a replacement follows, so a
+# run needs two or three clicks before the sequence ends - in App Tests run
+# 34423192441 the link was clicked three times and a splash was up again after
+# each of the first two. The LAST instance is the one that can go without being
+# clicked: in run 34423171312 it left about six seconds after appearing, with no
+# click delivered. (The first instance does not do this - probe run 34542455584
+# sat on one for 60 s and it never moved - so the splash cannot be waited out.)
+#
+# So the look and the click have to be one step. Click
 # the match exists() already returned rather than click("continue-with-trial.png"),
 # which runs a SECOND full-screen search - one that inherits the ambient
 # setAutoWaitTimeout(30) - and raises FindFailed when the splash left in the gap
@@ -111,6 +116,14 @@ def wait_for_scan(target_image, timeout=180):
     while time.time() < deadline:
         if band.exists(target_image, 5):
             return
+        # A splash that Explorer is covering cannot be seen, let alone clicked,
+        # and nothing else clears it - so the loop would spin out its whole
+        # budget against an address bar the splash is still sitting on. That
+        # state is not hypothetical: in run 34539364831 clicking the splash
+        # raised Explorer over a splash that stayed up. Bring TreeSize forward
+        # first; the splash is its own window, owned by the main one, so it
+        # comes back with it and the dismissal below can see it again.
+        util.activate_app_window(TREESIZE_TITLE, 1)
         dismiss_trial_splash()
     raise FindFailed("%s: TreeSize did not scan it within %d s" % (target_image, timeout))
 
