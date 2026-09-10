@@ -49,10 +49,34 @@ wait("new_project.png",120)
 click("new_project.png")
 wait("new_package.png")
 click("new_package.png")
-click(Pattern("new_package_name.png").targetOffset(41,7))
-type("test")
-click("new_package_create.png")
-wait("project_template.png")
+# Set the name and create the package, then check the outcome rather than
+# trusting it.
+#
+# The field has to be located through util.find_settled: the click on
+# new_package.png slides the Create R Package page in, and a find that catches
+# it mid-slide clicks where the field no longer is (see find_settled).
+#
+# That is not the only way "test" can fail to land, though, and none of them
+# announce themselves - a lost keystroke leaves the same empty field. What the
+# wizard does say is that the name is empty, in an "Invalid package name ''"
+# box raised by Create Project; in App Tests runs 34423171312 and 34295135821
+# that box sat unread over the wizard while the test spent 20 s waiting for a
+# project template that was never going to be created. OK is the box's default
+# button and dismissing it leaves the wizard on the same page, so the whole
+# name-and-create step can simply be redone. Ctrl+A before typing clears
+# anything a stray keystroke already put in the field.
+for attempt in range(3):
+    click(util.find_settled("new_package_name.png").getCenter().offset(41, 7))
+    type("a", Key.CTRL)
+    type("test")
+    click("new_package_create.png")
+    if exists("project_template.png", 20):
+        break
+    Debug.user("new package: the name did not take on attempt %d of 3" % (attempt + 1))
+    type(Key.ENTER)
+    wait(1)
+else:
+    raise FindFailed("the New Project Wizard never created the 'test' package")
 type("r", Key.ALT + Key.CTRL)
 wait("project_run.png")
 click("project_run.png")
@@ -60,7 +84,18 @@ type("install.packages(\"roxygen2\")")
 type(Key.ENTER)
 wait(10)
 type("b", Key.CTRL + Key.SHIFT)
-wait("project_build.png")
+# project_build.png is the "> library(test)" the console echoes only after
+# Ctrl+Shift+B has run roxygen2, built and installed the package with
+# Rcmd.exe INSTALL, and restarted the R session - a chain that does not fit
+# the ambient 20 s. In App Tests run 34423192441 the build had reached
+# "* DONE (test)" and "Restarting R session..." when the wait gave up, and the
+# harness screenshot taken seconds later shows "> library(test)" and
+# "Attaching package: 'test'": the package built correctly and the test threw
+# the run away for want of a few more seconds. The install.packages() above it
+# keeps its blind wait: RStudio queues the Ctrl+Shift+B when the console is
+# still busy - that is what happened in that run, and the build ran in full -
+# so a slow install now only spends part of this budget.
+wait("project_build.png", 180)
 
 # Check "help".
 setAutoWaitTimeout(20)
