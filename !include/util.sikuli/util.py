@@ -370,7 +370,11 @@ def check_stopped(name="test"):
 # assertion still fails, but the log now says the window never went away.
 def close_window(witness, attempts=3, grace=15, poll=2, prompt=None):
     for attempt in range(attempts):
-        type(Key.F4, Key.ALT)
+        # PROBE ONLY - DO NOT MERGE. Swallow the first Alt+F4 of every site to
+        # reproduce the lost keystroke on demand: the test can only pass if the
+        # retry below is what closes each window.
+        if attempt:
+            type(Key.F4, Key.ALT)
         waited = 0
         while waited < grace:
             if prompt and exists(prompt, 0):
