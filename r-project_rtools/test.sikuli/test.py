@@ -65,8 +65,16 @@ click("new_package.png")
 # button and dismissing it leaves the wizard on the same page, so the whole
 # name-and-create step can simply be redone. Ctrl+A before typing clears
 # anything a stray keystroke already put in the field.
+# PROBE ONLY - DO NOT MERGE. Attempt 1 clicks 245 px right of the field, which
+# is exactly where run 34423171312 clicked when it caught the page mid-slide.
+# A passing run therefore proves the retry below recovers from the real defect,
+# rather than only proving that the defect is no longer happening.
 for attempt in range(3):
-    click(util.find_settled("new_package_name.png").getCenter().offset(41, 7))
+    target = util.find_settled("new_package_name.png").getCenter().offset(41, 7)
+    if attempt == 0:
+        target = target.offset(245, 0)
+        Debug.user("SABOTAGE: clicking %s instead of the package-name field" % target)
+    click(target)
     type("a", Key.CTRL)
     type("test")
     click("new_package_create.png")
