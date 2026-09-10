@@ -19,6 +19,11 @@ util.pre_test()
 # tell the two windows apart.
 TREESIZE_WINDOW = "select-scan-target.png"
 
+# Enough of the main window's title - "C:\Program Files\ - TreeSize
+# (Administrator)  (TRIAL VERSION)" - to activate it without matching the
+# trial splash, whose own title bar reads just "TreeSize".
+TREESIZE_TITLE = "TreeSize (Administrator)"
+
 # Click TreeSize's "Easily Getting Started!" trial splash away if it is up, and
 # say whether it was.
 #
@@ -60,6 +65,27 @@ def dismiss_trial_splash(timeout=2):
         click(match)
     return True
 
+# The band of the TreeSize window that holds its address bar, given the match
+# for the ribbon button above it.
+#
+# program-files.png is a 197x26 crop of that address bar, and it also matches
+# EXPLORER's own "Program Files" row - the hazard measured when this block was
+# last touched (0.64-0.69 there, "too close to 0.7 to use as a vanish gate")
+# and left in. App Tests run 34539364831 is that hazard going off: clicking the
+# splash away raised Explorer over a splash that stayed up, and the gate then
+# matched Explorer's row at (563,482) instead of the address bar the splash was
+# still covering, so wait_for_scan returned believing the scan was on screen.
+# The step frame puts that row at 0.694, under SikuliX's 0.7 only because the
+# JPEG is lossy - on the uncompressed screen it matched.
+#
+# Both elements are chrome of the same window, so their offset is fixed however
+# the window is placed: over five runs select-scan-target.png landed at
+# (118,166) every time and the address bar at (190,252). The band below is
+# generous around that - roughly 90 px of slack left, 110 right, 46 up and 48
+# down - and still reaches only x 498 / y 326, well clear of the Explorer row.
+def address_bar_band(window_match):
+    return Region(window_match.x - 20, window_match.y + 40, 400, 120)
+
 # Wait for a shell context menu launch to reach its scan of (target_image),
 # dismissing the "Easily Getting Started!" trial splash on the way.
 #
@@ -72,14 +98,29 @@ def dismiss_trial_splash(timeout=2):
 # splash was sitting on top of. Poll the two together instead: the splash covers
 # the address bar, so the target being readable is itself proof the splash is
 # gone, whichever order the two windows arrive in.
+#
+# Searched inside the band rather than on the whole screen, which costs the
+# per-poll step frame for the gate (Region.exists is a bound method, so the
+# hooks in util - which patch module-level names - do not wrap it). The splash
+# check in the loop is still a module-level exists(), so every round leaves a
+# frame of the same screen a few seconds later and the loop stays visible in
+# the diagnostics.
 def wait_for_scan(target_image, timeout=180):
-    wait(TREESIZE_WINDOW, timeout)
+    band = address_bar_band(wait(TREESIZE_WINDOW, timeout))
     deadline = time.time() + timeout
     while time.time() < deadline:
-        if exists(target_image, 5):
+        if band.exists(target_image, 5):
             return
         dismiss_trial_splash()
     raise FindFailed("%s: TreeSize did not scan it within %d s" % (target_image, timeout))
+
+# Activate (window) if one was named, then ask it to close. Activation is best
+# effort: a modal splash owns the input queue and its owner will not come
+# forward while it is up, which is the case the splash handling above covers.
+def send_close(window=None):
+    if window:
+        util.activate_app_window(window, 10)
+    type(Key.F4, Key.ALT)
 
 # Close a TreeSize window and confirm it is gone before the test moves on.
 #
@@ -109,15 +150,28 @@ def wait_for_scan(target_image, timeout=180):
 # foreground and closed instead, and the right-clicks that followed had no window
 # to aim at.
 #
+# Alt+F4 goes to whatever is focused, and that is not always the window being
+# closed: in run 34539364831 clicking the splash away raised Explorer, which
+# does not cover TreeSize's address bar, so once the gate reads that bar the
+# loop can hand a foreground Explorer to close_window. Alt+F4 would then close
+# EXPLORER and leave the right-clicks that follow with no window - the same
+# damage the 29d5a08 timer did. So callers that know which window they mean
+# name it and it is activated before every keystroke.
+#
+# Only the main window is named. The Advanced File Search and Find Duplicate
+# Files dialogs are separate top-level windows that come up focused and close
+# on Alt+F4 today, and activating the MAIN window before closing one of those
+# would close the wrong window.
+#
 # Polled with exists() rather than waitVanish() so each look leaves a step frame
 # and a window that will not close is visible in the diagnostics.
-def close_window(anchor, timeout=180, poll=5):
+def close_window(anchor, timeout=180, poll=5, window=None):
     deadline = time.time() + timeout
-    type(Key.F4, Key.ALT)
+    send_close(window)
     while True:
         if dismiss_trial_splash(1):
             wait(1)
-            type(Key.F4, Key.ALT)
+            send_close(window)
         if not exists(anchor, 1):
             return
         if time.time() >= deadline:
@@ -145,7 +199,7 @@ click("confirm-selection.png")
 wait("edge-lnk.png")
 wait(5)
 # Close app
-close_window(TREESIZE_WINDOW)
+close_window(TREESIZE_WINDOW, window=TREESIZE_TITLE)
 
 # Test shell context menu
 run("explorer c:\\")
@@ -160,7 +214,7 @@ folder = find("sikuli-folder.png")
 rightClick(folder)
 click("treesize-context-menu.png")
 wait_for_scan("program-files.png")
-close_window(TREESIZE_WINDOW)
+close_window(TREESIZE_WINDOW, window=TREESIZE_TITLE)
 
 rightClick(folder)
 click("adv-file-search.png")
