@@ -202,7 +202,14 @@ wait_page_rendered(3)
 
 # Check the "help" of the app.
 type(Key.F1)
-wait("help_url.png")
+# Edge has to cold-start and fetch helpx.adobe.com, which does not fit the 30 s
+# ambient timeout. Run 34539270110 gave up here with the page already up: the
+# FAILED frame scores 0.9210 against help_url.png (0.3822 when the wait started),
+# i.e. it landed just past the deadline. Same shape as the keeper help wait and
+# the opensearch green-open wait, so use the same helper - it also brings Edge to
+# the front, which the close_app below then acts on.
+if not util.focus_and_wait("Edge", "help_url.png", attempts=9, poll=10):
+    wait("help_url.png", 5)
 util.close_app("Edge")
 type(Key.F4, Key.ALT)
 wait(30)
