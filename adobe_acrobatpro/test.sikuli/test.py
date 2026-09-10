@@ -86,7 +86,16 @@ if exists("adobe_login_signout_others.png",60):
     click(Pattern("adobe_login_continue.png").similar(0.80))
 if exists("adobe_login_team.png",10):
     click(Pattern("adobe_login_continue.png").similar(0.80))
-wait("pdf_window.png",15)
+# Every Acrobat launch in this test is a container cold start, and the budgets
+# these waits carried were all shorter than one. Validation run 34412874934 gave
+# up on the Start-menu launch below after 60 s and its FAILED frame already shows
+# the window: pdf_window.png scores 0.3542 when the wait starts and 0.9493 the
+# moment it expires, so the window arrived just past the deadline. The reopen at
+# the end of the test is the same story from run 34412866275 - a bare desktop
+# 33 s after the relaunch, with the container still coming back up. These three
+# waits are the same event ("Acrobat's window is up after a launch"), so give
+# them one budget generous enough for a cold start.
+wait("pdf_window.png",120)
 run("turbo stop test")
 closeApp("Command Prompt")
 
@@ -94,7 +103,7 @@ closeApp("Command Prompt")
 run("explorer " + os.path.join(util.start_menu, "Adobe Acrobat Pro.lnk"))
 
 # Basic operations.
-click("pdf_window.png",60)
+click("pdf_window.png",120)
 wait(5)
 type(" ", Key.ALT)   # open system menu
 wait(2)
@@ -129,12 +138,12 @@ run("explorer " + save_location)
 wait("default_dialog.png")
 click("default_acrobat_pro.png")
 click("default_always.png")
-wait_page_rendered(3)
+wait_page_rendered()
 type(Key.F4, Key.ALT)
 wait(3)
 
 run("explorer " + save_location)
-wait_page_rendered(3)
+wait_page_rendered()
 
 # Check the "help" of the app.
 type(Key.F1)
