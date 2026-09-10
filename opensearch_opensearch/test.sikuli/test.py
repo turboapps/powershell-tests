@@ -31,13 +31,10 @@ if not util.focus_and_wait("Edge", "green-open.png", attempts=9, poll=10):
 
 putfile = os.path.join(script_path, os.pardir, "resources", "put.bat")
 subprocess.Popen("turbo " + util.try_verb() + " base -n=curl --network=test --isolate=merge --startup-file=cmd -d" + util.read_extra() + " -- /C " + putfile)
+# Give the PUT above a head start, then navigate -- verified, because the console
+# that PUT runs in can still be on top of Edge when the chord is sent.
 wait(5)
-App().focus("Edge")
-wait(3)
-type("d", Key.ALT)
-paste("localhost:9200/_snapshot/cve_backup")
-type(Key.ENTER)
-wait("cve-backup.png")
+util.navigate_browser("Edge", "localhost:9200/_snapshot/cve_backup", "cve-backup.png")
 type(Key.F4, Key.ALT)
 
 run("turbo stop test")

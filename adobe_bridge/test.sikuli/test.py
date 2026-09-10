@@ -1,6 +1,7 @@
 script_path = os.path.dirname(os.path.abspath(sys.argv[0])) 
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
+resources = os.path.join(script_path, os.pardir, "resources")
 import util
 reload(util)
 addImagePath(include_path)
@@ -46,8 +47,7 @@ wait("bridge_window.png")
 
 # Basic operations.
 click(Pattern("bridge_window.png").targetOffset(-119,27))
-type(Key.RIGHT)
-paste("adobe_bridge\\resources")  # Bridge cannot take relative paths.
+paste(resources)  # Bridge cannot take relative paths.
 wait(2)
 type(Key.ENTER)
 wait(5)
