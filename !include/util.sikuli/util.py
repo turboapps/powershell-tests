@@ -777,7 +777,14 @@ def open_settings_page(search_box_image, query, anchor, attempts=3, timeout=20):
         click(box)
         wait(0.5)
         type("a", Key.CTRL)
-        paste_text(query)
+        # PROBE ONLY -- DO NOT MERGE. Skip the query on the first attempt so the
+        # Enter has no suggestion row to activate, reproducing on demand the
+        # "Settings stayed on Home" state that run 34423171312 hit by accident.
+        # A pass then proves two things the fix adds: that the 0.90 anchor really
+        # reports the page as not open (rather than false-matching the taskbar
+        # Search pill, as it would at 0.7), and that the retry recovers.
+        if attempt:
+            paste_text(query)
         type(Key.ENTER)
         found = exists(anchor, timeout)
         if found:
