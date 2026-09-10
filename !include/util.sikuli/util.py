@@ -185,13 +185,33 @@ def adobe_cc_login(username, password):
     paste(username)
     wait(3)
     type(Key.ENTER)
-    wait(Pattern("adobe_login_pass.png").similar(0.40),15)
-    wait(3)
-    click(Pattern("adobe_login_pass.png").similar(0.40))
+    # Wait for the password page itself, not for anything shaped like a text
+    # field. The email page and the password page are the same shape - a label
+    # over a rounded input box - so the old reference (a "Password" crop matched
+    # at similar(0.40)) also matched the EMAIL field, at 0.42-0.50. That made
+    # this wait return immediately on the very page it was meant to wait past,
+    # leaving the fixed wait(3) below as the only thing between the email box
+    # and paste(password): when Adobe's page took longer than that to navigate,
+    # the password went in after the email address, the sign-in failed, and the
+    # test died many steps later on an unrelated image of whatever the app shows
+    # when it is not signed in - with the password in cleartext in the
+    # diagnostics artifact. The reference is now the "Continue with password"
+    # label of the current page, which scores 0.98-1.00 there and 0.47-0.55 on
+    # the email page, so the default similarity separates the two and this is a
+    # real wait. Re-capture it if Adobe relabels the page: a stale reference is
+    # what forced the 0.40 in the first place. The offset clicks into the field
+    # below the label.
+    wait("adobe_login_pass.png",60)
+    wait(1)
+    click(Pattern("adobe_login_pass.png").targetOffset(0,27))
     wait(3)
     paste(password)
     wait(3)
     type(Key.ENTER)
+    # Fail at the cause, not 30 steps downstream: a sign-in that worked leaves
+    # the password page, a sign-in that did not keeps it up (with an error).
+    if not waitVanish("adobe_login_pass.png",60):
+        raise FindFailed("adobe_cc_login: sign-in did not complete, the password page is still up")
     if exists("adobe_login_signout_others.png",15):
         click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
         click(Pattern("adobe_login_continue.png").similar(0.80))
