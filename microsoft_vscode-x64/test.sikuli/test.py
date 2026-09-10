@@ -273,11 +273,22 @@ if not grant_workspace_trust(30):
 type("k", Key.CTRL)
 type("w")
 wait(3)
-# The Explorer tree can take well past the ambient 50 s to populate after C# Dev
-# Kit loads the project: runs 34510877179 and 34510888131 both failed here with
-# the pane reading "HELLO WORLD" and not a single row under it.
-wait(Pattern("solution_c_sharp.png"), 180)
-doubleClick(Pattern("solution_c_sharp.png").targetOffset(-20,17))
+# The Explorer tree does not always populate. The pane shows the folder root
+# expanded with not a single row under it, and no wait rescues it: in arm64 run
+# 34520054848 solution_c_sharp.png still scored 0.34 in the final screenshot,
+# taken after a 180 s wait had already expired, and x64 runs 34510877179 and
+# 34510888131 sat in the same state. The tree is only a means of opening
+# Program.cs, so do not depend on it - fall back to opening the file by path,
+# the way every other language in this test opens its own.
+if exists(Pattern("solution_c_sharp.png"), 180):
+    doubleClick(Pattern("solution_c_sharp.png").targetOffset(-20,17))
+else:
+    Debug.user("the Explorer tree never populated; opening Program.cs by path")
+    if not open_file(os.path.join(script_path, os.pardir, "resources",
+                                  "Hello World", "Program.cs"),
+                     "tab_c_sharp.png", 60):
+        raise FindFailed("Program.cs never opened: the Explorer tree never "
+                         "populated and opening it by path failed too")
 click("tab_c_sharp.png")
 wait(3)
 # The editor Run button is unreliable here: the click lands on it - the hover
