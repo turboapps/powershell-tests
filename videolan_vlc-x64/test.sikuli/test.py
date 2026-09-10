@@ -45,6 +45,12 @@ wait("vlc_window.png",60)
 # Ctrl+Shift+O. The dialog check only gates the retry - file_location.png below
 # is still the assertion, so this cannot fail a run on its own.
 util.activate_app_window("VLC media player", 10)
+# PROBE, NOT FOR MERGE: hand the foreground to the desktop so the first Ctrl+O
+# is guaranteed to be swallowed exactly as it was in run 34423192441. A green
+# run here means the retry below really does recover an unfocused VLC, rather
+# than the fix passing only because the flake did not happen to fire.
+click(Location(300, 950))
+wait(1)
 type("o", Key.CTRL)
 if not exists("file_location.png", 10):
     util.activate_app_window("VLC media player", 10)
