@@ -67,19 +67,29 @@ def open_file(path, tab_image, timeout=60):
             return True
     return False
 
-# turbo try -d launches VS Code detached and Windows does not always grant it the
-# foreground. When it does not, the taskbar shows the VS Code button flashing for
-# attention while the keyboard focus ring sits on the Start button, and a
-# keystroke never reaches the app - the frames either side of the old
-# type(Key.ESC) here differ by 0 px, and the wait that follows then fails
-# (run 34097555049 line 73, run 34417314575 line 73, and every arm64 run that
-# dies at line 14). vscode-signin.png is the modal's own "Continue without
-# Signing In" button, so click it rather than trusting a keystroke, and click
-# again if the first click only served to activate the window.
 def dismiss_signin():
-    click("vscode-signin.png")
-    if exists("vscode-signin.png", 5):
-        click("vscode-signin.png")
+    # ESC cancels the whole welcome wizard and leaves the window in the state the
+    # rest of the test expects.
+    #
+    # Do NOT click vscode-signin.png to dismiss this. That image is the modal's
+    # "Continue without Signing In" button, and clicking it ADVANCES the wizard
+    # to its "Make It Yours" theme page rather than closing it - code_window_2
+    # then never matches, which took out runs 34516501432, 34516513523 and
+    # 34516524525 3/3.
+    #
+    # ESC only lands if the window actually holds the foreground, and turbo try
+    # -d does not always get it: when it does not, the taskbar shows the VS Code
+    # button flashing for attention while the keyboard focus ring sits on the
+    # Start button, and the frames either side of the keystroke differ by 0 px.
+    # Ask for the foreground first, and try again if the modal is still up.
+    for attempt in range(3):
+        util.activate_app_window("Visual Studio Code", 3)
+        type(Key.ESC)
+        if not exists("vscode-signin.png", 5):
+            return True
+        Debug.user("dismiss_signin: the sign-in modal survived ESC (attempt %d)"
+                   % (attempt + 1))
+    return False
 
 # The folder-trust dialog ("Do you trust the authors of the files in this
 # folder?" / "Trust Folder & Continue") can surface tens of seconds after a file
