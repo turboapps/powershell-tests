@@ -741,3 +741,70 @@ def navigate_browser(window, url, done_image, attempts=3, settle=3, timeout=30):
         Debug.user("navigate_browser: '%s' did not reach '%s' on attempt %d of %d"
                    % (url, done_image, attempt + 1, attempts))
     raise FindFailed("navigate_browser: '%s' never loaded in %d attempts" % (url, attempts))
+
+# Give a container's console window the keyboard, and check that it took.
+#
+# StandardTest -> HidePowerShellWindow (Test.ps1) ends with
+# Shell.Application.MinimizeAll() and an ESC keystroke, and nothing after that
+# hands the container's console window the foreground. Whether it happens to own
+# the keyboard when a test starts typing is a race, and on the win11-arm pool the
+# nodejs arm64 tests lost it in 13 of the 15 App Tests results between 2026-09-06
+# and 09-09: every keystroke went to the taskbar Search box instead, Edge opened
+# on a Bing search for the run of concatenated commands, and the console sat at
+# its prompt untouched until the test gave up 4 minutes later. Waiting for an
+# image on the window cannot catch this - the console is visible the whole time,
+# it just is not focused - which is why the wait("node-cmd-prompt.png") those
+# tests already did passed and then typed into nothing.
+#
+# App(title).focus() is no help here either: a container console's title changes
+# while the test runs (cmd.exe -> node-gyp -> cmd.exe for nodejs), and App() name
+# matching on container consoles is already unreliable under xvm 26.9.x - a lone
+# App("conhost").focus() restored nothing in the ggerganov_llama-cpp runs above.
+# So click the window instead, located by an image the caller supplies, and then
+# ask which window is actually in front before trusting it.
+#
+# Returns the Match that was clicked so the caller can go on using it as an
+# anchor. Raises FindFailed only if the image never appears: once the window is
+# on screen the click is the fix, and the confirmation is a diagnostic that must
+# not itself be the reason a test fails.
+def focus_console(image, attempts=10, poll=3):
+    match = None
+    for attempt in range(attempts):
+        match = exists(image, poll)
+        if match is None:
+            continue
+        click(match.getTarget())
+        # A click in a console with QuickEdit mode on (the Windows 11 default)
+        # leaves a zero-width selection anchor; ESC drops it so that it cannot
+        # later grow into a selection, which would suspend the console's output.
+        type(Key.ESC)
+        # Let the activation land before asking what is in front, or the common
+        # case - the first click works - still reads the old foreground window
+        # and clicks again.
+        wait(1)
+        if _foreground_covers(match):
+            return match
+        Debug.user("focus_console: %s is on screen but another window is in front (attempt %d of %d)"
+                   % (image, attempt + 1, attempts))
+    if match is None:
+        raise FindFailed("focus_console: %s never appeared" % image)
+    Debug.user("focus_console: could not confirm focus on %s; typing anyway" % image)
+    return match
+
+# True when the foreground window's rectangle covers `region`.
+#
+# This only decides whether focus_console clicks again, so "cannot tell" counts
+# as good enough: a SikuliX build that will not report the focused window must
+# not turn into a test failure.
+def _foreground_covers(region):
+    try:
+        win = App.focusedWindow()
+    except:
+        Debug.user("focus_console: cannot read the foreground window: %s" % sys.exc_info()[1])
+        return True
+    if win is None:
+        return False
+    return (win.getX() <= region.getX()
+            and win.getY() <= region.getY()
+            and win.getX() + win.getW() >= region.getX() + region.getW()
+            and win.getY() + win.getH() >= region.getY() + region.getH())
