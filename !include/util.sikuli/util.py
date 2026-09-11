@@ -352,16 +352,25 @@ def check_stopped(name="test"):
 # failure screenshot 60 s later are the same window, same document, same Help
 # pane, and Word is still the active window throughout.
 #
-# The reason is `refocus`. The Word site is the only close preceded by F1, and
-# the Help pane it opens is a WebView2 hosted out of process: while the keyboard
-# focus is inside it, Alt+F4 goes to msedgewebview2.exe, which ignores it, and
-# Word never sees the close at all. Whether the keystroke wins that race decides
-# whether the run passes. A probe that delayed the keystroke until the pane had
-# certainly settled (branch probe-office-swallow-first-altf4, run 34540575598)
-# reproduced the failure on demand and then failed to close Word with two further
-# Alt+F4 - once the pane owns the focus, no number of retries helps. So click
-# `refocus` first, an image on the application's own frame, to take the focus off
-# the pane before closing.
+# The reason is `refocus`. The Office apps park the keyboard focus in a surface
+# that is not theirs to close: Word's F1 Help pane is a WebView2 hosted out of
+# process, so while the focus is inside it Alt+F4 goes to msedgewebview2.exe,
+# which ignores it and Word never sees the close at all. Whether the keystroke
+# wins that race decides whether the run passes. A probe that delayed the
+# keystroke until the pane had certainly settled (branch
+# probe-office-swallow-first-altf4, run 34540575598) reproduced the failure on
+# demand and then failed to close Word with two further Alt+F4 - once the pane
+# owns the focus, no number of retries helps. Clicking back onto the
+# application's own frame first does close it (branch
+# probe2-office-help-pane-settled, runs 34542422854 and 34542431749, which hold
+# 20 s to guarantee that state and then pass).
+#
+# PowerPoint does it too, and not behind a Help pane: run 34546961826 logged
+# ppt_result_4.png still on screen after both Alt+F4. So `refocus` is passed at
+# every site with an image that is safe to click - a cell, a slide thumbnail, a
+# mail row, a datasheet row. OneNote is the exception: the only image the caller
+# holds there is the Add Page button, which a click would act on, so that site
+# keeps the outcome check without the click.
 #
 # `witness` is an image the caller has just seen on the application's window. If
 # it is still on screen `grace` seconds after the keystroke the window has not

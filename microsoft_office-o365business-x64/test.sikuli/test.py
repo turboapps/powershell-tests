@@ -175,7 +175,7 @@ wait("excel_print.png")
 type(Key.ESC)
 wait("excel_csv.png")
 
-util.close_window("excel_csv.png")
+util.close_window("excel_csv.png", refocus="excel_csv.png")
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 
 # Check if the session terminates.
@@ -218,7 +218,7 @@ type(Key.ESC)
 wait("outlook_new_email_2.png")
 type(Key.DELETE)
 wait(15)
-util.close_window("outlook_new_email_1.png")
+util.close_window("outlook_new_email_1.png", refocus="outlook_new_email_1.png")
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 util.check_running(12, 5) # retry 12 times and delay 5s
 
@@ -305,7 +305,7 @@ wait("ppt_print.png")
 type(Key.ESC)
 wait("ppt_result_4.png")
 
-util.close_window("ppt_result_4.png")
+util.close_window("ppt_result_4.png", refocus="ppt_result_4.png")
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 
 # Check if the session terminates.
@@ -377,7 +377,7 @@ wait("access_print.png")
 type(Key.ESC)
 wait("access_result_1.png")
 
-util.close_window("access_result_1.png")
+util.close_window("access_result_1.png", refocus="access_result_1.png")
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 
 
