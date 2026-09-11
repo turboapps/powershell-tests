@@ -1,4 +1,8 @@
-# The tests for mozilla/firefox-esr, mozilla/firefox-esr-x64 and mozilla/firefox-esr-arm64 are the same.
+# Every mozilla/firefox* variant runs this same test, so a fix belongs in all of
+# them: the reference images are shared byte for byte (the Firefox crops are
+# locale-independent icons and the Settings ones are en-US either way), and the
+# only body difference is mozilla/firefox-esr-arm64, whose shortcut is named
+# differently. Anything else diverging between the variants is drift.
 
 script_path = os.path.dirname(os.path.abspath(sys.argv[0])) 
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
@@ -42,7 +46,7 @@ type("l", Key.CTRL)
 wait(2)
 paste("about:preferences")
 type(Key.ENTER)
-wait("settings_page.png")
+wait("help-link.png")
 
 # Check "help". The click has to go through util.click_settled: the
 # about:preferences sidebar drops its "Firefox Labs" category a moment after the
@@ -73,20 +77,19 @@ wait(3)
 click("set-default.png")
 wait(3)
 type(Key.F4, Key.ALT)
-run("explorer " + htm_location)
-if exists("choose-app-firefox.png",10):
-    click("choose-app-firefox.png")
-    click("always.png")
-wait(Pattern("webpage.png").similar(0.60))
+# Both launches go through util.open_by_association: `explorer <target>` returns
+# before the handler has done anything, so an association launch that never
+# produces a window - seen with the container alive and heartbeating - has to be
+# reissued rather than waited on longer (see open_by_association).
+webpage = Pattern("webpage.png").similar(0.60)
+util.open_by_association(htm_location, webpage, "choose-app-firefox.png",
+                         executable="firefox.exe")
 type("q", Key.CTRL + Key.SHIFT)
 util.wait_app_quiet("firefox.exe")
-run('explorer "https://google.com/"')
-if exists("open-with-firefox.png",10):
-    click("open-with-firefox.png")
-    click("always.png")
-wait(Pattern("webpage.png").similar(0.60))
+util.open_by_association("https://google.com/", webpage, "open-with-firefox.png",
+                         executable="firefox.exe")
 wait(5)
-click(Pattern("webpage.png").similar(0.60)) # To gain focus.
+click(webpage) # To gain focus.
 wait(10)
 app_window = App().focus("Firefox")
 if app_window.isValid():
