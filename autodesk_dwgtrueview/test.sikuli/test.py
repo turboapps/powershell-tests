@@ -86,12 +86,19 @@ CRASH_DIR = os.environ.get("CRASH_DUMP_DIR") or "C:\\actions-runner\\_work\\_tem
 
 WMCLOSE_PS1 = os.path.join(script_path, "wmclose.ps1")
 
-CYCLES = 9
+CYCLES = 1
 
 # Round-robin, so every arm gets three cycles per job under the same conditions.
 # stop-after is dropped from the rotation: it has already been measured at 0/27
 # across the first sweep and its only job now is as the cold-profile cycle 1.
-ARMS = ["stop-races", "wmclose-storm", "stop-only"]
+ARMS = ["stop-races"]
+
+# One cycle only, and no relaunch. This variant exists to be run with
+# vm_diagnostics=true, where --diagnostic turns the launch verb into `run`
+# (util.try_verb) and stopped sessions stay listed, so re-using --name=test
+# across cycles could collide. One cycle is exactly the production shape - the
+# cold first launch, Alt+F4, `turbo stop` - which is where every crash has landed
+# anyway. The point is the VM log, not the count.
 
 # --------------------------------------------------------------------------
 # Probe helpers
