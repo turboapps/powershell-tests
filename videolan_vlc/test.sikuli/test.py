@@ -95,6 +95,24 @@ wait("vlc_skinned_window.png", 90)
 # pressing again covers a lost key whatever lost it. Alt+F4 is not a substitute:
 # closing the skins2 window is not the same as quitting VLC, so the keystroke
 # has to stay Ctrl+Q.
+# ---- PROBE ONLY, do not merge ----------------------------------------------
+# Reproduce run 34558812671 on demand: swallow the first Ctrl+Q that
+# close_window sends, and nothing else. close_window calls util's own type(),
+# so the wrapper has to be installed in util's namespace, after pre_test() has
+# put its step hooks there. If the retry works the window still goes away and
+# this run passes, with a "went away after 2 Ctrl+Q" line in the log.
+assert hasattr(util.type, "_step_original"), \n    "probe: util.type is not the hooked SikuliX type - the probe would not work"
+_probe_real_type = util.type
+_probe_swallowed = [False]
+def _probe_type(*args, **kwargs):
+    if not _probe_swallowed[0] and args and args[0] == "q":
+        _probe_swallowed[0] = True
+        Debug.user("probe: swallowed the first Ctrl+Q")
+        return
+    return _probe_real_type(*args, **kwargs)
+util.type = _probe_type
+# ---- end probe --------------------------------------------------------------
+
 closed = util.close_window("vlc_skinned_window.png", attempts=3, grace=20,
                            key="q", modifier=Key.CTRL, label="Ctrl+Q")
 assert closed, "the skinned VLC window was still on screen after 3 Ctrl+Q"
@@ -110,3 +128,5 @@ assert closed, "the skinned VLC window was still on screen after 3 Ctrl+Q"
 # it only stops an app that lingers after its window has demonstrably closed
 # from failing the run.
 util.end_session()
+
+assert _probe_swallowed[0], "probe never swallowed a Ctrl+Q - it did not exercise the retry"
