@@ -64,11 +64,59 @@ TREESIZE_TITLE = "TreeSize (Administrator)"
 def dismiss_trial_splash(timeout=2):
     match = exists("continue-with-trial.png", timeout)
     if match is None:
-        return False
+        match = raise_buried_splash()
+        if match is None:
+            return False
     around = Region(match.x - 6, match.y - 6, match.w + 12, match.h + 12)
     if around.exists("continue-with-trial.png", 0):
         click(match)
     return True
+
+# The splash's own dark header - the TreeSize logo and wordmark. Unlike the
+# link, this survives Explorer being raised over the splash, because Explorer
+# lands below it. Measured with cv2 TM_CCOEFF_NORMED against the diagnostics of
+# runs 34558812671 and 34558810483: 0.989-1.000 wherever a splash exists, front
+# or buried, in EITHER run, and 0.265-0.331 with no splash on screen. Cut from
+# the lossless -fail.png capture rather than a step frame, which is JPEG.
+SPLASH_BANNER = "splash-banner.png"
+
+# Bring a splash that something else has been raised over back to the front, and
+# return the link's Match once it is reachable - or None if no splash is there.
+#
+# This is the gap that App Tests run 34558812671 fell into and that the comment
+# here used to say could not be closed. Chain: the dismissing click at
+# L[726,819] lands inside the Explorer window's rectangle, so when the splash
+# goes out from under it the click falls through to Explorer and raises it over
+# the replacement splash. From there the link is covered, the full-screen search
+# above finds nothing and never clicks, and the same buried splash still clips
+# TreeSize's address bar - so the gate below cannot match either. That run spent
+# its whole 180 s budget on a screen that stopped changing: its step frames
+# 38-45 and 46-52 are each indistinguishable from one another.
+#
+# The old note said the only part left visible was "a featureless strip of its
+# dark banner". That was wrong - Explorer's top edge lands at y 205 and the
+# banner spans y 90-300, so the whole logo and wordmark stay readable, at the
+# same coordinates in every frame. See SPLASH_BANNER for the scores.
+#
+# Click the BANNER, not the owner. The splash is a separate top-level window, so
+# clicking its own header raises it; activating TreeSize instead buries it,
+# which is what deadlocked probe run 34544558910 and was reverted in 3d8dbd1.
+# The header carries no controls, so the click does nothing but raise.
+#
+# Kept atomic the same way as the dismissal above: re-confirm the banner in its
+# own neighbourhood and click the Match that exists() already returned, so a
+# splash that has gone in the gap cannot take a stray click into Explorer or the
+# desktop underneath it.
+def raise_buried_splash():
+    banner = exists(SPLASH_BANNER, 0)
+    if banner is None:
+        return None
+    around = Region(banner.x - 6, banner.y - 6, banner.w + 12, banner.h + 12)
+    if not around.exists(SPLASH_BANNER, 0):
+        return None
+    Debug.user("raise_buried_splash: splash found under something, raising it")
+    click(banner)
+    return exists("continue-with-trial.png", 2)
 
 # The band of the TreeSize window that holds its address bar, given the match
 # for the ribbon button above it.
@@ -104,18 +152,19 @@ def address_bar_band(window_match):
 # the address bar, so the target being readable is itself proof the splash is
 # gone, whichever order the two windows arrive in.
 #
-# KNOWN GAP, left open deliberately: if something covers the splash, the
-# dismissal below cannot see it, nothing clears it, and this loop spins out its
-# whole budget against an address bar the splash is still sitting on. Run
-# 34539364831 reached that state on its own - clicking the splash raised
-# Explorer over it. The obvious mitigation, activating TreeSize to bring the
-# splash back, does the opposite: the splash is a separate top-level window that
-# does not ride along with its owner, so raising the main window buries it,
-# where it still blocks the close and can no longer be found. Probe run
-# 34544558910 deadlocked exactly that way. Fixing this needs a way to raise the
-# SPLASH specifically, and the only part of it left visible under Explorer is a
-# featureless strip of its dark banner, which is not something to match on.
-# Failing here is at least honest and self-describing.
+# A splash that something else has been raised over used to spin this loop out
+# to its full budget, because the dismissal could not see it. raise_buried_splash
+# closes that: see its comment for why the banner, and not the owner window, is
+# the thing to click.
+#
+# More time is NOT the fix here and the budget should not be raised to paper
+# over it. In run 34558812671 the scan finished inside the first half-minute and
+# the screen then did not change for the remaining 145 s - a deadlock has no
+# slow path to wait out. The slowness in that run was real but upstream: the
+# container launch behind the context menu took 62 s against the sibling run's
+# 24 s, while the SikuliX steps around it ran at the same speed or faster. A
+# slow launch buys more splash instances (six against the sibling's one), which
+# is more chances to hit the fall-through click - not a longer scan.
 #
 # Searched inside the band rather than on the whole screen, which costs the
 # per-poll step frame for the gate (Region.exists is a bound method, so the
@@ -130,6 +179,13 @@ def wait_for_scan(target_image, timeout=180):
         if band.exists(target_image, 5):
             return
         dismiss_trial_splash()
+    # Say which of the two states this is. "TreeSize did not scan it" was
+    # actively misleading in run 34558812671, where the scan had finished long
+    # before the budget ran out and a splash nobody could reach was covering the
+    # evidence - three separate triages started from the wrong end of the test.
+    if exists(SPLASH_BANNER, 0):
+        raise FindFailed("%s: a trial splash was still covering TreeSize's address bar after %d s"
+                         % (target_image, timeout))
     raise FindFailed("%s: TreeSize did not scan it within %d s" % (target_image, timeout))
 
 # Activate (window) if one was named, then ask it to close.
