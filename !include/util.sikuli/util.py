@@ -1007,12 +1007,19 @@ def find_settled(image, timeout=30, stable=3, poll=0.4):
 def click_settled(target, done_image, attempts=3, timeout=30):
     for attempt in range(1, attempts + 1):
         click(find_settled(target, timeout))
+        # The last check is a wait(), not an exists(), so that a step that is
+        # really broken still fails the way an unwrapped wait would: the step
+        # hook saves a FAILED-<done_image> frame - the screen the investigation
+        # starts from, and what diagnosed this defect in the first place - and
+        # the error carries SikuliX's own match detail. exists() returns None
+        # instead of raising, which would have left neither.
+        if attempt == attempts:
+            wait(done_image, timeout)
+            return
         if exists(done_image, timeout) is not None:
             return
         Debug.user("click_settled: %s did not reach %s on attempt %d of %d"
                    % (target, done_image, attempt, attempts))
-    raise FindFailed("click_settled: %s never reached %s in %d attempts"
-                     % (target, done_image, attempts))
 
 # ---------------------------------------------------------------------------
 # VS Code
