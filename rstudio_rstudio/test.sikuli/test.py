@@ -92,7 +92,18 @@ wait("project_run.png")
 click("project_run.png")
 type("install.packages(\"roxygen2\")")
 type(Key.ENTER)
-wait(10)
+# Wait for roxygen2 to be installed rather than guessing at how long it takes.
+# A blind wait(10) stood here, and Ctrl+Shift+B sent into a console still
+# installing does not queue: the build starts against a half-unpacked roxygen2
+# and dies with "Error: package 'roxygen2' does not have a namespace" /
+# "Exited with status 1", after which "> library(test)" is never coming and any
+# budget below is spent for nothing (probe run 34545508907). This image is the
+# "The downloaded binary packages are in ..." line together with the console's
+# "> " prompt, so it proves both that the install finished and that R is idle;
+# it scores 0.37-0.43 while the install runs and 0.92-0.93 once it is done.
+# The same image serves the tidyverse install above, and cannot be left over
+# from it: creating the project restarts the R session and clears the console.
+wait("rstudio_package_installed.png", 180)
 type("b", Key.CTRL + Key.SHIFT)
 # project_build.png is the "> library(test)" the console echoes only after
 # Ctrl+Shift+B has run roxygen2, built and installed the package with
@@ -101,10 +112,8 @@ type("b", Key.CTRL + Key.SHIFT)
 # "* DONE (test)" and "Restarting R session..." when the wait gave up, and the
 # harness screenshot taken seconds later shows "> library(test)" and
 # "Attaching package: 'test'": the package built correctly and the test threw
-# the run away for want of a few more seconds. The install.packages() above it
-# keeps its blind wait: RStudio queues the Ctrl+Shift+B when the console is
-# still busy - that is what happened in that run, and the build ran in full -
-# so a slow install now only spends part of this budget.
+# the run away for want of a few more seconds. Measured at 16-24 s across six
+# runs on an idle pool.
 wait("project_build.png", 180)
 
 # Check "help".
