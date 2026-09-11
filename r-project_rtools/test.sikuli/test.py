@@ -70,13 +70,23 @@ for attempt in range(3):
     type("a", Key.CTRL)
     type("test")
     click("new_package_create.png")
-    if exists("project_template.png", 20):
+    if exists("project_template.png", 60):
+        break
+    # Only a rejected name leaves the wizard up, so if it has gone the project
+    # is being created and this wait was simply short - creating the project
+    # and restarting the R session into it took 20-25 s on the slow pool VM of
+    # probe run 34544390344. Retrying on that would type into the new project
+    # and then hunt for a wizard that no longer exists, which is how the first
+    # cut of this loop turned a slow success into a 30 s FindFailed.
+    if not exists("new_package_create.png", 0):
+        Debug.user("new package: the wizard has closed, the project is still being created")
         break
     Debug.user("new package: the name did not take on attempt %d of 3" % (attempt + 1))
     type(Key.ENTER)
     wait(1)
 else:
     raise FindFailed("the New Project Wizard never created the 'test' package")
+wait("project_template.png", 120)
 type("r", Key.ALT + Key.CTRL)
 wait("project_run.png")
 click("project_run.png")
