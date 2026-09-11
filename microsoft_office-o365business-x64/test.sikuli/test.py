@@ -135,6 +135,9 @@ wait("word_help.png")
 # F1 leaves the keyboard focus in the Help pane, which is a WebView2 hosted
 # out of process and swallows Alt+F4 whole; click back into the document
 # before closing (see util.close_window).
+# PROBE ONLY - DO NOT MERGE. Let the focus settle into whatever surface the app
+# parks it in, the state that defeated every Alt+F4 in run 34540575598 / 34546961826.
+wait(20)
 util.close_window("word_result_5.png", refocus="word_result_5.png")
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 
@@ -175,6 +178,9 @@ wait("excel_print.png")
 type(Key.ESC)
 wait("excel_csv.png")
 
+# PROBE ONLY - DO NOT MERGE. Let the focus settle into whatever surface the app
+# parks it in, the state that defeated every Alt+F4 in run 34540575598 / 34546961826.
+wait(20)
 util.close_window("excel_csv.png", refocus="excel_csv.png")
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 
@@ -218,6 +224,9 @@ type(Key.ESC)
 wait("outlook_new_email_2.png")
 type(Key.DELETE)
 wait(15)
+# PROBE ONLY - DO NOT MERGE. Let the focus settle into whatever surface the app
+# parks it in, the state that defeated every Alt+F4 in run 34540575598 / 34546961826.
+wait(20)
 util.close_window("outlook_new_email_1.png", refocus="outlook_new_email_1.png")
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 util.check_running(12, 5) # retry 12 times and delay 5s
@@ -305,6 +314,9 @@ wait("ppt_print.png")
 type(Key.ESC)
 wait("ppt_result_4.png")
 
+# PROBE ONLY - DO NOT MERGE. Let the focus settle into whatever surface the app
+# parks it in, the state that defeated every Alt+F4 in run 34540575598 / 34546961826.
+wait(20)
 util.close_window("ppt_result_4.png", refocus="ppt_result_4.png")
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 
@@ -377,6 +389,9 @@ wait("access_print.png")
 type(Key.ESC)
 wait("access_result_1.png")
 
+# PROBE ONLY - DO NOT MERGE. Let the focus settle into whatever surface the app
+# parks it in, the state that defeated every Alt+F4 in run 34540575598 / 34546961826.
+wait(20)
 util.close_window("access_result_1.png", refocus="access_result_1.png")
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 
