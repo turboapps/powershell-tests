@@ -1006,7 +1006,14 @@ def find_settled(image, timeout=30, stable=3, poll=0.4):
 # the locale.
 def click_settled(target, done_image, attempts=3, timeout=30):
     for attempt in range(1, attempts + 1):
-        click(find_settled(target, timeout))
+        # PROBE ONLY - DO NOT MERGE: make EVERY attempt miss by one sidebar row
+        # height, so click_settled exhausts its retries. Expected outcome is a
+        # FAIL whose artifact contains a FAILED-wait-help_page frame plus a
+        # "did not reach" line for attempts 1 and 2 - that is what proves the
+        # final wait() keeps the diagnostics an exists() would have thrown away.
+        _m = find_settled(target, timeout)
+        Debug.user("PROBE: clicking 39 px below the settled match for %s" % target)
+        click(_m.getCenter().offset(0, 39))
         # The last check is a wait(), not an exists(), so that a step that is
         # really broken still fails the way an unwrapped wait would: the step
         # hook saves a FAILED-<done_image> frame - the screen the investigation
