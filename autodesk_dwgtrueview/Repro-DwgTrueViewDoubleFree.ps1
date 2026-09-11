@@ -36,6 +36,17 @@
                     This is the arm that decides whether Turbo is needed to
                     provoke the bug or merely happens to be what provokes it.
 
+.PARAMETER Iterations
+    Maximum attempts. The run STOPS at the first attempt that produces a dump -
+    one dump is all you need, and continuing would only pile up 800 MB files and
+    hand the next attempt a machine with a crashed instance on it.
+
+.PARAMETER DumpDir
+    Override where dumps are read from. By default nothing is moved: the script
+    enables WER LocalDumps without setting DumpFolder, so dumps land wherever
+    they already would - the box's own DumpFolder if it configures one, else
+    Windows' default %LOCALAPPDATA%\CrashDumps.
+
 .PARAMETER SecondCloseDelayMs
     Gap between the first close and the second. In CI the Alt+F4 -> `turbo stop`
     gap was 1.3 s and 2.3 s, and the crash followed ~4 s later. The app exits in
@@ -43,12 +54,15 @@
 
 .EXAMPLE
     .\Repro-DwgTrueViewDoubleFree.ps1 -Mode TurboStop -Iterations 10
-    Expect roughly half the iterations to crash.
+    Up to 10 attempts, stopping at the first dump. CI crashes on roughly half of
+    them, so this usually stops within two or three.
 
 .EXAMPLE
     .\Repro-DwgTrueViewDoubleFree.ps1 -Mode Native -Iterations 10
     Crashes here => an Autodesk defect any WM_CLOSE broadcast can trigger.
     Clean here while TurboStop crashes => something about the container matters.
+    Give this one a decent -Iterations before believing a clean result: it is a
+    race, so 10 clean attempts is far weaker evidence than a single crash.
 
 .EXAMPLE
     foreach ($d in 400,800,1200,1600,2000,2400) {
@@ -57,14 +71,17 @@
     Sweep for the timing window.
 
 .NOTES
-    Run elevated: WER LocalDumps lives under HKLM. The script saves whatever was
-    there and puts it back on exit unless -KeepWerSettings is given.
+    Run elevated: WER LocalDumps lives under HKLM. The script only forces
+    DumpType (full - a minidump will not show the corrupted CStringData) and
+    DumpCount, never DumpFolder, and it puts the previous values back on exit
+    unless -KeepWerSettings is given.
 #>
 [CmdletBinding()]
 param(
     [ValidateSet('TurboStop', 'TurboStopAfter', 'Native')]
     [string]$Mode = 'TurboStop',
 
+    # Maximum attempts. The run stops as soon as one produces a dump.
     [int]$Iterations = 10,
     [int]$SecondCloseDelayMs = 1500,
 
@@ -72,7 +89,9 @@ param(
     [string]$SessionName = 'dwgrepro',
     [string]$XvmVersion = '',
 
-    [string]$DumpDir = 'C:\dwgrepro-dumps',
+    # Empty = wherever WER LocalDumps already writes: the box's own DumpFolder
+    # if it sets one, otherwise Windows' default, %LOCALAPPDATA%\CrashDumps.
+    [string]$DumpDir = '',
     [int]$ReadyTimeoutSec = 240,
     [int]$QuietSec = 8,
     [int]$PostCrashGraceSec = 20,
@@ -143,6 +162,7 @@ function Write-Step($msg) { Write-Host ("[{0:HH:mm:ss}] {1}" -f (Get-Date), $msg
 # ---------------------------------------------------------------------------
 $WerKey = 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps'
 $script:WerSaved = $null
+$script:ResolvedDumpDir = $null
 
 function Enable-WerLocalDumps {
     $id = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -150,19 +170,39 @@ function Enable-WerLocalDumps {
               [Security.Principal.WindowsBuiltInRole]::Administrator)) {
         throw "Run elevated: WER LocalDumps is under HKLM."
     }
-    New-Item -ItemType Directory -Path $DumpDir -Force | Out-Null
     if (Test-Path $WerKey) {
         $script:WerSaved = Get-ItemProperty -Path $WerKey
     } else {
         New-Item -Path $WerKey -Force | Out-Null
     }
-    New-ItemProperty -Path $WerKey -Name DumpFolder -Value $DumpDir -PropertyType ExpandString -Force | Out-Null
-    New-ItemProperty -Path $WerKey -Name DumpType   -Value 2       -PropertyType DWord        -Force | Out-Null
-    New-ItemProperty -Path $WerKey -Name DumpCount  -Value 20      -PropertyType DWord        -Force | Out-Null
+    # DumpFolder is deliberately NOT set - dumps stay wherever WER already puts
+    # them. Only the dump TYPE is forced: the default is a minidump, and the
+    # CStringData this bug double-frees is only readable in a full one.
+    New-ItemProperty -Path $WerKey -Name DumpType  -Value 2  -PropertyType DWord -Force | Out-Null
+    New-ItemProperty -Path $WerKey -Name DumpCount -Value 20 -PropertyType DWord -Force | Out-Null
     # No modal WER dialog: one would wedge an unattended run.
     New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting' `
         -Name DontShowUI -Value 1 -PropertyType DWord -Force | Out-Null
-    Write-Step "WER LocalDumps -> $DumpDir (full dumps, keep 20)"
+
+    $script:ResolvedDumpDir = Resolve-WerDumpFolder
+    New-Item -ItemType Directory -Path $script:ResolvedDumpDir -Force | Out-Null
+    Write-Step "WER LocalDumps: full dumps -> $script:ResolvedDumpDir"
+}
+
+# Where WER will actually write. An explicit -DumpDir wins; otherwise the box's
+# own DumpFolder if it configures one (REG_EXPAND_SZ, so expand it); otherwise
+# Windows' default for LocalDumps, %LOCALAPPDATA%\CrashDumps.
+#
+# That default is per-user: the dump lands in the LOCALAPPDATA of whoever the
+# CRASHING process runs as. Here that is this same user - the container runs
+# --isolate=merge-user as the caller, and Native mode is a plain child process -
+# so watching our own LOCALAPPDATA is right. It would not be if the app were
+# ever run as a service or as another user.
+function Resolve-WerDumpFolder {
+    if ($DumpDir) { return $DumpDir }
+    $configured = (Get-ItemProperty -Path $WerKey -Name DumpFolder -ErrorAction SilentlyContinue).DumpFolder
+    if ($configured) { return [Environment]::ExpandEnvironmentVariables($configured) }
+    return (Join-Path $env:LOCALAPPDATA 'CrashDumps')
 }
 
 function Restore-WerLocalDumps {
@@ -171,7 +211,8 @@ function Restore-WerLocalDumps {
         if ($null -eq $script:WerSaved) {
             Remove-Item -Path $WerKey -Recurse -Force -ErrorAction SilentlyContinue
         } else {
-            foreach ($n in 'DumpFolder', 'DumpType', 'DumpCount') {
+            # DumpFolder is absent from this list on purpose: never touched.
+            foreach ($n in 'DumpType', 'DumpCount') {
                 if ($null -ne $script:WerSaved.$n) {
                     Set-ItemProperty -Path $WerKey -Name $n -Value $script:WerSaved.$n
                 } else {
@@ -318,8 +359,12 @@ function Reset-Machine {
 # Dumps
 # ---------------------------------------------------------------------------
 function Get-DumpSet {
-    if (-not (Test-Path $DumpDir)) { return @() }
-    @(Get-ChildItem -Path $DumpDir -Filter '*.dmp' -File -ErrorAction SilentlyContinue |
+    if (-not $script:ResolvedDumpDir -or -not (Test-Path $script:ResolvedDumpDir)) { return @() }
+    # Only our image. Now that dumps go to the shared per-user CrashDumps folder
+    # rather than a private one, anything else on the box that faults mid-run
+    # would otherwise be counted as this app crashing. WER names them
+    # <image>.<pid>.dmp, so the pid still attributes each one to its attempt.
+    @(Get-ChildItem -Path $script:ResolvedDumpDir -Filter "$ExeName.*.dmp" -File -ErrorAction SilentlyContinue |
       ForEach-Object { $_.Name })
 }
 
@@ -398,7 +443,7 @@ function Invoke-Iteration {
 
     if ($new.Count -gt 0) {
         foreach ($d in $new) {
-            $sig = Test-DumpSignature -Path (Join-Path $DumpDir $d)
+            $sig = Test-DumpSignature -Path (Join-Path $script:ResolvedDumpDir $d)
             Write-Host ("  CRASH: {0}{1}" -f $d, $(if ($sig) { "  [$sig]" } else { "" })) -ForegroundColor Red
         }
         $res = 'crash'
@@ -423,6 +468,13 @@ try {
     for ($i = 1; $i -le $Iterations; $i++) {
         $r = Invoke-Iteration -Index $i -Seen $seen
         $records += $r
+        # One dump is the whole point: stop and leave the machine and the dump
+        # alone for analysis rather than piling up 800 MB files and giving the
+        # next iteration a crashed instance to start from.
+        if ($r.Result -eq 'crash') {
+            Write-Step "reproduced on attempt $i - stopping"
+            break
+        }
         $seen = Get-DumpSet
     }
 } finally {
@@ -430,18 +482,26 @@ try {
     Restore-WerLocalDumps
 }
 
-$crashed = @($records | Where-Object { $_.Result -eq 'crash' }).Count
-$clean   = @($records | Where-Object { $_.Result -eq 'clean' }).Count
-$skipped = @($records | Where-Object { $_.Result -eq 'skipped' }).Count
+$crashRec = @($records | Where-Object { $_.Result -eq 'crash' }) | Select-Object -First 1
+$clean    = @($records | Where-Object { $_.Result -eq 'clean' }).Count
+$skipped  = @($records | Where-Object { $_.Result -eq 'skipped' }).Count
 
 Write-Host ""
 Write-Host "===== $Mode, delay ${SecondCloseDelayMs}ms =====" -ForegroundColor Cyan
-Write-Host "  crashed : $crashed / $($crashed + $clean) measured iteration(s)"
-Write-Host "  clean   : $clean"
+if ($crashRec) {
+    Write-Host "  REPRODUCED on attempt $($crashRec.Index) (after $clean clean attempt(s))" -ForegroundColor Red
+    foreach ($d in $crashRec.Dumps) {
+        Write-Host "  dump    : $(Join-Path $script:ResolvedDumpDir $d)"
+    }
+} else {
+    Write-Host "  not reproduced in $clean measured attempt(s)" -ForegroundColor Green
+    Write-Host "  dumps   : $script:ResolvedDumpDir (empty of new dumps)"
+}
 if ($skipped) { Write-Host "  skipped : $skipped (app never became ready)" }
-Write-Host "  dumps   : $DumpDir"
 Write-Host ""
-Write-Host "Expected from CI: TurboStop ~50%, TurboStopAfter 0/27." -ForegroundColor DarkGray
+Write-Host "Expected from CI: TurboStop ~50% per attempt, TurboStopAfter 0/27." -ForegroundColor DarkGray
 Write-Host "A crash in Native mode means no container is needed to provoke it." -ForegroundColor DarkGray
+Write-Host "Not reproducing is weak evidence on its own - this is a race; try more" -ForegroundColor DarkGray
+Write-Host "attempts and sweep -SecondCloseDelayMs before concluding anything." -ForegroundColor DarkGray
 
 $records | Format-Table Index, Result, Pid, ExitSec, @{n='Dumps';e={$_.Dumps -join ','}} -AutoSize
