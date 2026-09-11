@@ -84,7 +84,14 @@ LAUNCH = ("turbo " + util.try_verb() + " autodesk/dwgtrueview --name=test"
 # not survive into the sikulixide container.
 CRASH_DIR = os.environ.get("CRASH_DUMP_DIR") or "C:\\actions-runner\\_work\\_temp\\crashdumps"
 
+WMCLOSE_PS1 = os.path.join(script_path, "wmclose.ps1")
+
 CYCLES = 9
+
+# Round-robin, so every arm gets three cycles per job under the same conditions.
+# stop-after is dropped from the rotation: it has already been measured at 0/27
+# across the first sweep and its only job now is as the cold-profile cycle 1.
+ARMS = ["stop-races", "wmclose-storm", "stop-only"]
 
 # --------------------------------------------------------------------------
 # Probe helpers
@@ -251,6 +258,40 @@ def close_stop_after():
     run("turbo stop test")
     return gone
 
+# Alt+F4, then the VM's WM_CLOSE broadcast and nothing else.
+#
+# wmclose.ps1 does what TerminateSelfGracefullyCallback's window half does -
+# EnumWindows, filter to the process, PostMessageW(WM_CLOSE) to every top-level
+# window - but from the host, with no `turbo stop`, no CTRL_CLOSE_EVENT, no
+# container teardown and no TerminateProcess timer. The 2 s pause matches the gap
+# the production failures had between the Alt+F4 and `turbo stop` reaching the
+# process (1.3 s and 2.3 s in the two runs with client logs).
+#
+# Crashes here and not only under stop-races => the broadcast alone is enough and
+# the VM contributes nothing but the message. Clean here while stop-races crashes
+# => something else in the stop is required, and the window broadcast is not the
+# mechanism.
+# PostMessage returns as soon as the message is queued, and `turbo stop` does not
+# - run() blocks for the ~10 s the stop takes, by which time a crash 4 s in has
+# long happened. So this arm has to wait for the outcome itself, or settle_dumps
+# could start looking before the app has even finished dying.
+def close_wmclose_storm():
+    type(Key.F4, Key.ALT)
+    wait(2)
+    out = run('powershell -NoProfile -ExecutionPolicy Bypass -File "%s"' % WMCLOSE_PS1)
+    Debug.user("probe: %s" % out.strip().replace("\n", " | "))
+    return wait_process_gone()
+
+# `turbo stop` against an app that is NOT already closing.
+#
+# The other arms all put the app into its own teardown first. If the crash needs
+# that overlap, this is clean; if `turbo stop` crashes a settled, idle app on its
+# own, the overlap is not the mechanism and the VM's stop path is doing more than
+# delivering a close.
+def close_stop_only():
+    run("turbo stop test")
+    return wait_process_gone()
+
 # --------------------------------------------------------------------------
 # Run the cycles
 # --------------------------------------------------------------------------
@@ -263,7 +304,7 @@ records = []
 seen_dumps = dump_names()
 
 for cycle in range(1, CYCLES + 1):
-    arm = "stop-after" if (cycle == 1 or cycle % 2 == 1) else "stop-races"
+    arm = ARMS[(cycle - 1) % len(ARMS)]
 
     # Cycle 1 uses the instance the executor already launched; every later cycle
     # launches its own so it closes the same kind of session.
@@ -303,6 +344,10 @@ for cycle in range(1, CYCLES + 1):
 
     if arm == "stop-races":
         gone = close_stop_races()
+    elif arm == "wmclose-storm":
+        gone = close_wmclose_storm()
+    elif arm == "stop-only":
+        gone = close_stop_only()
     else:
         gone = close_stop_after()
 
@@ -332,13 +377,14 @@ def tally(arm):
     rows = [r for r in records if r[1] == arm]
     return len([r for r in rows if r[4]]), len(rows)
 
-races_crashed, races_total = tally("stop-races")
-after_crashed, after_total = tally("stop-after")
-
 skipped = len([r for r in records if r[1] == "skipped"])
 
-Debug.user("probe: RESULT stop-races %d/%d cycles crashed" % (races_crashed, races_total))
-Debug.user("probe: RESULT stop-after %d/%d cycles crashed" % (after_crashed, after_total))
+summary = []
+for arm in ARMS + ["stop-after"]:
+    crashed, total = tally(arm)
+    if total:
+        Debug.user("probe: RESULT %s %d/%d cycles crashed" % (arm, crashed, total))
+        summary.append("%s %d/%d" % (arm, crashed, total))
 Debug.user("probe: RESULT %d cycle(s) skipped, never reached the close" % skipped)
 for cycle, arm, pids, gone, new in records:
     if new:
@@ -346,5 +392,4 @@ for cycle, arm, pids, gone, new in records:
 
 # Fail on purpose so the harness prints the test log into the job log and stages
 # the diagnostics. A probe branch has no passing verdict to give.
-raise Exception("PROBE COMPLETE - stop-races %d/%d crashed, stop-after %d/%d crashed, %d skipped"
-                % (races_crashed, races_total, after_crashed, after_total, skipped))
+raise Exception("PROBE COMPLETE - %s, %d skipped" % (", ".join(summary), skipped))
