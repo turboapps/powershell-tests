@@ -104,6 +104,19 @@ def address_bar_band(window_match):
 # the address bar, so the target being readable is itself proof the splash is
 # gone, whichever order the two windows arrive in.
 #
+# KNOWN GAP, left open deliberately: if something covers the splash, the
+# dismissal below cannot see it, nothing clears it, and this loop spins out its
+# whole budget against an address bar the splash is still sitting on. Run
+# 34539364831 reached that state on its own - clicking the splash raised
+# Explorer over it. The obvious mitigation, activating TreeSize to bring the
+# splash back, does the opposite: the splash is a separate top-level window that
+# does not ride along with its owner, so raising the main window buries it,
+# where it still blocks the close and can no longer be found. Probe run
+# 34544558910 deadlocked exactly that way. Fixing this needs a way to raise the
+# SPLASH specifically, and the only part of it left visible under Explorer is a
+# featureless strip of its dark banner, which is not something to match on.
+# Failing here is at least honest and self-describing.
+#
 # Searched inside the band rather than on the whole screen, which costs the
 # per-poll step frame for the gate (Region.exists is a bound method, so the
 # hooks in util - which patch module-level names - do not wrap it). The splash
@@ -116,23 +129,27 @@ def wait_for_scan(target_image, timeout=180):
     while time.time() < deadline:
         if band.exists(target_image, 5):
             return
-        # A splash that Explorer is covering cannot be seen, let alone clicked,
-        # and nothing else clears it - so the loop would spin out its whole
-        # budget against an address bar the splash is still sitting on. That
-        # state is not hypothetical: in run 34539364831 clicking the splash
-        # raised Explorer over a splash that stayed up. Bring TreeSize forward
-        # first; the splash is its own window, owned by the main one, so it
-        # comes back with it and the dismissal below can see it again.
-        util.activate_app_window(TREESIZE_TITLE, 1)
         dismiss_trial_splash()
     raise FindFailed("%s: TreeSize did not scan it within %d s" % (target_image, timeout))
 
-# Activate (window) if one was named, then ask it to close. Activation is best
-# effort: a modal splash owns the input queue and its owner will not come
-# forward while it is up, which is the case the splash handling above covers.
+# Activate (window) if one was named, then ask it to close.
+#
+# Never while the trial splash is visible. The splash is a separate top-level
+# window and it does NOT ride along with its owner: activating the main window
+# puts the splash BEHIND it, where it still blocks the close and can no longer
+# be seen or clicked. Probe run 34544558910 ended in exactly that deadlock -
+# main window focused and frontmost over a finished scan, the splash's title
+# strip and its "Continue with trial version" link just visible above and below
+# it, and 180 s of Alt+F4 doing nothing. Leaving the splash on top instead
+# costs nothing, because the splash handling in close_window's loop clears it
+# and then re-sends the keystroke.
+#
+# Activation is a precaution rather than something a probe has exercised: with
+# the gate restricted to TreeSize's own window the loop can in principle return
+# while Explorer holds the foreground, and Alt+F4 would then close Explorer.
 def send_close(window=None):
-    if window:
-        util.activate_app_window(window, 10)
+    if window and not exists("continue-with-trial.png", 0):
+        util.activate_app_window(window, 1)
     type(Key.F4, Key.ALT)
 
 # Close a TreeSize window and confirm it is gone before the test moves on.
