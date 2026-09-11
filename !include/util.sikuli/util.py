@@ -875,7 +875,13 @@ def _drop_stray_session(executable=None):
 def open_by_association(target, done_pattern, dialog_image=None, always_image="always.png",
                         executable=None, attempts=3, timeout=30, dialog_timeout=10):
     for attempt in range(1, attempts + 1):
-        run('explorer "%s"' % target)
+        # PROBE ONLY - DO NOT MERGE: reproduce the silent windowless launch by
+        # simply not issuing the first explorer, so attempt 1 can only time out.
+        # Attempt 2 must relaunch and the test must pass.
+        if attempt == 1:
+            Debug.user("PROBE: suppressing the first explorer for %s" % target)
+        else:
+            run('explorer "%s"' % target)
         if dialog_image and exists(dialog_image, dialog_timeout):
             click(dialog_image)
             if exists(always_image, dialog_timeout):
