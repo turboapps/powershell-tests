@@ -872,3 +872,44 @@ def _foreground_covers(region):
             and win.getY() <= region.getY()
             and win.getX() + win.getW() >= region.getX() + region.getW()
             and win.getY() + win.getH() >= region.getY() + region.getH())
+
+# Locate an image only once it has stopped moving, and return that match.
+#
+# A find that lands mid-animation returns coordinates that are already stale by
+# the time the click's mouse-down arrives, and nothing about the result says so:
+# the match score is perfect, because the content is identical and only its
+# position has changed.
+#
+# RStudio's New Project Wizard slides each page in horizontally, and the
+# "Package name" field of the Create R Package page is the first thing the
+# r-project_rtools / rstudio_rstudio tests look for after triggering that slide
+# - every other step in the wizard has a wait() on the line before the click,
+# which burns enough time for the page to come to rest, so only this one is
+# exposed. In App Tests runs 34423171312, 34295135821, 34097555049 and
+# 34097578991 it was found mid-slide and clicked 180-245 px right of where it
+# settled (1145 / 1159 / 1173 / 1208 against a settled 963), which is outside
+# the field: the caret never landed in it, the package name stayed empty and
+# Create Project answered "Invalid package name ''". The x offset differed every
+# run and y never did - the signature of a horizontal slide - and a run that
+# happened to catch the page at rest passed.
+#
+# So poll until the match sits in the same place `stable` times running and hand
+# the caller that one. A settle long enough to cover the animation would do the
+# same job only for as long as the animation stays as short as it is today;
+# asking the screen whether it has stopped moving does not have to guess.
+def find_settled(image, timeout=30, stable=3, poll=0.4):
+    deadline = time.time() + timeout
+    where = None
+    repeats = 0
+    while time.time() < deadline:
+        match = exists(image, 0)
+        if match is None:
+            where, repeats = None, 0
+        else:
+            here = (match.getX(), match.getY())
+            repeats = repeats + 1 if here == where else 1
+            where = here
+            if repeats >= stable:
+                return match
+        wait(poll)
+    raise FindFailed("find_settled: %s never held still for %.1f s" % (image, timeout))
