@@ -72,14 +72,57 @@ def wait_page_rendered(attempts=12, poll=10):
     wait("point-2-point.png", 5)
 
 
+# Alt+F4 closes Acrobat's window, but the container session outlives it: the
+# session's root `turbo run` only reports "Application exited" seconds later, and
+# the session is torn down at that point. Reopening the PDF inside that window is
+# fatal - `turbo execute` finds the session still listed, logs
+#   Existing session with policy: "Default"
+#   Existing session with different args, switching to LaunchInSession
+# and returns 0, but the Acrobat it just started dies with the session moments
+# later. Run 34421003089 attached at 17:45:23 and the root app exited at 17:45:26,
+# and the screen then stayed pixel-identical (mean frame diff 0.00) for the whole
+# 120 s wait - no window, no error. Run 34421011469 did the same LaunchInSession
+# but had 42 s before its root app exited, so it survived. It is a race with the
+# teardown, not a slow launch, which is why widening the wait to 120 s in #195
+# changed nothing.
+#
+# So let the session finish dying before relaunching; the reopen then starts a
+# fresh container. Returns False rather than asserting - the page wait that
+# follows stays the assertion, and a session that never clears should show up
+# there with a screenshot rather than here.
+def wait_session_gone(attempts=20, delay=3):
+    for _ in range(attempts):
+        if "Running" not in run("turbo sessions -l"):
+            return True
+        wait(delay)
+    Debug.user("wait_session_gone: a session is still Running after %d s" % (attempts * delay))
+    return False
+
 # Login to Adobe Creative Cloud Desktop
 util.launch_adobe_cc(username, password)
 
 # Test turbo run
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
 wait(5)
-paste('turbo run acrobatpro --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test' + util.read_extra())
-wait(2)
+# Run 34420994008 lost this paste outright: the prompt is empty in the step frame
+# before the paste and still empty before the Enter, and the console shows two
+# bare prompts 120 s later - so the window had the keyboard (it took the Enter)
+# but Ctrl+V never produced anything, and the text never arrived at all. Pressing
+# Enter on the empty line then leaves the container unstarted and the test waits
+# out the launch it never asked for.
+#
+# So check the command is on the prompt before submitting it, and re-send it if
+# not. Esc clears cmd's input line first, so a retry - including one caused by
+# this image going stale - can only ever leave a single copy of the command on
+# the line. The wait for the app below stays the assertion.
+turbo_run = ('turbo run acrobatpro --using=isolate-edge-wc,creativeclouddesktop'
+             ' --offline --enable=disablefontpreload --name=test' + util.read_extra())
+for attempt in range(3):
+    type(Key.ESC)
+    util.paste_text(turbo_run, 2)
+    if exists("turbo-run-pasted.png", 2):
+        break
+    Debug.user("turbo run: the paste did not reach the prompt on attempt %d of 3" % (attempt + 1))
 type(Key.ENTER)
 if exists("adobe_login_signout_others.png",60):
     click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
@@ -130,6 +173,7 @@ wait("blue-print-button.png")
 type(Key.ESC)
 wait(3)
 type(Key.F4, Key.ALT)
+wait_session_gone()
 
 run("explorer " + save_location)
 wait("default_dialog.png")
@@ -137,7 +181,7 @@ click("default_acrobat_pro.png")
 click("default_always.png")
 wait_page_rendered(3)
 type(Key.F4, Key.ALT)
-wait(3)
+wait_session_gone()
 
 run("explorer " + save_location)
 wait_page_rendered(3)

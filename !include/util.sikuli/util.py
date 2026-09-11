@@ -185,13 +185,33 @@ def adobe_cc_login(username, password):
     paste(username)
     wait(3)
     type(Key.ENTER)
-    wait(Pattern("adobe_login_pass.png").similar(0.40),15)
-    wait(3)
-    click(Pattern("adobe_login_pass.png").similar(0.40))
+    # Wait for the password page itself, not for anything shaped like a text
+    # field. The email page and the password page are the same shape - a label
+    # over a rounded input box - so the old reference (a "Password" crop matched
+    # at similar(0.40)) also matched the EMAIL field, at 0.42-0.50. That made
+    # this wait return immediately on the very page it was meant to wait past,
+    # leaving the fixed wait(3) below as the only thing between the email box
+    # and paste(password): when Adobe's page took longer than that to navigate,
+    # the password went in after the email address, the sign-in failed, and the
+    # test died many steps later on an unrelated image of whatever the app shows
+    # when it is not signed in - with the password in cleartext in the
+    # diagnostics artifact. The reference is now the "Continue with password"
+    # label of the current page, which scores 0.98-1.00 there and 0.47-0.55 on
+    # the email page, so the default similarity separates the two and this is a
+    # real wait. Re-capture it if Adobe relabels the page: a stale reference is
+    # what forced the 0.40 in the first place. The offset clicks into the field
+    # below the label.
+    wait("adobe_login_pass.png",60)
+    wait(1)
+    click(Pattern("adobe_login_pass.png").targetOffset(0,27))
     wait(3)
     paste(password)
     wait(3)
     type(Key.ENTER)
+    # Fail at the cause, not 30 steps downstream: a sign-in that worked leaves
+    # the password page, a sign-in that did not keeps it up (with an error).
+    if not waitVanish("adobe_login_pass.png",60):
+        raise FindFailed("adobe_cc_login: sign-in did not complete, the password page is still up")
     if exists("adobe_login_signout_others.png",15):
         click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
         click(Pattern("adobe_login_continue.png").similar(0.80))
@@ -336,6 +356,75 @@ def check_stopped(name="test"):
         if name in line.split():
             assert "Running" not in line, "session %s is still running: %s" % (name, line.strip())
             return
+
+# Close the application window with Alt+F4 and check that it took.
+#
+# `type(Key.F4, Key.ALT)` is fire-and-forget: SikuliX logs the chord as sent and
+# returns, and nothing looks at whether the window went away. When the close does
+# not happen the test walks on into check_running, which fails 60 s later against
+# a session that is still Running - so the report points at the container
+# teardown instead of at the close that never happened.
+#
+# App Tests run 34423171312 (proplus, Word) failed that way, as did runs
+# 33949816065 and 34097555049 on a different VM build - 3 of the last 8 proplus
+# failures, all three at the Word site and at no other. Every one of them shows
+# the same picture: the step frame taken immediately before the keystroke and the
+# failure screenshot 60 s later are the same window, same document, same Help
+# pane, and Word is still the active window throughout.
+#
+# The reason is `refocus`. The Office apps park the keyboard focus in a surface
+# that is not theirs to close: Word's F1 Help pane is a WebView2 hosted out of
+# process, so while the focus is inside it Alt+F4 goes to msedgewebview2.exe,
+# which ignores it and Word never sees the close at all. Whether the keystroke
+# wins that race decides whether the run passes. A probe that delayed the
+# keystroke until the pane had certainly settled (branch
+# probe-office-swallow-first-altf4, run 34540575598) reproduced the failure on
+# demand and then failed to close Word with two further Alt+F4 - once the pane
+# owns the focus, no number of retries helps. Clicking back onto the
+# application's own frame first does close it (branch
+# probe2-office-help-pane-settled, runs 34542422854 and 34542431749, which hold
+# 20 s to guarantee that state and then pass).
+#
+# PowerPoint does it too, and not behind a Help pane: run 34546961826 logged
+# ppt_result_4.png still on screen after both Alt+F4. So `refocus` is passed at
+# every site with an image that is safe to click - a cell, a slide thumbnail, a
+# mail row, a datasheet row. OneNote is the exception: the only image the caller
+# holds there is the Add Page button, which a click would act on, so that site
+# keeps the outcome check without the click.
+#
+# `witness` is an image the caller has just seen on the application's window. If
+# it is still on screen `grace` seconds after the keystroke the window has not
+# begun to close, so try again. An application that is merely slow to quit has
+# already taken the keystroke and taken its window off screen, so it returns on
+# the first attempt and never reaches the retry. `prompt`, when given, is a
+# dialog the close is expected to raise (a save-changes prompt): that is the
+# application acting on the keystroke too, and the caller deals with the dialog.
+#
+# Each poll is a hooked exists(), so the successful path adds a step frame or two
+# per site and a stuck close leaves a frame per look - which is the evidence the
+# failure was missing in the first place.
+#
+# Returns True once the application has acted. On False the caller's own
+# assertion still fails, but the log now says the window never went away.
+def close_window(witness, attempts=2, grace=15, poll=2, prompt=None, refocus=None):
+    for attempt in range(attempts):
+        if refocus:
+            click(refocus)
+        type(Key.F4, Key.ALT)
+        waited = 0
+        while waited < grace:
+            if prompt and exists(prompt, 0):
+                return True
+            if not exists(witness, 0):
+                if attempt:
+                    Debug.user("close_window: %s went away after %d Alt+F4"
+                               % (witness, attempt + 1))
+                return True
+            wait(poll)
+            waited += poll
+        Debug.user("close_window: %s still on screen %d s after Alt+F4 (attempt %d of %d)"
+                   % (witness, grace, attempt + 1, attempts))
+    return False
 
 # Check if the most recently created Turbo session is terminated.
 # It is usually the session for the app to be tested.
@@ -742,6 +831,50 @@ def navigate_browser(window, url, done_image, attempts=3, settle=3, timeout=30):
                    % (url, done_image, attempt + 1, attempts))
     raise FindFailed("navigate_browser: '%s' never loaded in %d attempts" % (url, attempts))
 
+# Open a Windows Settings page through the Settings search box, and prove it opened.
+#
+# Settings does not navigate on Enter by itself. Enter activates the highlighted
+# row of the search suggestion list, so it does nothing at all when that list has
+# not been drawn yet, and paste() returns as soon as the clipboard is written --
+# the fixed wait that used to follow it was a bet on how fast Settings renders.
+# In App Tests run 34423171312 (mozilla_firefox-nl) the bet lost: step frame 026,
+# taken just before the Enter, shows the box holding "Default apps" with no list
+# under it, and frame 027 -- three seconds after the Enter -- shows the list
+# finally opening with Settings still on its Home page.
+#
+# Nothing downstream noticed, which is what made it expensive. The test went on
+# clicking, the page it wanted was never on screen, and the run died four lines
+# later at an image that page was the only thing that could have shown. So check
+# that the page actually opened and redo the search if it did not: by the retry
+# the list is up, and the Enter lands on it.
+#
+# The anchor has to be an image that only the wanted page can show, and it has to
+# be matched tightly enough that nothing else on screen can satisfy it -- the
+# verification is worth nothing if a stray match elsewhere passes for the page.
+# See the search-apps.png note in the firefox tests for what that costs when the
+# threshold is left at the default.
+#
+# search_box_image is the empty box's placeholder ("Find a setting"), which stops
+# matching once the box has text in it (0.99 empty, 0.58 typed in), so it is
+# waited on once up front and never again; the retry clicks the Match it returned
+# and clears the box with Ctrl+A instead. Returns the anchor's Match so the caller
+# can click it without searching for it a second time.
+def open_settings_page(search_box_image, query, anchor, attempts=3, timeout=20):
+    type("i", Key.WIN)
+    box = wait(search_box_image)
+    for attempt in range(attempts):
+        click(box)
+        wait(0.5)
+        type("a", Key.CTRL)
+        paste_text(query)
+        type(Key.ENTER)
+        found = exists(anchor, timeout)
+        if found:
+            return found
+        Debug.user("open_settings_page: '%s' did not open on attempt %d of %d"
+                   % (query, attempt + 1, attempts))
+    raise FindFailed("open_settings_page: '%s' never opened in %d attempts" % (query, attempts))
+
 # Give a container's console window the keyboard, and check that it took.
 #
 # StandardTest -> HidePowerShellWindow (Test.ps1) ends with
@@ -808,6 +941,47 @@ def _foreground_covers(region):
             and win.getY() <= region.getY()
             and win.getX() + win.getW() >= region.getX() + region.getW()
             and win.getY() + win.getH() >= region.getY() + region.getH())
+
+# Locate an image only once it has stopped moving, and return that match.
+#
+# A find that lands mid-animation returns coordinates that are already stale by
+# the time the click's mouse-down arrives, and nothing about the result says so:
+# the match score is perfect, because the content is identical and only its
+# position has changed.
+#
+# RStudio's New Project Wizard slides each page in horizontally, and the
+# "Package name" field of the Create R Package page is the first thing the
+# r-project_rtools / rstudio_rstudio tests look for after triggering that slide
+# - every other step in the wizard has a wait() on the line before the click,
+# which burns enough time for the page to come to rest, so only this one is
+# exposed. In App Tests runs 34423171312, 34295135821, 34097555049 and
+# 34097578991 it was found mid-slide and clicked 180-245 px right of where it
+# settled (1145 / 1159 / 1173 / 1208 against a settled 963), which is outside
+# the field: the caret never landed in it, the package name stayed empty and
+# Create Project answered "Invalid package name ''". The x offset differed every
+# run and y never did - the signature of a horizontal slide - and a run that
+# happened to catch the page at rest passed.
+#
+# So poll until the match sits in the same place `stable` times running and hand
+# the caller that one. A settle long enough to cover the animation would do the
+# same job only for as long as the animation stays as short as it is today;
+# asking the screen whether it has stopped moving does not have to guess.
+def find_settled(image, timeout=30, stable=3, poll=0.4):
+    deadline = time.time() + timeout
+    where = None
+    repeats = 0
+    while time.time() < deadline:
+        match = exists(image, 0)
+        if match is None:
+            where, repeats = None, 0
+        else:
+            here = (match.getX(), match.getY())
+            repeats = repeats + 1 if here == where else 1
+            where = here
+            if repeats >= stable:
+                return match
+        wait(poll)
+    raise FindFailed("find_settled: %s never held still for %.1f s" % (image, timeout))
 
 # ---------------------------------------------------------------------------
 # VS Code

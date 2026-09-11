@@ -49,18 +49,72 @@ wait("new_project.png",120)
 click("new_project.png")
 wait("new_package.png")
 click("new_package.png")
-click(Pattern("new_package_name.png").targetOffset(41,7))
-type("test")
-click("new_package_create.png")
-wait("project_template.png")
+# Set the name and create the package, then check the outcome rather than
+# trusting it.
+#
+# The field has to be located through util.find_settled: the click on
+# new_package.png slides the Create R Package page in, and a find that catches
+# it mid-slide clicks where the field no longer is (see find_settled).
+#
+# That is not the only way "test" can fail to land, though, and none of them
+# announce themselves - a lost keystroke leaves the same empty field. What the
+# wizard does say is that the name is empty, in an "Invalid package name ''"
+# box raised by Create Project; in App Tests runs 34423171312 and 34295135821
+# that box sat unread over the wizard while the test spent 20 s waiting for a
+# project template that was never going to be created. OK is the box's default
+# button and dismissing it leaves the wizard on the same page, so the whole
+# name-and-create step can simply be redone. Ctrl+A before typing clears
+# anything a stray keystroke already put in the field.
+for attempt in range(3):
+    click(util.find_settled("new_package_name.png").getCenter().offset(41, 7))
+    type("a", Key.CTRL)
+    type("test")
+    click("new_package_create.png")
+    if exists("project_template.png", 60):
+        break
+    # Only a rejected name leaves the wizard up, so if it has gone the project
+    # is being created and this wait was simply short - creating the project
+    # and restarting the R session into it took 20-25 s on the slow pool VM of
+    # probe run 34544390344. Retrying on that would type into the new project
+    # and then hunt for a wizard that no longer exists, which is how the first
+    # cut of this loop turned a slow success into a 30 s FindFailed.
+    if not exists("new_package_create.png", 0):
+        Debug.user("new package: the wizard has closed, the project is still being created")
+        break
+    Debug.user("new package: the name did not take on attempt %d of 3" % (attempt + 1))
+    type(Key.ENTER)
+    wait(1)
+else:
+    raise FindFailed("the New Project Wizard never created the 'test' package")
+wait("project_template.png", 120)
 type("r", Key.ALT + Key.CTRL)
 wait("project_run.png")
 click("project_run.png")
 type("install.packages(\"roxygen2\")")
 type(Key.ENTER)
-wait(10)
+# Wait for roxygen2 to be installed rather than guessing at how long it takes.
+# A blind wait(10) stood here, and Ctrl+Shift+B sent into a console still
+# installing does not queue: the build starts against a half-unpacked roxygen2
+# and dies with "Error: package 'roxygen2' does not have a namespace" /
+# "Exited with status 1", after which "> library(test)" is never coming and any
+# budget below is spent for nothing (probe run 34545508907). This image is the
+# "The downloaded binary packages are in ..." line together with the console's
+# "> " prompt, so it proves both that the install finished and that R is idle;
+# it scores 0.37-0.43 while the install runs and 0.92-0.93 once it is done.
+# The same image serves the tidyverse install above, and cannot be left over
+# from it: creating the project restarts the R session and clears the console.
+wait("rstudio_package_installed.png", 180)
 type("b", Key.CTRL + Key.SHIFT)
-wait("project_build.png")
+# project_build.png is the "> library(test)" the console echoes only after
+# Ctrl+Shift+B has run roxygen2, built and installed the package with
+# Rcmd.exe INSTALL, and restarted the R session - a chain that does not fit
+# the ambient 20 s. In App Tests run 34423192441 the build had reached
+# "* DONE (test)" and "Restarting R session..." when the wait gave up, and the
+# harness screenshot taken seconds later shows "> library(test)" and
+# "Attaching package: 'test'": the package built correctly and the test threw
+# the run away for want of a few more seconds. Measured at 16-24 s across six
+# runs on an idle pool.
+wait("project_build.png", 180)
 
 # Check "help".
 setAutoWaitTimeout(20)

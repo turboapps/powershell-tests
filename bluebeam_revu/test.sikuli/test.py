@@ -52,23 +52,54 @@ wait(10)
 run("explorer " + util.get_shortcut_path_by_prefix(util.desktop, "Bluebeam Revu"))
 wait_first_run(120)
 wait(15)
-click(email_box)
-type(username)
-type(Key.ENTER)
-wait("password-box.png")
-# The sign-in card keeps rendering after the password box first appears - the
-# "Select Region" dropdown at its top lands late and pushes the fields down - so
-# a click placed from the first sighting lands back on the Bluebeam ID field and
-# types the password into it. Let it settle, locate the box again, and fall back
-# to tabbing out of the ID field if it has moved out from under the match.
+# password-box.png is the "Password" label above a focused, blue-outlined box.
+# The empty "Bluebeam ID" box of the *email* step looks near enough to that to
+# score 0.704, which clears SikuliX's 0.7 default by 0.004 - so the click lands
+# on the ID field and the password is typed into it in the clear. Measured with
+# OpenCV TM_CCOEFF_NORMED: the ID field peaks at 0.704, a real password box at
+# 0.949-0.985. 0.85 sits clear of both.
+password_box_image = Pattern("password-box.png").similar(0.85)
+
+def submit_email():
+    click(email_box)
+    type(username)
+    type(Key.ENTER)
+
+# Revu's splash panel can still be on top of the sign-in card when the click
+# fires - it covers the whole field area - so the username lands on the splash
+# instead of the field and the card never leaves the email step (run
+# 34539429949). wait_first_run only proves the card is *visible*, and the
+# wait(15) above is a guess, so check the outcome instead: getting from the
+# email step to the password step is a full web-view reload (the card goes
+# blank, "Loading... signin.bluebeam.com", re-renders the *email* step, then
+# swaps in the password fields) and took ~26 s on 2026-09-10, so give the first
+# attempt a generous look before deciding it never landed.
+submit_email()
+if not exists(password_box_image, 60):
+    # Still on the email step: the splash is long gone by now, so type into the
+    # re-rendered card.
+    submit_email()
+wait(password_box_image, 120)
+# The card keeps rendering after the password box first appears - the "Select
+# Region" dropdown at its top lands late and pushes the fields down - so a click
+# placed from the first sighting can miss. Let it settle and locate the box
+# again at its final position. This used to fall back to a bare Tab when the
+# re-location failed; that is how the password reaches an unknown field, so
+# stop instead - nothing below this line is meaningful without a password box.
 wait(3)
-password_box = exists("password-box.png", 5)
-if password_box:
-    click(password_box)
-else:
-    type(Key.TAB)
+password_box = exists(password_box_image, 60)
+if not password_box:
+    raise FindFailed("password box vanished after the sign-in card settled")
+click(password_box)
 type(password)
 type(Key.ENTER)
+# The sign-in window closes once the credentials are accepted. Assert that here:
+# without it a sign-in that never happened surfaces as a bogus help-window
+# FindFailed ten lines below, pointing the investigation at the wrong step
+# (run 34423171312). email-label.png is the card's "Bluebeam ID / (Your Email
+# Address)" heading, present on both of its steps and nowhere else.
+if not waitVanish("email-label.png", 120):
+    raise FindFailed("sign-in did not complete: the Bluebeam sign-in window is still open")
 wait(5)
 # Check "help".
 type(Key.F1)
