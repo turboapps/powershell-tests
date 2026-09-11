@@ -64,9 +64,13 @@ TREESIZE_TITLE = "TreeSize (Administrator)"
 def dismiss_trial_splash(timeout=2):
     match = exists("continue-with-trial.png", timeout)
     if match is None:
-        match = raise_buried_splash()
-        if match is None:
+        raised, match = raise_buried_splash()
+        if not raised:
             return False
+        if match is None:
+            # Raised, but the link had not painted yet. A splash WAS in the way,
+            # which is the question callers ask, and the next poll clicks it.
+            return True
     around = Region(match.x - 6, match.y - 6, match.w + 12, match.h + 12)
     if around.exists("continue-with-trial.png", 0):
         click(match)
@@ -80,8 +84,16 @@ def dismiss_trial_splash(timeout=2):
 # the lossless -fail.png capture rather than a step frame, which is JPEG.
 SPLASH_BANNER = "splash-banner.png"
 
-# Bring a splash that something else has been raised over back to the front, and
-# return the link's Match once it is reachable - or None if no splash is there.
+# Bring a splash that something else has been raised over back to the front.
+#
+# Returns (raised, link): whether a splash was found and raised, and its link's
+# Match if it had painted in time. Those are two different answers and the
+# caller needs both. Probe run 34635346644 is why: the banner click raised the
+# splash correctly - the frame two steps later shows the whole splash back over
+# Explorer with the link readable - but the link was not findable until
+# somewhere between 4 and 8 s after the click, so a single Match return would
+# have been None and reported "no splash was in the way". That is the wrong
+# answer for close_window, which re-sends its swallowed Alt+F4 on True alone.
 #
 # This is the gap that App Tests run 34558812671 fell into and that the comment
 # here used to say could not be closed. Chain: the dismissing click at
@@ -110,13 +122,18 @@ SPLASH_BANNER = "splash-banner.png"
 def raise_buried_splash():
     banner = exists(SPLASH_BANNER, 0)
     if banner is None:
-        return None
+        return (False, None)
     around = Region(banner.x - 6, banner.y - 6, banner.w + 12, banner.h + 12)
     if not around.exists(SPLASH_BANNER, 0):
-        return None
+        return (False, None)
     Debug.user("raise_buried_splash: splash found under something, raising it")
     click(banner)
-    return exists("continue-with-trial.png", 2)
+    # 8 s rather than the 2 s that missed in 34635346644, which is comfortably
+    # past the 4-8 s that run measured. Returning without the link is still
+    # handled, so this is a convenience and not something correctness rests on.
+    link = exists("continue-with-trial.png", 8)
+    Debug.user("raise_buried_splash: link reachable after raising = %s" % link)
+    return (True, link)
 
 # The band of the TreeSize window that holds its address bar, given the match
 # for the ribbon button above it.
