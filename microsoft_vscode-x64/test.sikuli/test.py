@@ -8,137 +8,9 @@ addImagePath(include_path)
 setAutoWaitTimeout(50)
 util.pre_test()
 
-# Opening a folder raises the workspace-trust modal, and without trust the C# Dev
-# Kit refuses to run ("Unable to execute C# Dev Kit command. Some features execute
-# code and can only run in a trusted workspace") - the window stays in Restricted
-# Mode and the run produces no output at all, so no wait length can rescue it. The
-# old check keyed on a bare checkbox glyph, which is ambiguous and did not match;
-# trust_folder.png cannot be used either because it bakes in an absolute path from
-# an older staging location. Key on the button, and fall back to the Restricted
-# Mode banner if the modal has already been dismissed.
-def grant_workspace_trust(timeout=30):
-    if exists("trust_folder_yes.png", timeout):
-        click("trust_folder_yes.png")
-        wait(3)
-        return True
-    # No modal: the folder opened straight into Restricted Mode, either because
-    # VS Code remembers a previous decline or because it never prompted.
-    # restricted_mode_banner.png is the *file* wording ("Trust this window") and
-    # cannot match the folder banner ("Trust this folder"), so key on the Manage
-    # link, which is common to both, and grant trust in the editor it opens.
-    if exists("restricted_mode_manage.png", 10):
-        click("restricted_mode_manage.png")
-        if exists("workspace_trust_window.png", 20):
-            click("workspace_trust_button.png")
-            wait(5)
-            if exists("workspace_trust_window.png", 3):
-                type("w", Key.CTRL)   # close the Workspace Trust tab
-                wait(2)
-    # Trust is granted once the Restricted Mode banner is gone.
-    return not exists("restricted_mode_manage.png", 5)
-
-# The file-trust prompt only appears while the folder is still untrusted; once
-# trust has been granted VS Code remembers it, so it must be optional.
-def dismiss_file_trust():
-    if exists("remember-checkbox.png",5):
-        click("remember-checkbox.png")
-        type(Key.TAB)
-        type(Key.SPACE)
-        if exists("trust-continue.png",20):
-            click("trust-continue.png")
-
-# Ctrl+O opens the file dialog, but the pasted path is intermittently swallowed:
-# the autocomplete list takes the Enter and navigates into the folder instead of
-# opening the file, leaving the dialog up with an empty File name box, and the
-# tab wait that follows then fails. Confirm the tab actually opened and retry
-# once. Paths are normalised because the dialog resolves ".." oddly.
-def open_file(path, tab_image, timeout=60):
-    path = os.path.normpath(path)
-    for attempt in range(2):
-        if not exists("open_location.png", 2):
-            type("o", Key.CTRL)
-            wait("open_location.png")
-        wait(2)
-        paste(path)
-        wait(2)
-        type(Key.ENTER)
-        dismiss_file_trust()
-        if exists(tab_image, timeout):
-            return True
-    return False
-
-def dismiss_signin():
-    # ESC cancels the whole welcome wizard and leaves the window in the state the
-    # rest of the test expects.
-    #
-    # Do NOT click vscode-signin.png to dismiss this. That image is the modal's
-    # "Continue without Signing In" button, and clicking it ADVANCES the wizard
-    # to its "Make It Yours" theme page rather than closing it - code_window_2
-    # then never matches, which took out runs 34516501432, 34516513523 and
-    # 34516524525 3/3.
-    #
-    # ESC only lands if the window actually holds the foreground, and turbo try
-    # -d does not always get it: when it does not, the taskbar shows the VS Code
-    # button flashing for attention while the keyboard focus ring sits on the
-    # Start button, and the frames either side of the keystroke differ by 0 px.
-    # Ask for the foreground first, and try again if the modal is still up.
-    for attempt in range(3):
-        util.activate_app_window("Visual Studio Code", 3)
-        type(Key.ESC)
-        if not exists("vscode-signin.png", 5):
-            return True
-        Debug.user("dismiss_signin: the sign-in modal survived ESC (attempt %d)"
-                   % (attempt + 1))
-    return False
-
-# The folder-trust dialog ("Do you trust the authors of the files in this
-# folder?" / "Trust Folder & Continue") can surface tens of seconds after a file
-# is opened - well after open_file's own 20 s window on trust-continue.png has
-# closed - and it then sits on top of the window this wait is looking for. In run
-# 34419163811 it appeared moments after that window expired and line 132 failed
-# with the dialog plainly visible in the frame. Clear it before giving up.
-def wait_code_window(timeout=60):
-    if exists("code_window_2.png", 10):
-        return True
-    if exists("trust-continue.png", 3):
-        click("trust-continue.png")
-        wait(3)
-    return exists("code_window_2.png", timeout)
-
-# Alt+F4 closes the VS Code window, but the Turbo session can outlive it and a
-# launch that lands in that gap dies with "Failed to start application in already
-# running session" on a bare desktop: the client logs "Existing session with same
-# sandbox is not running" and then switches to LaunchInSession anyway
-# (turbo_20260910_001227_3296.log in run 34419196293), hangs ~36 s and gives up.
-# Wait for the session and the process to actually go quiet first, and if the
-# error dialog still appears, clear it and launch again.
-def reopen_in_new_window(path, tab_image, attempts=3):
-    for attempt in range(attempts):
-        # A lingering Code.exe keeps the session alive, so this closes the most
-        # common part of the window. It cannot close all of it: in run
-        # 34419196293 the client had already decided the sandbox was dead, so
-        # the stale record outlived the process and only the retry below saves
-        # that case.
-        util.wait_app_quiet("Code.exe", 120)
-        run("explorer " + path)
-        # Wait for whichever lands first. The client blocks ~36 s before it
-        # gives up, and a healthy launch beats that easily, so polling for both
-        # avoids paying either timeout in the common case.
-        for poll in range(60):
-            if exists(tab_image, 2):
-                return True
-            if exists("turbo-session-error.png", 1):
-                Debug.user("reopen_in_new_window: Turbo refused the launch into "
-                           "a session it had already logged as not running; "
-                           "clearing the error and retrying")
-                click(Pattern("turbo-session-error.png").targetOffset(145,34))
-                wait(5)
-                break
-    return False
-
 # Test of `turbo run`.
 if exists("vscode-signin.png",60):
-    dismiss_signin()
+    util.vscode_dismiss_signin()
 wait("code_window_2.png",20)
 run("turbo stop test")
 
@@ -154,19 +26,8 @@ turbocmd = "turbo run vscode-x64 --isolate=merge-user --using=python/python-x64,
 # Code still offering to install Python. merge-user puts container writes in the
 # real profile - the test already leans on that for hello_world.py below - so
 # the extension folders can be checked from here.
-extensions_dir = os.path.join(os.environ["USERPROFILE"], ".vscode", "extensions")
 
-def install_extensions(attempts=2):
-    for attempt in range(attempts):
-        run(turbocmd + extensions)
-        if util.find_file(extensions_dir, "ms-python.python"):
-            return True
-        Debug.user("install_extensions: ms-python.python is not in %s after "
-                   "attempt %d - the install container most likely crashed; "
-                   "retrying" % (extensions_dir, attempt + 1))
-    return False
-
-if not install_extensions():
+if not util.vscode_install_extensions(turbocmd, extensions):
     raise FindFailed("the VS Code extensions never installed: the install "
                      "container exits with 0xC0000005, an NX execute fault in "
                      "cmd.exe at an address in no loaded module")
@@ -174,7 +35,7 @@ if not install_extensions():
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Visual Studio Code", "Visual Studio Code.lnk"))
 if exists("vscode-signin.png",60):
-    dismiss_signin()
+    util.vscode_dismiss_signin()
 wait("code_window_2.png",20)
 click("code_window_2.png")
 # Activate and maximize the app window.
@@ -195,7 +56,7 @@ type(Key.ENTER)
 assert(util.file_exists(python_save_path, 5))
 click("tab_python.png")
 type(Key.F4, Key.ALT)
-if not reopen_in_new_window(python_save_path, "tab_python.png"):
+if not util.reopen_in_new_window(python_save_path, "tab_python.png", "Code.exe"):
     raise FindFailed("hello_world.py never reopened in a new window")
 wait("restricted_mode_banner.png")
 wait(2)
@@ -219,22 +80,22 @@ type("w", Key.CTRL) # Python window.
 wait(2)
 type("w", Key.CTRL) # Restricted Mode window.
 wait(2)
-if not wait_code_window():
+if not util.vscode_wait_code_window():
     raise FindFailed("code_window_2.png never appeared")
 
 # Extension for C/C++.
-if not open_file(os.path.join(script_path, os.pardir, "resources", "hello_world.c"),
+if not util.vscode_open_file(os.path.join(script_path, os.pardir, "resources", "hello_world.c"),
                  "tab_c.png", 60):
     raise FindFailed("hello_world.c never opened")
 click("tab_c.png")
 wait("code_c.png")
 type("w", Key.CTRL) # C window.
 wait(2)
-if not wait_code_window():
+if not util.vscode_wait_code_window():
     raise FindFailed("code_window_2.png never appeared")
 
 # Extension for Java.
-if not open_file(os.path.join(script_path, os.pardir, "resources", "hello_world.java"),
+if not util.vscode_open_file(os.path.join(script_path, os.pardir, "resources", "hello_world.java"),
                  "tab_java.png", 240):
     raise FindFailed("hello_world.java never opened")
 click("tab_java.png")
@@ -251,7 +112,7 @@ if not exists("result.png",120):
 wait("result.png",240)
 type("w", Key.CTRL) # Jave window.
 wait(2)
-if not wait_code_window():
+if not util.vscode_wait_code_window():
     raise FindFailed("code_window_2.png never appeared")
 
 # Extension for C#.
@@ -263,7 +124,7 @@ wait(2)
 type(Key.ENTER)
 wait("open_folder_select_folder.png")
 type(Key.ENTER)
-if not grant_workspace_trust(30):
+if not util.vscode_grant_workspace_trust(30):
     raise FindFailed("workspace trust was never granted - the C# run cannot "
                      "produce output in Restricted Mode")
 # The C# Dev Kit opens its release-announcement markdown preview as the active
@@ -284,7 +145,7 @@ if exists(Pattern("solution_c_sharp.png"), 180):
     doubleClick(Pattern("solution_c_sharp.png").targetOffset(-20,17))
 else:
     Debug.user("the Explorer tree never populated; opening Program.cs by path")
-    if not open_file(os.path.join(script_path, os.pardir, "resources",
+    if not util.vscode_open_file(os.path.join(script_path, os.pardir, "resources",
                                   "Hello World", "Program.cs"),
                      "tab_c_sharp.png", 60):
         raise FindFailed("Program.cs never opened: the Explorer tree never "
@@ -326,20 +187,20 @@ wait(Pattern("result.png").similar(0.80),240)
 wait(10)
 type("k", Key.CTRL)
 type("f")
-if not wait_code_window():
+if not util.vscode_wait_code_window():
     raise FindFailed("code_window_2.png never appeared")
 # Extension for JavaScript/TypeScript.
-if not open_file(os.path.join(script_path, os.pardir, "resources", "hello_world.ts"),
+if not util.vscode_open_file(os.path.join(script_path, os.pardir, "resources", "hello_world.ts"),
                  "tab_typescript.png", 60):
     raise FindFailed("hello_world.ts never opened")
 click("tab_typescript.png")
 wait("code_typescript.png")
 type("w", Key.CTRL) # TypeScript window.
-if not wait_code_window():
+if not util.vscode_wait_code_window():
     raise FindFailed("code_window_2.png never appeared")
 
 # Extension for Go.
-if not open_file(os.path.join(script_path, os.pardir, "resources", "hello_world.go"),
+if not util.vscode_open_file(os.path.join(script_path, os.pardir, "resources", "hello_world.go"),
                  "tab_go.png", 60):
     raise FindFailed("hello_world.go never opened")
 if exists("no_go.png",15):
@@ -349,17 +210,17 @@ wait("code_go.png")
 type("w", Key.CTRL) # Go window.
 wait(2)
 type("w", Key.CTRL) # Go for VS Code window.
-if not wait_code_window():
+if not util.vscode_wait_code_window():
     raise FindFailed("code_window_2.png never appeared")
 
 # Extension for Ruby.
-if not open_file(os.path.join(script_path, os.pardir, "resources", "hello_world.rb"),
+if not util.vscode_open_file(os.path.join(script_path, os.pardir, "resources", "hello_world.rb"),
                  "tab_ruby.png", 60):
     raise FindFailed("hello_world.rb never opened")
 click("tab_ruby.png")
 wait("code_ruby.png")
 type("w", Key.CTRL) # Ruby window.
-if not wait_code_window():
+if not util.vscode_wait_code_window():
     raise FindFailed("code_window_2.png never appeared")
 
 # Check "help".
