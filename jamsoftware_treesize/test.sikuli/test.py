@@ -24,6 +24,27 @@ TREESIZE_WINDOW = "select-scan-target.png"
 # trial splash, whose own title bar reads just "TreeSize".
 TREESIZE_TITLE = "TreeSize (Administrator)"
 
+# ===========================================================================
+# SABOTAGE PROBE - DO NOT MERGE. Branch treesize-probe-skip-branch.
+#
+# Proves dismiss_trial_splash's skip branch: the splash going away between the
+# exists() that finds it and the click that dismisses it. That sub-second
+# window is what killed run 34423171312 and it did not recur in any of the ten
+# validation runs, so the test cannot reach it by being run.
+#
+# The first attempt at this probe waited for the splash to time out. It does
+# not: run 34542455584 sat on one for 60 s and it never moved. What actually
+# makes a splash go is a click, so the probe delivers that click itself the
+# moment exists() returns, waits for the splash to leave, and only then lets
+# the guard run - which is precisely the race, with the timing removed.
+#
+# A replacement splash follows a dismissal after about two seconds, so the
+# guard has to run in the gap. If it loses, skip_taken stays false and the
+# trailing assert calls the run inconclusive rather than letting it read green.
+# ===========================================================================
+PROBE = {"forced": False, "skip_taken": False, "clicked_anyway": 0}
+Debug.on(3)
+
 # Click TreeSize's "Easily Getting Started!" trial splash away if it is up, and
 # say whether it was.
 #
@@ -65,9 +86,29 @@ def dismiss_trial_splash(timeout=2):
     match = exists("continue-with-trial.png", timeout)
     if match is None:
         return False
+    # PROBE: dismiss this splash ourselves and wait for it to leave, so the
+    # guard below is guaranteed to meet a match whose splash is already gone.
+    if not PROBE["forced"]:
+        PROBE["forced"] = True
+        Debug.user("PROBE: splash at %s - clicking it away to stage the race" % match)
+        click(match)
+        waited = 0
+        while waited < 30 and exists("continue-with-trial.png", 0):
+            wait(1)
+            waited += 1
+        Debug.user("PROBE: splash gone after %d s = %s"
+                   % (waited, exists("continue-with-trial.png", 0) is None))
     around = Region(match.x - 6, match.y - 6, match.w + 12, match.h + 12)
     if around.exists("continue-with-trial.png", 0):
+        if PROBE["forced"] and not PROBE["skip_taken"]:
+            PROBE["clicked_anyway"] += 1
         click(match)
+    else:
+        if not PROBE["skip_taken"]:
+            PROBE["skip_taken"] = True
+            Debug.user("PROBE: skip branch taken - the guard saw no splash and "
+                       "sent no click, and click(match) never searched, so there "
+                       "was nothing to raise FindFailed")
     return True
 
 # The band of the TreeSize window that holds its address bar, given the match
@@ -258,6 +299,13 @@ wait("basic-search.png")
 wait(10)
 close_window("basic-search.png")
 wait(5)
+
+# PROBE: the forced path must actually have run, or this run proves nothing.
+assert PROBE["forced"], "PROBE never armed: dismiss_trial_splash was never reached"
+assert PROBE["skip_taken"],     ("PROBE inconclusive: the guard always found a splash (%d times), so the "
+     "skip branch never ran" % PROBE["clicked_anyway"])
+Debug.user("PROBE PASSED: the splash vanished between the look and the click, "
+           "the guard skipped the click, and the test carried on to the end")
 
 # Check if the session terminates.
 util.check_running()
