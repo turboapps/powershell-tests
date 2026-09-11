@@ -142,6 +142,29 @@ if exists("adobe_login_team.png",10):
 # So raise Acrobat before looking for it. focus() on a name that matches nothing
 # is a no-op, so the worst case is the behaviour this replaces; the plain wait()
 # below is still the assertion and still leaves the usual FAILED frame.
+# PROBE (do not merge): does App("Acrobat") resolve to a real window? If it
+# matches nothing, focus() is a silent no-op and the fix above is inert. Each
+# attribute is guarded separately so one missing method cannot hide the rest -
+# the first version of this probe called getWindow(), which does not exist on
+# this SikuliX build, and learnt nothing.
+for _name in ("Acrobat", "Adobe Acrobat", "@test#"):
+    try:
+        _a = App(_name)
+        _valid = _a.isValid()
+    except:
+        Debug.user("PROBE App(%r): construction/isValid raised %s" % (_name, sys.exc_info()[1]))
+        continue
+    _win = "n/a"
+    try:
+        _win = repr(_a.window())
+    except:
+        pass
+    _title = "n/a"
+    try:
+        _title = repr(_a.getTitle())
+    except:
+        pass
+    Debug.user("PROBE App(%r): isValid=%s window=%s title=%s" % (_name, _valid, _win, _title))
 if not util.focus_and_wait("Acrobat", "pdf_window.png", attempts=6, poll=5):
     wait("pdf_window.png", 5)
 run("turbo stop test")
