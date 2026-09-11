@@ -11,6 +11,22 @@ addImagePath(include_path)
 setAutoWaitTimeout(30)
 util.pre_test()
 
+# PROBE (do not merge). The fix on this branch's parent recovers from a splash
+# that Explorer has been raised over. No passing run reaches that state on
+# purpose - it is roughly a 1-in-6 accident - so this branch CAUSES it and then
+# fails the run if the recovery path did not actually run. A probe that cannot
+# tell "the fix worked" from "the state never happened" is worth nothing.
+#
+# v2: v1 asserted that the link came back inside raise_buried_splash's own wait.
+# Run 34635346644 showed that is not the contract - the click raised the splash
+# correctly and the link simply had not painted within 2 s - so v1 reported a
+# working fix as broken. What the fix actually promises is that the splash gets
+# raised and dismiss_trial_splash reports it as in the way; assert THAT, plus
+# the splash being clicked away before the run ends.
+PROBE = {"staged": False, "raised": 0, "reported_in_way": False,
+         "link_was_buried": None, "banner_was_visible": None}
+Debug.on(3)
+
 # The TreeSize main window, whether or not the first-run splash is over it: the
 # "Select scan target" ribbon button sits above the splash, and it is the only
 # reference here that is unique to the app. program-files.png cannot stand in
@@ -67,6 +83,9 @@ def dismiss_trial_splash(timeout=2):
         raised, match = raise_buried_splash()
         if not raised:
             return False
+        # Every path below this returns True, which is the contract the probe
+        # checks: a raised splash is reported as having been in the way.
+        PROBE["reported_in_way"] = True
         if match is None:
             # Raised, but the link had not painted yet. A splash WAS in the way,
             # which is the question callers ask, and the next poll clicks it.
@@ -133,7 +152,30 @@ def raise_buried_splash():
     # handled, so this is a convenience and not something correctness rests on.
     link = exists("continue-with-trial.png", 8)
     Debug.user("raise_buried_splash: link reachable after raising = %s" % link)
+    PROBE["raised"] += 1
+    Debug.user("PROBE: raise #%d, link=%s" % (PROBE["raised"], link))
     return (True, link)
+
+# PROBE (do not merge): stage the state run 34558812671 fell into, once.
+#
+# Raising Explorer over a live splash is how the previous probe on this test
+# reached the same state (run 34544558910), so the staging is known to work.
+# Both halves are asserted: a splash has to be up to bury, and after burying it
+# the link has to be genuinely unreachable while the banner stays visible -
+# otherwise the run that follows proves nothing about the fix.
+def probe_stage_buried_splash():
+    if PROBE["staged"]:
+        return
+    PROBE["staged"] = True
+    assert exists("continue-with-trial.png", 60) is not None,         "PROBE inconclusive: no splash within 60 s, so there was nothing to bury"
+    util.activate_app_window("Windows (C:)", 10)
+    wait(2)
+    PROBE["link_was_buried"] = exists("continue-with-trial.png", 0) is None
+    PROBE["banner_was_visible"] = exists(SPLASH_BANNER, 0) is not None
+    Debug.user("PROBE: staged buried splash - link_hidden=%s banner_visible=%s"
+               % (PROBE["link_was_buried"], PROBE["banner_was_visible"]))
+    assert PROBE["link_was_buried"],         "PROBE inconclusive: Explorer did not cover the link, so nothing was buried"
+    assert PROBE["banner_was_visible"],         "PROBE FAILED: the banner is not visible under Explorer - the fix has no anchor"
 
 # The band of the TreeSize window that holds its address bar, given the match
 # for the ribbon button above it.
@@ -191,6 +233,7 @@ def address_bar_band(window_match):
 # the diagnostics.
 def wait_for_scan(target_image, timeout=180):
     band = address_bar_band(wait(TREESIZE_WINDOW, timeout))
+    probe_stage_buried_splash()
     deadline = time.time() + timeout
     while time.time() < deadline:
         if band.exists(target_image, 5):
@@ -334,3 +377,13 @@ wait(5)
 
 # Check if the session terminates.
 util.check_running()
+
+# PROBE (do not merge): trailing asserts. Reaching here means the test survived a
+# deliberately buried splash - but only if the recovery actually ran. Without
+# these, a run where the splash happened to be reachable anyway reads green and
+# proves nothing.
+assert PROBE["staged"],     "PROBE never ran: wait_for_scan was not reached"
+assert PROBE["raised"] > 0,     "PROBE FAILED: raise_buried_splash never fired, so the recovery path is unproven"
+assert PROBE["reported_in_way"],     "PROBE FAILED: the raise did not make dismiss_trial_splash report a splash in the way"
+Debug.user("PROBE PASSED: buried splash staged, raised %d time(s), reported in the way, run completed"
+           % PROBE["raised"])
