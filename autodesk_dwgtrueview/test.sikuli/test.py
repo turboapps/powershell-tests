@@ -172,19 +172,56 @@ def dismiss_privacy_dialog():
         return True
     return False
 
-def wait_app_loaded(timeout=180):
-    deadline = time.time() + timeout
-    while time.time() < deadline:
+# Returns True once the Start tab is up, False if it never arrived.
+#
+# It returns rather than raises because a probe that dies on the first launch it
+# cannot read throws away every cycle after it. Probe run 34626264320 did exactly
+# that: cycles 1-4 measured cleanly, cycle 4 crashed, and cycle 5 ended the run
+# with four cycles unmeasured.
+#
+# Do not read the FindFailed that ended that run as a dimmed window. It reported
+# "app-loaded.png: (109x51) seen at (32, 123) with 0.92", which is the score the
+# production test's own comment attributes to the privacy dialog dimming the
+# Start tab - but the FAILED step frame is a bare desktop with no DWG TrueView on
+# it at all. The "seen at ... with" clause is SikuliX's stale lastSeen hint, not
+# a current match, so it described an earlier cycle. The app simply never came
+# up; see the retry in the cycle loop for what actually goes wrong there.
+#
+# blind_esc: after the app has had a fair chance to load, dismiss whatever is
+# there, in case a launch does one day come up behind a dialog this probe holds
+# no reference for. ESC is sent late and slowly so it cannot race a normal load.
+def wait_app_loaded(timeout=110, blind_esc=75):
+    started = time.time()
+    while time.time() - started < timeout:
         if dismiss_privacy_dialog():
             continue
         if exists("app-loaded.png", 2):
-            break
-    wait("app-loaded.png", 10)
-    # Focus the main window rather than clicking app-loaded.png: that image is
-    # the wordmark inside the Start tab's embedded browser pane, and clicking it
-    # leaves focus in the pane, where the app's accelerators are swallowed.
-    util.activate_app_window(app_window, 10)
-    wait(10)
+            # Focus the main window rather than clicking app-loaded.png: that
+            # image is the wordmark inside the Start tab's embedded browser pane,
+            # and clicking it leaves focus in the pane, where the app's
+            # accelerators are swallowed.
+            util.activate_app_window(app_window, 10)
+            wait(10)
+            return True
+        if time.time() - started > blind_esc:
+            util.activate_app_window(app_window, 2)
+            type(Key.ESC)
+            wait(3)
+    Debug.user("probe: app-loaded.png never appeared in %d s" % timeout)
+    return False
+
+# Put the machine back where cycle 1 found it, whatever the cycle left behind: a
+# dialog nothing dismissed, an instance that never finished loading, a container
+# still up. taskkill terminates rather than faulting, so nothing here can write a
+# dump of its own and inflate the next cycle's count.
+def reset_between_cycles():
+    type(Key.ESC)
+    wait(1)
+    run("turbo stop test")
+    for image in ("dwgviewr.exe", "AcHelp2.exe", "ADPClientService.exe",
+                  "AdskAccessService.exe"):
+        os.system('cmd /c taskkill /f /im "%s" /t' % image)
+    wait(5)
 
 def launch():
     # Leave no session behind for the new one to collide with. Unconditional: a
@@ -226,13 +263,42 @@ records = []
 seen_dumps = dump_names()
 
 for cycle in range(1, CYCLES + 1):
+    arm = "stop-after" if (cycle == 1 or cycle % 2 == 1) else "stop-races"
+
     # Cycle 1 uses the instance the executor already launched; every later cycle
     # launches its own so it closes the same kind of session.
-    if cycle > 1:
-        launch()
-    wait_app_loaded()
+    #
+    # Retry once through a full reset. A launch that follows a crashed cycle can
+    # come up with nothing on screen at all: in probe run 34626264320 cycle 4
+    # crashed, cycle 5's `turbo try` returned 0 and detached its session, and the
+    # desktop stayed bare for the whole 180 s wait. The crashed instance leaves
+    # Autodesk's helper processes behind and the next dwgviewr finds them, so the
+    # reset that clears them is what makes the retry worth making - without it a
+    # retry would just fail the same way.
+    loaded = False
+    for attempt in range(2):
+        if cycle > 1 or attempt > 0:
+            launch()
+        if wait_app_loaded():
+            loaded = True
+            break
+        Debug.user("probe: cycle %d launch attempt %d came up empty" % (cycle, attempt + 1))
+        reset_between_cycles()
 
-    arm = "stop-after" if (cycle == 1 or cycle % 2 == 1) else "stop-races"
+    if not loaded:
+        # Not an observation either way: the close this probe measures never
+        # happened. Still drain the dump folder, so a dump from a launch that
+        # died on its way up is reported here and not charged to the next cycle.
+        stray = settle_dumps()
+        stray_new = [d for d in stray if d not in seen_dumps]
+        purge_dumps(stray)
+        seen_dumps = dump_names()
+        records.append((cycle, "skipped", [], None, stray_new))
+        Debug.user("probe: cycle %d SKIPPED (would have been %s) stray_dumps=%s"
+                   % (cycle, arm, ",".join(stray_new) or "none"))
+        reset_between_cycles()
+        continue
+
     pids = live_pids()
 
     if arm == "stop-races":
@@ -255,6 +321,7 @@ for cycle in range(1, CYCLES + 1):
     # the same moment to disappear the production test's `turbo stop` gets before
     # the next launch. Outside the measured window.
     wait(10)
+    reset_between_cycles()
 
 # --------------------------------------------------------------------------
 # Tally. Kept short and last so it lands inside the "last 15 lines of the test
@@ -268,13 +335,16 @@ def tally(arm):
 races_crashed, races_total = tally("stop-races")
 after_crashed, after_total = tally("stop-after")
 
+skipped = len([r for r in records if r[1] == "skipped"])
+
 Debug.user("probe: RESULT stop-races %d/%d cycles crashed" % (races_crashed, races_total))
 Debug.user("probe: RESULT stop-after %d/%d cycles crashed" % (after_crashed, after_total))
+Debug.user("probe: RESULT %d cycle(s) skipped, never reached the close" % skipped)
 for cycle, arm, pids, gone, new in records:
     if new:
-        Debug.user("probe: crash in cycle %d (%s): %s" % (cycle, arm, ",".join(new)))
+        Debug.user("probe: dump in cycle %d (%s): %s" % (cycle, arm, ",".join(new)))
 
 # Fail on purpose so the harness prints the test log into the job log and stages
 # the diagnostics. A probe branch has no passing verdict to give.
-raise Exception("PROBE COMPLETE - stop-races %d/%d crashed, stop-after %d/%d crashed"
-                % (races_crashed, races_total, after_crashed, after_total))
+raise Exception("PROBE COMPLETE - stop-races %d/%d crashed, stop-after %d/%d crashed, %d skipped"
+                % (races_crashed, races_total, after_crashed, after_total, skipped))
