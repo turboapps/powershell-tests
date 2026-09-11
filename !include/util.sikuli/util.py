@@ -983,6 +983,37 @@ def find_settled(image, timeout=30, stable=3, poll=0.4):
         wait(poll)
     raise FindFailed("find_settled: %s never held still for %.1f s" % (image, timeout))
 
+# Click a target whose position may still be shifting, then confirm the click
+# actually did something.
+#
+# find_settled alone closes most of the window but not all of it: it returns a
+# match that has held still, and the mouse-down still arrives a few hundred ms
+# later, so a one-off relayout can always fall in that last gap. Where the click
+# has a visible outcome, checking for it is what makes the step reliable - and on
+# a retry the page has had time to come to rest, so the second click lands.
+#
+# The about:preferences sidebar is the case this was written for. Firefox paints
+# the sidebar with a "Firefox Labs" category and then removes it once the
+# experimental-feature list resolves empty, which shifts every row below it up by
+# one row height (39 px at 1080p). In App Tests run 34558812671 the firefox-x64-fr
+# help row was found at y=902 and clicked 595 ms later, by which time Labs was
+# gone and the row had moved to y=864: the click landed 38 px below it in empty
+# sidebar space, no tab opened, and the following wait("help_page.png") spent its
+# full 30 s on a page that was never going to change. The passing en variant in
+# the same run had its second tab already loading in the frame after the click,
+# and the passing de variant - same click coordinate - simply had not hit the
+# relayout yet, so which locale loses the race is luck rather than anything about
+# the locale.
+def click_settled(target, done_image, attempts=3, timeout=30):
+    for attempt in range(1, attempts + 1):
+        click(find_settled(target, timeout))
+        if exists(done_image, timeout) is not None:
+            return
+        Debug.user("click_settled: %s did not reach %s on attempt %d of %d"
+                   % (target, done_image, attempt, attempts))
+    raise FindFailed("click_settled: %s never reached %s in %d attempts"
+                     % (target, done_image, attempts))
+
 # ---------------------------------------------------------------------------
 # VS Code
 # ---------------------------------------------------------------------------
