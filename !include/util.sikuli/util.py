@@ -831,67 +831,6 @@ def navigate_browser(window, url, done_image, attempts=3, settle=3, timeout=30):
                    % (url, done_image, attempt + 1, attempts))
     raise FindFailed("navigate_browser: '%s' never loaded in %d attempts" % (url, attempts))
 
-# Stop a container session that is still up after the app it launched has given
-# up, so the next launch starts from a clean slate. Needed before relaunching an
-# app whose single-instance lock belongs to the stray container: see
-# wait_app_quiet for what relaunching into a half-dead instance answers with.
-def _drop_stray_session(executable=None):
-    output = run("turbo sessions -l")
-    if "Running" in output:
-        session = _latest_session_id()
-        if session:
-            Debug.user("_drop_stray_session: stopping %s" % session)
-            run("turbo stop " + session)
-    if executable:
-        wait_app_quiet(executable)
-
-# Open a file or URL through its Windows association, and prove the page came up.
-#
-# `explorer <target>` hands the target to the registered handler and returns
-# immediately, so the launch is unverified: nothing in the test notices if the
-# app never arrives, and the failure surfaces at whatever image the page was the
-# only thing that could have shown.
-#
-# It does not arrive rarely but it does happen. In App Tests run 34626345002 the
-# .htm launch reached the client - turbo-logs record `Turbo command: run
-# mozilla/firefox-x64-fr ... -osint -url ...name with space.htm`, then `Launching
-# application` and `Application launched` - and then the container sat there
-# heartbeating every 4 s with no window for the 52 s until the test gave up on a
-# bare desktop. A healthy launch is not remotely marginal by comparison: the
-# `webstream.window.wait` span measured 1.0-2.0 s across all eight association
-# launches in four passing runs, and in the failing one that span is absent
-# altogether. So this is not a budget to widen - 30 s is already 15-30x a healthy
-# launch, and 60 s would have changed nothing - it is a launch that has to be
-# reissued, which a fresh `explorer` does with a fresh container.
-#
-# The retry also covers the other way this step loses: Windows' "How do you want
-# to open this file?" dialog is looked for once, for 10 s, and a dialog that
-# arrives later is never clicked, leaving the page wait to time out behind it. On
-# the relaunch the dialog is already up and the check finds it.
-#
-# The stray session is stopped between attempts because the relaunch would
-# otherwise meet the first container's single-instance lock and be told the app
-# is already running instead of being given a window.
-def open_by_association(target, done_pattern, dialog_image=None, always_image="always.png",
-                        executable=None, attempts=3, timeout=30, dialog_timeout=10):
-    for attempt in range(1, attempts + 1):
-        run('explorer "%s"' % target)
-        if dialog_image and exists(dialog_image, dialog_timeout):
-            click(dialog_image)
-            if exists(always_image, dialog_timeout):
-                click(always_image)
-        # The last attempt checks with wait() so a step that is really broken
-        # raises from inside the wrapped call, which is what saves the
-        # FAILED-<image> frame and reports SikuliX's own match detail.
-        if attempt == attempts:
-            wait(done_pattern, timeout)
-            return
-        if exists(done_pattern, timeout) is not None:
-            return
-        Debug.user("open_by_association: %s never showed its page on attempt %d of %d; "
-                   "relaunching after dropping the stray session" % (target, attempt, attempts))
-        _drop_stray_session(executable)
-
 # Open a Windows Settings page through the Settings search box, and prove it opened.
 #
 # Settings does not navigate on Enter by itself. Enter activates the highlighted

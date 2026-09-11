@@ -77,19 +77,20 @@ wait(3)
 click("set-default.png")
 wait(3)
 type(Key.F4, Key.ALT)
-# Both launches go through util.open_by_association: `explorer <target>` returns
-# before the handler has done anything, so an association launch that never
-# produces a window - seen with the container alive and heartbeating - has to be
-# reissued rather than waited on longer (see open_by_association).
-webpage = Pattern("webpage.png").similar(0.60)
-util.open_by_association(htm_location, webpage, "choose-app-firefox.png",
-                         executable="firefox.exe")
+run("explorer " + htm_location)
+if exists("choose-app-firefox.png",10):
+    click("choose-app-firefox.png")
+    click("always.png")
+wait(Pattern("webpage.png").similar(0.60))
 type("q", Key.CTRL + Key.SHIFT)
 util.wait_app_quiet("firefox.exe")
-util.open_by_association("https://google.com/", webpage, "open-with-firefox.png",
-                         executable="firefox.exe")
+run('explorer "https://google.com/"')
+if exists("open-with-firefox.png",10):
+    click("open-with-firefox.png")
+    click("always.png")
+wait(Pattern("webpage.png").similar(0.60))
 wait(5)
-click(webpage) # To gain focus.
+click(Pattern("webpage.png").similar(0.60)) # To gain focus.
 wait(10)
 app_window = App().focus("Firefox")
 if app_window.isValid():
