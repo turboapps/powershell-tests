@@ -95,6 +95,23 @@ wait("vlc_skinned_window.png", 90)
 # pressing again covers a lost key whatever lost it. Alt+F4 is not a substitute:
 # closing the skins2 window is not the same as quitting VLC, so the keystroke
 # has to stay Ctrl+Q.
+# ---- PROBE ONLY, do not merge ----------------------------------------------
+# Swallow EVERY Ctrl+Q close_window sends, so the window can never close. The
+# run must fail on the assert below - "still on screen after 3 Ctrl+Q", with a
+# close_window Debug line per attempt - and NOT 60 s later in the session check,
+# which is where run 34558812671 reported this same situation.
+# ---- end probe --------------------------------------------------------------
+assert hasattr(util.type, "_step_original"),     "probe: util.type is not the hooked SikuliX type - the probe would not work"
+_probe_real_type = util.type
+_probe_count = [0]
+def _probe_type(*args, **kwargs):
+    if args and args[0] == "q":
+        _probe_count[0] += 1
+        Debug.user("probe: swallowed Ctrl+Q number %d" % _probe_count[0])
+        return
+    return _probe_real_type(*args, **kwargs)
+util.type = _probe_type
+
 closed = util.close_window("vlc_skinned_window.png", attempts=3, grace=20,
                            key="q", modifier=Key.CTRL, label="Ctrl+Q")
 assert closed, "the skinned VLC window was still on screen after 3 Ctrl+Q"
