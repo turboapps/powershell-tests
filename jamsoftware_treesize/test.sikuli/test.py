@@ -24,6 +24,33 @@ TREESIZE_WINDOW = "select-scan-target.png"
 # trial splash, whose own title bar reads just "TreeSize".
 TREESIZE_TITLE = "TreeSize (Administrator)"
 
+# ===========================================================================
+# SABOTAGE PROBE - DO NOT MERGE. Branch treesize-probe-band-rejects.
+#
+# Two claims, one staged state. Raise Explorer over a splash that is covering
+# TreeSize's address bar - the state run 34539364831 reached on its own, there
+# because the splash click raised Explorer - and then:
+#
+#   1) assert Explorer's own "Program Files" row is findable on the WHOLE
+#      SCREEN and NOT findable inside the address-bar band. That is the false
+#      match that made wait_for_scan return early. Run 34542464224 already
+#      showed this: row on screen at (563,482) S:0.65, band matched nothing.
+#   2) show what the run then does. It is EXPECTED to fail in wait_for_scan
+#      after 180 s: Explorer is left covering the splash, so nothing can clear
+#      it, and that gap is documented and deliberately unfixed. The mitigation
+#      tried in 9586b9b - raising TreeSize - made it worse by burying the
+#      splash (probe run 34544558910), and was reverted. A run that fails with
+#      "TreeSize did not scan it within 180 s" AFTER logging the band check is
+#      the expected outcome here, not a regression.
+#
+# Both looks in (1) use similarity 0.60, which sits between the two things
+# being told apart: the splash-clipped address bar inside the band peaked at
+# 0.352 and Explorer's row at 0.65-0.69. At the stock 0.7 the row is a coin
+# flip - which is the defect - and would make the probe one too.
+# ===========================================================================
+PROBE = {"checked": False}
+Debug.on(3)
+
 # Click TreeSize's "Easily Getting Started!" trial splash away if it is up, and
 # say whether it was.
 #
@@ -125,6 +152,7 @@ def address_bar_band(window_match):
 # the diagnostics.
 def wait_for_scan(target_image, timeout=180):
     band = address_bar_band(wait(TREESIZE_WINDOW, timeout))
+    probe_band_rejects_explorer(band, target_image)
     deadline = time.time() + timeout
     while time.time() < deadline:
         if band.exists(target_image, 5):
@@ -151,6 +179,26 @@ def send_close(window=None):
     if window and not exists("continue-with-trial.png", 0):
         util.activate_app_window(window, 1)
     type(Key.F4, Key.ALT)
+
+# PROBE: stage the false match and assert the band excludes it.
+def probe_band_rejects_explorer(band, target_image):
+    if PROBE["checked"]:
+        return
+    PROBE["checked"] = True
+    assert exists("continue-with-trial.png", 60) is not None,         "PROBE inconclusive: no splash within 60 s, the address bar was never covered"
+    util.activate_app_window("Windows (C:)", 10)
+    wait(2)
+    decoy = Pattern(target_image).similar(0.60)
+    on_screen = exists(decoy, 0)
+    in_band = band.exists(decoy, 0)
+    Debug.user("PROBE: band=%s screen_match=%s band_match=%s splash_still_visible=%s"
+               % (band, on_screen, in_band,
+                  exists("continue-with-trial.png", 0) is not None))
+    assert on_screen is not None,         "PROBE inconclusive: the Explorer decoy was not on screen at all"
+    assert in_band is None,         "PROBE FAILED: the band matched %s, so it does not exclude Explorer's row" % in_band
+    Debug.user("PROBE: band check PASSED - %s on screen, band rejected it. "
+               "Explorer is now left covering the splash; the run finishing is "
+               "the second half of this probe." % on_screen)
 
 # Close a TreeSize window and confirm it is gone before the test moves on.
 #
@@ -258,6 +306,9 @@ wait("basic-search.png")
 wait(10)
 close_window("basic-search.png")
 wait(5)
+
+# PROBE: the check must actually have run, or this run proves nothing.
+assert PROBE["checked"], "PROBE never ran: wait_for_scan was not reached"
 
 # Check if the session terminates.
 util.check_running()
