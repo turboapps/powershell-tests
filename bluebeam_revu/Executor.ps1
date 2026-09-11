@@ -7,7 +7,7 @@ $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 . $IncludePath
 
 $image = "bluebeam/revu"
-$using = "turbobuild/isolate-edge-wc,microsoft/edgewebview2"
+$using = "turbobuild/isolate-edge-wc,microsoft/edgewebview2:152.0.4191.66"
 $isolate = "merge-user"
 
 StandardTest -image $image -using $using -isolate $isolate -extra $extra -localLogsDir $localLogsDir
