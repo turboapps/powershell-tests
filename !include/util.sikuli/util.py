@@ -1006,7 +1006,17 @@ def find_settled(image, timeout=30, stable=3, poll=0.4):
 # the locale.
 def click_settled(target, done_image, attempts=3, timeout=30):
     for attempt in range(1, attempts + 1):
-        click(find_settled(target, timeout))
+        _m = find_settled(target, timeout)
+        # PROBE ONLY - DO NOT MERGE. Reproduce the defect this helper exists for:
+        # on the first attempt click 39 px below the settled match, which is
+        # exactly where the observed click landed once about:preferences dropped
+        # its "Firefox Labs" row (one row height at 1080p). Attempt 1 must miss
+        # and log "did not reach"; attempt 2 must land and the test must pass.
+        if attempt == 1:
+            Debug.user("PROBE: clicking 39 px below the settled match for %s" % target)
+            click(_m.getCenter().offset(0, 39))
+        else:
+            click(_m)
         if exists(done_image, timeout) is not None:
             return
         Debug.user("click_settled: %s did not reach %s on attempt %d of %d"
