@@ -742,6 +742,50 @@ def navigate_browser(window, url, done_image, attempts=3, settle=3, timeout=30):
                    % (url, done_image, attempt + 1, attempts))
     raise FindFailed("navigate_browser: '%s' never loaded in %d attempts" % (url, attempts))
 
+# Open a Windows Settings page through the Settings search box, and prove it opened.
+#
+# Settings does not navigate on Enter by itself. Enter activates the highlighted
+# row of the search suggestion list, so it does nothing at all when that list has
+# not been drawn yet, and paste() returns as soon as the clipboard is written --
+# the fixed wait that used to follow it was a bet on how fast Settings renders.
+# In App Tests run 34423171312 (mozilla_firefox-nl) the bet lost: step frame 026,
+# taken just before the Enter, shows the box holding "Default apps" with no list
+# under it, and frame 027 -- three seconds after the Enter -- shows the list
+# finally opening with Settings still on its Home page.
+#
+# Nothing downstream noticed, which is what made it expensive. The test went on
+# clicking, the page it wanted was never on screen, and the run died four lines
+# later at an image that page was the only thing that could have shown. So check
+# that the page actually opened and redo the search if it did not: by the retry
+# the list is up, and the Enter lands on it.
+#
+# The anchor has to be an image that only the wanted page can show, and it has to
+# be matched tightly enough that nothing else on screen can satisfy it -- the
+# verification is worth nothing if a stray match elsewhere passes for the page.
+# See the search-apps.png note in the firefox tests for what that costs when the
+# threshold is left at the default.
+#
+# search_box_image is the empty box's placeholder ("Find a setting"), which stops
+# matching once the box has text in it (0.99 empty, 0.58 typed in), so it is
+# waited on once up front and never again; the retry clicks the Match it returned
+# and clears the box with Ctrl+A instead. Returns the anchor's Match so the caller
+# can click it without searching for it a second time.
+def open_settings_page(search_box_image, query, anchor, attempts=3, timeout=20):
+    type("i", Key.WIN)
+    box = wait(search_box_image)
+    for attempt in range(attempts):
+        click(box)
+        wait(0.5)
+        type("a", Key.CTRL)
+        paste_text(query)
+        type(Key.ENTER)
+        found = exists(anchor, timeout)
+        if found:
+            return found
+        Debug.user("open_settings_page: '%s' did not open on attempt %d of %d"
+                   % (query, attempt + 1, attempts))
+    raise FindFailed("open_settings_page: '%s' never opened in %d attempts" % (query, attempts))
+
 # Give a container's console window the keyboard, and check that it took.
 #
 # StandardTest -> HidePowerShellWindow (Test.ps1) ends with

@@ -51,14 +51,21 @@ type("q", Key.CTRL + Key.SHIFT)
 util.wait_app_quiet("firefox.exe")
 
 # Set default browser.
-type("i", Key.WIN)
-wait("windows_setting_default.png")
-paste("Default apps")
-wait(3)
-type(Key.ENTER)
-wait(3)
-click("search-apps.png")
-paste("firefox")
+#
+# search-apps.png is the "Search apps" placeholder on the Default apps page, and
+# at SikuliX's default 0.7 it also matches the Windows 11 taskbar Search pill --
+# the same grey placeholder text on the same light rounded field. In App Tests run
+# 34423171312 that is what happened once Settings failed to leave its Home page:
+# the pill matched at 0.714, the click opened Windows Search, every click after it
+# landed in that flyout, and the run died at set-default.png four lines later. The
+# real field matches at 0.988 in every run measured, so 0.90 separates the two
+# with room on either side -- and it is what makes the page check inside
+# open_settings_page mean anything, because the pill is on screen whether or not
+# the page opened.
+search_apps = util.open_settings_page("windows_setting_default.png", "Default apps",
+                                      Pattern("search-apps.png").similar(0.90))
+click(search_apps)
+util.paste_text("firefox")
 click("windows_setting_default_firefox.png")
 wait(3)
 click("set-default.png")
