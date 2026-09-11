@@ -357,6 +357,75 @@ def check_stopped(name="test"):
             assert "Running" not in line, "session %s is still running: %s" % (name, line.strip())
             return
 
+# Close the application window with Alt+F4 and check that it took.
+#
+# `type(Key.F4, Key.ALT)` is fire-and-forget: SikuliX logs the chord as sent and
+# returns, and nothing looks at whether the window went away. When the close does
+# not happen the test walks on into check_running, which fails 60 s later against
+# a session that is still Running - so the report points at the container
+# teardown instead of at the close that never happened.
+#
+# App Tests run 34423171312 (proplus, Word) failed that way, as did runs
+# 33949816065 and 34097555049 on a different VM build - 3 of the last 8 proplus
+# failures, all three at the Word site and at no other. Every one of them shows
+# the same picture: the step frame taken immediately before the keystroke and the
+# failure screenshot 60 s later are the same window, same document, same Help
+# pane, and Word is still the active window throughout.
+#
+# The reason is `refocus`. The Office apps park the keyboard focus in a surface
+# that is not theirs to close: Word's F1 Help pane is a WebView2 hosted out of
+# process, so while the focus is inside it Alt+F4 goes to msedgewebview2.exe,
+# which ignores it and Word never sees the close at all. Whether the keystroke
+# wins that race decides whether the run passes. A probe that delayed the
+# keystroke until the pane had certainly settled (branch
+# probe-office-swallow-first-altf4, run 34540575598) reproduced the failure on
+# demand and then failed to close Word with two further Alt+F4 - once the pane
+# owns the focus, no number of retries helps. Clicking back onto the
+# application's own frame first does close it (branch
+# probe2-office-help-pane-settled, runs 34542422854 and 34542431749, which hold
+# 20 s to guarantee that state and then pass).
+#
+# PowerPoint does it too, and not behind a Help pane: run 34546961826 logged
+# ppt_result_4.png still on screen after both Alt+F4. So `refocus` is passed at
+# every site with an image that is safe to click - a cell, a slide thumbnail, a
+# mail row, a datasheet row. OneNote is the exception: the only image the caller
+# holds there is the Add Page button, which a click would act on, so that site
+# keeps the outcome check without the click.
+#
+# `witness` is an image the caller has just seen on the application's window. If
+# it is still on screen `grace` seconds after the keystroke the window has not
+# begun to close, so try again. An application that is merely slow to quit has
+# already taken the keystroke and taken its window off screen, so it returns on
+# the first attempt and never reaches the retry. `prompt`, when given, is a
+# dialog the close is expected to raise (a save-changes prompt): that is the
+# application acting on the keystroke too, and the caller deals with the dialog.
+#
+# Each poll is a hooked exists(), so the successful path adds a step frame or two
+# per site and a stuck close leaves a frame per look - which is the evidence the
+# failure was missing in the first place.
+#
+# Returns True once the application has acted. On False the caller's own
+# assertion still fails, but the log now says the window never went away.
+def close_window(witness, attempts=2, grace=15, poll=2, prompt=None, refocus=None):
+    for attempt in range(attempts):
+        if refocus:
+            click(refocus)
+        type(Key.F4, Key.ALT)
+        waited = 0
+        while waited < grace:
+            if prompt and exists(prompt, 0):
+                return True
+            if not exists(witness, 0):
+                if attempt:
+                    Debug.user("close_window: %s went away after %d Alt+F4"
+                               % (witness, attempt + 1))
+                return True
+            wait(poll)
+            waited += poll
+        Debug.user("close_window: %s still on screen %d s after Alt+F4 (attempt %d of %d)"
+                   % (witness, grace, attempt + 1, attempts))
+    return False
+
 # Check if the most recently created Turbo session is terminated.
 # It is usually the session for the app to be tested.
 #
