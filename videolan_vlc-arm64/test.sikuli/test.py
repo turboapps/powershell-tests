@@ -76,9 +76,43 @@ type("q", Key.CTRL)
 run("explorer " + os.path.join(util.start_menu, "VideoLAN", "VLC media player - reset preferences and cache files.lnk"))
 wait(15) # It should not cause error.
 run("explorer " + os.path.join(util.start_menu, "VideoLAN", "VLC media player skinned.lnk"))
-wait("vlc_skinned_window.png")
-type("q", Key.CTRL)
-wait(20)
+
+# The skinned window is the slowest thing this test waits for, and the 20 s
+# default is its ceiling rather than a budget. Measured from consecutive
+# step-frame timestamps, the wait took 4, 10, 4, 8 and 12 s across the five most
+# recent passing 32-bit runs, and 4-8 s for vlc-x64 and 6 s for vlc-arm64 in the
+# same runs. In App Tests run 34558810483 it ran out: the frame taken
+# immediately before the wait is stamped 05:20:28 and the FAILED frame 05:20:48
+# - exactly the 20 s - while turboplay launched the shortcut at 05:20:28.6. The
+# reference matches the failure screenshot at 1.0000, so the window was on
+# screen and fully painted; it only arrived a moment after the deadline.
+wait("vlc_skinned_window.png", 90)
+
+# The Ctrl+Q that quits the skinned interface was fire-and-forget, and in App
+# Tests run 34558812671 it did not take: the failure screenshot 100 s later is
+# the same skinned window, pixel-identical to the frame captured immediately
+# before the keystroke (mean difference 0.84 across the whole window, all
+# JPEG-against-PNG noise). VLC held the keyboard - the taskbar button carries
+# the long blue active bar in both frames - so this is not the foreground
+# problem the Ctrl+O site above deals with. That run also had the slowest
+# skinned launch yet measured at 12 s, which fits a key arriving after skins2
+# painted its skin but before its hotkeys were wired; nothing in the artifacts
+# proves that, and it does not matter here, because checking the outcome and
+# pressing again covers a lost key whatever lost it. Alt+F4 is not a substitute:
+# closing the skins2 window is not the same as quitting VLC, so the keystroke
+# has to stay Ctrl+Q.
+closed = util.close_window("vlc_skinned_window.png", attempts=3, grace=20,
+                           key="q", modifier=Key.CTRL, label="Ctrl+Q")
+assert closed, "the skinned VLC window was still on screen after 3 Ctrl+Q"
 
 # Check if the session terminates.
-util.check_running()
+#
+# check_running() reported that lost keystroke as a container that would not
+# terminate, 60 s and one screen away from the step actually at fault. It is the
+# wrong assertion to carry it: in every passing run the session is already gone
+# at the first poll, so there is no evidence a longer budget buys anything, and
+# the close above now fails where the evidence is. end_session() still asserts
+# if the session cannot be stopped, so a real teardown defect goes on failing -
+# it only stops an app that lingers after its window has demonstrably closed
+# from failing the run.
+util.end_session()

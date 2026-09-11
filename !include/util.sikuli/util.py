@@ -357,7 +357,7 @@ def check_stopped(name="test"):
             assert "Running" not in line, "session %s is still running: %s" % (name, line.strip())
             return
 
-# Close the application window with Alt+F4 and check that it took.
+# Close the application window with its close keystroke and check that it took.
 #
 # `type(Key.F4, Key.ALT)` is fire-and-forget: SikuliX logs the chord as sent and
 # returns, and nothing looks at whether the window went away. When the close does
@@ -404,26 +404,34 @@ def check_stopped(name="test"):
 # per site and a stuck close leaves a frame per look - which is the evidence the
 # failure was missing in the first place.
 #
+# `key`, `modifier` and `label` name the keystroke. Alt+F4 is the default and is
+# what every Office site uses, but an application whose quit hotkey is its own -
+# vlc quits its skinned interface with Ctrl+Q, and Alt+F4 is not equivalent
+# there - passes its own. `label` is only what the Debug lines are allowed to
+# call the chord; SikuliX's modifier constants are unprintable characters, so it
+# cannot be derived.
+#
 # Returns True once the application has acted. On False the caller's own
 # assertion still fails, but the log now says the window never went away.
-def close_window(witness, attempts=2, grace=15, poll=2, prompt=None, refocus=None):
+def close_window(witness, attempts=2, grace=15, poll=2, prompt=None, refocus=None,
+                 key=Key.F4, modifier=Key.ALT, label="Alt+F4"):
     for attempt in range(attempts):
         if refocus:
             click(refocus)
-        type(Key.F4, Key.ALT)
+        type(key, modifier)
         waited = 0
         while waited < grace:
             if prompt and exists(prompt, 0):
                 return True
             if not exists(witness, 0):
                 if attempt:
-                    Debug.user("close_window: %s went away after %d Alt+F4"
-                               % (witness, attempt + 1))
+                    Debug.user("close_window: %s went away after %d %s"
+                               % (witness, attempt + 1, label))
                 return True
             wait(poll)
             waited += poll
-        Debug.user("close_window: %s still on screen %d s after Alt+F4 (attempt %d of %d)"
-                   % (witness, grace, attempt + 1, attempts))
+        Debug.user("close_window: %s still on screen %d s after %s (attempt %d of %d)"
+                   % (witness, grace, label, attempt + 1, attempts))
     return False
 
 # Check if the most recently created Turbo session is terminated.
