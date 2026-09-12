@@ -95,8 +95,35 @@ param(
     [string]$CloseMethod = 'AltF4',
 
     [string]$Image = 'autodesk/dwgtrueview',
+
+    # Base name only. Each iteration gets "<base>-<n>", because `turbo new`
+    # ALWAYS creates a new container and persists it, so reusing one name would
+    # leave several containers answering to it and make stop/rm ambiguous.
     [string]$SessionName = 'dwgrepro',
     [string]$XvmVersion = '',
+
+    # `new` persists the container; `try` deletes it the moment it ends, taking
+    # the sandbox and the VM logs with it. A diagnostic run therefore needs
+    # `new` - util.try_verb makes the same choice between `run` and `try`.
+    [ValidateSet('new', 'try', 'run')]
+    [string]$LaunchVerb = 'new',
+
+    # --diagnostic makes the VM write xclog_*.txt per process into the container
+    # sandbox: the log that showed what turbo stop actually delivers. It also
+    # slows containers down noticeably, which for a race is as likely to help as
+    # to hurt.
+    [bool]$Diagnostic = $true,
+
+    # Number of CPU spinners to run across the close and the teardown, to make
+    # the box behave like a contended CI pool VM. 0 = off.
+    #
+    # This exists because an idle os-test3 would not reproduce at all - 0/26 by
+    # hand and 0/100 with `turbo new --diagnostic` - against 16/33 in CI, and the
+    # close mechanism and the teardown duration were both ruled out as the
+    # difference. Contention is the remaining candidate: the crash is a race
+    # between the app's own teardown and the WM_CLOSE broadcast `turbo stop`
+    # sends, and a loaded machine widens the window the broadcast has to land in.
+    [int]$CpuLoad = 0,
 
     # Empty = wherever WER LocalDumps already writes: the box's own DumpFolder
     # if it sets one, otherwise Windows' default, %LOCALAPPDATA%\CrashDumps.
@@ -112,6 +139,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $ProcName = 'dwgviewr'
 $ExeName  = 'dwgviewr.exe'
+$script:CurrentSession = $SessionName
+$script:SandboxBefore  = @()
 
 # ---------------------------------------------------------------------------
 # Win32. Every close is a PostMessage rather than a synthesized Alt+F4: WM_CLOSE
@@ -209,6 +238,38 @@ namespace DwgRepro {
 function Write-Step($msg) { Write-Host ("[{0:HH:mm:ss}] {1}" -f (Get-Date), $msg) }
 
 # ---------------------------------------------------------------------------
+# Artificial CPU contention
+# ---------------------------------------------------------------------------
+# Run only across the close and the teardown, not the launch. Loading the whole
+# iteration would just push the app's startup past ReadyTimeoutSec and turn every
+# attempt into a skip; the part that has to be slowed is the ~1500 module unloads
+# between Alt+F4 and the process going away.
+$script:LoadProcs = @()
+
+function Start-CpuLoad {
+    if ($CpuLoad -le 0) { return }
+    $script:LoadProcs = @()
+    for ($i = 0; $i -lt $CpuLoad; $i++) {
+        $script:LoadProcs += Start-Process powershell.exe -PassThru -WindowStyle Hidden `
+            -ArgumentList '-NoProfile', '-NonInteractive', '-Command',
+                          '$x = 1.0; while ($true) { $x = [math]::Sqrt($x + 1.0) }'
+    }
+    # Let them spin up, and let any console window they flash settle, BEFORE the
+    # Alt+F4 goes out - synthetic input follows the foreground, so a window
+    # appearing mid-keystroke would send the close somewhere else. Close-MainWindow
+    # re-focuses and logs whether it succeeded, so a steal is visible either way.
+    Start-Sleep -Seconds 2
+    Write-Step "  cpu load: $CpuLoad spinner(s) running"
+}
+
+function Stop-CpuLoad {
+    foreach ($lp in $script:LoadProcs) {
+        try { if (-not $lp.HasExited) { $lp.Kill() } } catch { }
+    }
+    $script:LoadProcs = @()
+}
+
+# ---------------------------------------------------------------------------
 # WER LocalDumps. Full dumps, into our own folder, so a dump in there was
 # written by this run and nothing else. Mirrors the applab workflow's setup.
 # ---------------------------------------------------------------------------
@@ -293,14 +354,16 @@ function Start-App {
         Start-Process -FilePath $exe -ArgumentList '/language', 'en-US' | Out-Null
         return
     }
-    # The launch the CI executor makes, verbatim except for the session name.
+    # The launch the CI executor makes, bar the verb and the session name.
+    $script:SandboxBefore = Get-SandboxDirs
     $turboArgs = @(
-        'try', $Image, "--name=$SessionName",
+        $LaunchVerb, $Image, "--name=$($script:CurrentSession)",
         '--enable=disablefontpreload,usedllinjection,cachefileinfo',
         '--network=test', '--disable-proxy-resolve-via-proxy',
         '--using=turbobuild/isolate-edge-wc', '--isolate=merge-user', '-d'
     )
     if ($XvmVersion) { $turboArgs += "--vm=$XvmVersion" }
+    if ($Diagnostic) { $turboArgs += '--diagnostic' }
     Write-Step "turbo $($turboArgs -join ' ')"
     Invoke-Turbo $turboArgs
 }
@@ -441,7 +504,27 @@ function Send-WmCloseBroadcast {
 }
 
 function Stop-TurboSession {
-    Invoke-Turbo @('stop', $SessionName) -TimeoutSec 180
+    Invoke-Turbo @('stop', $script:CurrentSession) -TimeoutSec 180
+}
+
+# `new` keeps the container after it stops. Over a hundred iterations that is a
+# hundred dwgtrueview sandboxes, so drop the ones that proved nothing. The
+# container from a CRASHING iteration is deliberately kept: with --diagnostic
+# its sandbox holds the xclog saying what the VM delivered.
+function Remove-TurboSession {
+    Invoke-Turbo @('rm', $script:CurrentSession) -TimeoutSec 120
+}
+
+# Default sandbox root. A relocated containerStoragePath is not resolved here -
+# these boxes use the default, and the report prints the path it used so a
+# wrong guess is visible rather than silent.
+function Get-SandboxRoot {
+    return (Join-Path $env:LOCALAPPDATA 'Turbo\Containers\sandboxes')
+}
+function Get-SandboxDirs {
+    $root = Get-SandboxRoot
+    if (-not (Test-Path $root)) { return @() }
+    @(Get-ChildItem $root -Directory -ErrorAction SilentlyContinue | ForEach-Object { $_.Name })
 }
 
 function Wait-ProcessGone {
@@ -460,6 +543,7 @@ function Reset-Machine {
     # iteration otherwise poisons the one after it. taskkill terminates rather
     # than faulting, so nothing here can write a dump of its own.
     try { Stop-TurboSession } catch { }
+    try { Remove-TurboSession } catch { }
     foreach ($p in $ExeName, 'AcHelp2.exe', 'ADPClientService.exe', 'AdskAccessService.exe', 'AdskIdentityManager.exe') {
         Start-Process -FilePath 'taskkill.exe' -ArgumentList @('/f', '/im', $p, '/t') `
             -NoNewWindow -Wait -ErrorAction SilentlyContinue | Out-Null
@@ -511,7 +595,9 @@ function Test-DumpSignature {
 function Invoke-Iteration {
     param([int]$Index, [string[]]$Seen)
 
-    Write-Step "iteration $Index/$Iterations  mode=$Mode  delay=${SecondCloseDelayMs}ms"
+    $script:CurrentSession = "$SessionName-$Index"
+    Write-Step ("iteration {0}/{1}  mode={2}  verb={3}  diagnostic={4}  delay={5}ms  session={6}" -f `
+                $Index, $Iterations, $Mode, $LaunchVerb, $Diagnostic, $SecondCloseDelayMs, $script:CurrentSession)
     Reset-Machine
     Start-App
 
@@ -523,7 +609,10 @@ function Invoke-Iteration {
     $pid0 = $proc.Id
     Write-Step "  ready, pid $pid0, $((Get-AppWindows -TargetPid $pid0).Count) top-level window(s)"
 
+    Start-CpuLoad
+
     if (-not (Close-MainWindow -TargetPid $pid0)) {
+        Stop-CpuLoad
         return [pscustomobject]@{ Index = $Index; Result = 'skipped'; Pid = $pid0; Dumps = @(); ExitSec = $null }
     }
 
@@ -531,7 +620,7 @@ function Invoke-Iteration {
     switch ($Mode) {
         'TurboStop' {
             Start-Sleep -Milliseconds $SecondCloseDelayMs
-            Write-Step "  close #2 -> turbo stop $SessionName (main window: $(Get-MainWindowState))"
+            Write-Step "  close #2 -> turbo stop $($script:CurrentSession) (main window: $(Get-MainWindowState))"
             Stop-TurboSession
             $exitSec = Wait-ProcessGone
         }
@@ -550,20 +639,34 @@ function Invoke-Iteration {
         }
     }
 
+    Stop-CpuLoad
     $after = Wait-DumpsSettled
     $new = @($after | Where-Object { $Seen -notcontains $_ })
 
+    $sandbox = $null
     if ($new.Count -gt 0) {
         foreach ($d in $new) {
             $sig = Test-DumpSignature -Path (Join-Path $script:ResolvedDumpDir $d)
             Write-Host ("  CRASH: {0}{1}" -f $d, $(if ($sig) { "  [$sig]" } else { "" })) -ForegroundColor Red
         }
+        # Keep the container: on a diagnostic run its sandbox holds the xclog.
+        $made = @(Get-SandboxDirs | Where-Object { $script:SandboxBefore -notcontains $_ })
+        foreach ($c in $made) {
+            $logs = Join-Path (Join-Path (Get-SandboxRoot) $c) 'logs'
+            if (Test-Path $logs) { $sandbox = $logs; Write-Host "  VM logs: $logs" -ForegroundColor Yellow }
+        }
+        if (-not $sandbox) {
+            Write-Warning "  no sandbox logs found under $(Get-SandboxRoot) - was --diagnostic on?"
+        }
+        Write-Host "  container kept: $($script:CurrentSession)" -ForegroundColor Yellow
         $res = 'crash'
     } else {
         Write-Host "  clean exit (${exitSec}s)" -ForegroundColor Green
+        # Nothing to learn from it, and `new` would otherwise leave 100 sandboxes.
+        try { Remove-TurboSession } catch { }
         $res = 'clean'
     }
-    return [pscustomobject]@{ Index = $Index; Result = $res; Pid = $pid0; Dumps = $new; ExitSec = $exitSec }
+    return [pscustomobject]@{ Index = $Index; Result = $res; Pid = $pid0; Dumps = $new; ExitSec = $exitSec; Logs = $sandbox }
 }
 
 # ---------------------------------------------------------------------------
@@ -590,6 +693,7 @@ try {
         $seen = Get-DumpSet
     }
 } finally {
+    Stop-CpuLoad
     Reset-Machine
     Restore-WerLocalDumps
 }
@@ -605,6 +709,8 @@ if ($crashRec) {
     foreach ($d in $crashRec.Dumps) {
         Write-Host "  dump    : $(Join-Path $script:ResolvedDumpDir $d)"
     }
+    if ($crashRec.Logs) { Write-Host "  vm logs : $($crashRec.Logs)" }
+    Write-Host "  session : $SessionName-$($crashRec.Index) (container kept)"
 } else {
     Write-Host "  not reproduced in $clean measured attempt(s)" -ForegroundColor Green
     Write-Host "  dumps   : $script:ResolvedDumpDir (empty of new dumps)"
