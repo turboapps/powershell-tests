@@ -139,8 +139,9 @@ param(
 $ErrorActionPreference = 'Stop'
 $ProcName = 'dwgviewr'
 $ExeName  = 'dwgviewr.exe'
-$script:CurrentSession = $SessionName
-$script:SandboxBefore  = @()
+$script:CurrentSession   = $SessionName
+$script:SandboxBefore    = @()
+$script:CreatedSessions  = @()
 
 # ---------------------------------------------------------------------------
 # Win32. Every close is a PostMessage rather than a synthesized Alt+F4: WM_CLOSE
@@ -356,6 +357,9 @@ function Start-App {
     }
     # The launch the CI executor makes, bar the verb and the session name.
     $script:SandboxBefore = Get-SandboxDirs
+    if ($script:CreatedSessions -notcontains $script:CurrentSession) {
+        $script:CreatedSessions += $script:CurrentSession
+    }
     $turboArgs = @(
         $LaunchVerb, $Image, "--name=$($script:CurrentSession)",
         '--enable=disablefontpreload,usedllinjection,cachefileinfo',
@@ -381,12 +385,47 @@ function Start-App {
 # The CI test never hit this because it launches with subprocess.Popen and does
 # not wait at all. -PassThru plus WaitForExit waits for turbo itself and nothing
 # it spawned, which is what was meant.
+# Returns the captured output; the exit code is deliberately NOT the verdict.
+#
+# `turbo stop` exits non-zero merely because it could not reap every process in
+# the session - "Your session is busy. To stop waiting..." listing
+# AdskAccessService/conhost/ADPClientService - even though the stop was sent and
+# the WM_CLOSE broadcast went out. Treating that as failure marked 3 of 3 good
+# attempts invalid. The real failure has its own message, which Test-StopDelivered
+# looks for.
 function Invoke-Turbo {
     param([string[]]$TurboArgs, [int]$TimeoutSec = 900)
-    $p = Start-Process -FilePath 'turbo.exe' -ArgumentList $TurboArgs -NoNewWindow -PassThru
-    if (-not $p.WaitForExit($TimeoutSec * 1000)) {
-        Write-Warning "turbo $($TurboArgs[0]) still running after $TimeoutSec s - continuing"
+    $so = [System.IO.Path]::GetTempFileName()
+    $se = [System.IO.Path]::GetTempFileName()
+    try {
+        $p = Start-Process -FilePath 'turbo.exe' -ArgumentList $TurboArgs -NoNewWindow -PassThru `
+                 -RedirectStandardOutput $so -RedirectStandardError $se
+        if (-not $p.WaitForExit($TimeoutSec * 1000)) {
+            Write-Warning "turbo $($TurboArgs[0]) still running after $TimeoutSec s - continuing"
+        }
+        $text = ((Get-Content $so -Raw -ErrorAction SilentlyContinue) + "`n" +
+                 (Get-Content $se -Raw -ErrorAction SilentlyContinue))
+        # Echo it so the transcript still shows what turbo said, minus the
+        # spinner frames that otherwise bury the log in hundreds of lines.
+        foreach ($line in ($text -split "`r?`n")) {
+            if ($line -and $line -notmatch '^(Waiting for session|Removing session|Pulling image).*[/|\-]?\s*$') {
+                Write-Host "    | $line"
+            }
+        }
+        return $text
+    } finally {
+        Remove-Item $so, $se -Force -ErrorAction SilentlyContinue
     }
+}
+
+# The only outcome that invalidates an attempt: turbo could not reach the session
+# at all, so no WM_CLOSE broadcast was delivered and nothing was tested.
+function Test-StopDelivered {
+    param([string]$Output)
+    if ($Output -match 'Could not send the stop command') { return $false }
+    if ($Output -match 'Could not find the specified session') { return $false }
+    if ($Output -match 'Could not find session') { return $false }
+    return $true
 }
 
 function Get-AppProcess {
@@ -504,7 +543,8 @@ function Send-WmCloseBroadcast {
 }
 
 function Stop-TurboSession {
-    Invoke-Turbo @('stop', $script:CurrentSession) -TimeoutSec 180
+    $out = Invoke-Turbo @('stop', $script:CurrentSession) -TimeoutSec 180
+    return (Test-StopDelivered -Output $out)
 }
 
 # `new` keeps the container after it stops. Over a hundred iterations that is a
@@ -512,7 +552,28 @@ function Stop-TurboSession {
 # container from a CRASHING iteration is deliberately kept: with --diagnostic
 # its sandbox holds the xclog saying what the VM delivered.
 function Remove-TurboSession {
-    Invoke-Turbo @('rm', $script:CurrentSession) -TimeoutSec 120
+    $out = Invoke-Turbo @('rm', $script:CurrentSession) -TimeoutSec 120
+    $ok = ($out -notmatch 'was not removed because it is currently running')
+    if ($ok) {
+        $script:CreatedSessions = @($script:CreatedSessions | Where-Object { $_ -ne $script:CurrentSession })
+    }
+    return $ok
+}
+
+# Sessions whose own removal failed - under CPU starvation `turbo rm` reports
+# "not removed because it is currently running" - would otherwise pile up one
+# per iteration, since Reset-Machine only ever addressed the CURRENT name.
+function Clear-StaleSessions {
+    foreach ($n in @($script:CreatedSessions)) {
+        if ($n -eq $script:CurrentSession) { continue }
+        [void](Invoke-Turbo @('stop', $n) -TimeoutSec 120)
+        $rmOut = Invoke-Turbo @('rm', $n) -TimeoutSec 120
+        if ($rmOut -notmatch 'was not removed because it is currently running') {
+            $script:CreatedSessions = @($script:CreatedSessions | Where-Object { $_ -ne $n })
+        } else {
+            Write-Warning "  stale session $n could not be removed"
+        }
+    }
 }
 
 # Default sandbox root. A relocated containerStoragePath is not resolved here -
@@ -599,6 +660,7 @@ function Invoke-Iteration {
     Write-Step ("iteration {0}/{1}  mode={2}  verb={3}  diagnostic={4}  delay={5}ms  session={6}" -f `
                 $Index, $Iterations, $Mode, $LaunchVerb, $Diagnostic, $SecondCloseDelayMs, $script:CurrentSession)
     Reset-Machine
+    Clear-StaleSessions
     Start-App
 
     $proc = Wait-AppReady
@@ -617,12 +679,21 @@ function Invoke-Iteration {
     }
 
     $exitSec = $null
+    $script:AttemptInvalid = $false
     switch ($Mode) {
         'TurboStop' {
             Start-Sleep -Milliseconds $SecondCloseDelayMs
             Write-Step "  close #2 -> turbo stop $($script:CurrentSession) (main window: $(Get-MainWindowState))"
-            Stop-TurboSession
+            $stopOk = Stop-TurboSession
             $exitSec = Wait-ProcessGone
+            if (-not $stopOk) {
+                # The whole attempt hinges on this stop delivering the WM_CLOSE
+                # broadcast. Under heavy CPU load turbo reports "Could not send
+                # the stop command to session ..." and delivers nothing, so the
+                # attempt proves nothing and must not be counted as a clean one.
+                Write-Warning "  turbo stop FAILED - no second close was delivered; attempt is invalid"
+                $script:AttemptInvalid = $true
+            }
         }
         'TurboStopAfter' {
             # Control: let the app finish its own exit, so the two teardowns
@@ -660,10 +731,14 @@ function Invoke-Iteration {
         }
         Write-Host "  container kept: $($script:CurrentSession)" -ForegroundColor Yellow
         $res = 'crash'
+    } elseif ($script:AttemptInvalid) {
+        Write-Host "  INVALID (no second close delivered)" -ForegroundColor Magenta
+        try { [void](Remove-TurboSession) } catch { }
+        $res = 'invalid'
     } else {
         Write-Host "  clean exit (${exitSec}s)" -ForegroundColor Green
         # Nothing to learn from it, and `new` would otherwise leave 100 sandboxes.
-        try { Remove-TurboSession } catch { }
+        try { [void](Remove-TurboSession) } catch { }
         $res = 'clean'
     }
     return [pscustomobject]@{ Index = $Index; Result = $res; Pid = $pid0; Dumps = $new; ExitSec = $exitSec; Logs = $sandbox }
@@ -694,6 +769,8 @@ try {
     }
 } finally {
     Stop-CpuLoad
+    $script:CurrentSession = $null
+    try { Clear-StaleSessions } catch { }
     Reset-Machine
     Restore-WerLocalDumps
 }
@@ -701,6 +778,7 @@ try {
 $crashRec = @($records | Where-Object { $_.Result -eq 'crash' }) | Select-Object -First 1
 $clean    = @($records | Where-Object { $_.Result -eq 'clean' }).Count
 $skipped  = @($records | Where-Object { $_.Result -eq 'skipped' }).Count
+$invalid  = @($records | Where-Object { $_.Result -eq 'invalid' }).Count
 
 Write-Host ""
 Write-Host "===== $Mode, delay ${SecondCloseDelayMs}ms =====" -ForegroundColor Cyan
@@ -716,6 +794,7 @@ if ($crashRec) {
     Write-Host "  dumps   : $script:ResolvedDumpDir (empty of new dumps)"
 }
 if ($skipped) { Write-Host "  skipped : $skipped (app never became ready)" }
+if ($invalid) { Write-Host "  INVALID : $invalid (turbo stop failed - nothing was delivered, not evidence)" -ForegroundColor Magenta }
 Write-Host ""
 Write-Host "Expected from CI: TurboStop ~50% per attempt, TurboStopAfter 0/27." -ForegroundColor DarkGray
 Write-Host "A crash in Native mode means no container is needed to provoke it." -ForegroundColor DarkGray
