@@ -85,6 +85,15 @@ param(
     [int]$Iterations = 10,
     [int]$SecondCloseDelayMs = 1500,
 
+    # How the FIRST close is delivered.
+    #   AltF4      real synthetic Alt+F4 to the focused window - what CI does
+    #   SysCommand WM_SYSCOMMAND/SC_CLOSE posted, no focus needed
+    #   WmClose    WM_CLOSE posted - what Alt+F4 eventually becomes
+    # AltF4 is the default because the earlier WmClose-only build ran clean 0/16
+    # on an idle box against 16/33 in CI, and this is the most likely difference.
+    [ValidateSet('AltF4', 'SysCommand', 'WmClose')]
+    [string]$CloseMethod = 'AltF4',
+
     [string]$Image = 'autodesk/dwgtrueview',
     [string]$SessionName = 'dwgrepro',
     [string]$XvmVersion = '',
@@ -126,7 +135,50 @@ namespace DwgRepro {
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowTextW(IntPtr hWnd, StringBuilder s, int max);
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowTextLengthW(IntPtr hWnd);
 
+        [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+        [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+        [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr hWnd);
+        [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
+        [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
+
         public const uint WM_CLOSE = 0x0010;
+        public const uint WM_SYSCOMMAND = 0x0112;
+        public const int  SC_CLOSE = 0xF060;
+
+        // Raise a window owned by another process. SetForegroundWindow on its own
+        // is refused unless the caller already owns the foreground, so attach to
+        // the current foreground thread's input queue for the duration of the
+        // call. Returns whether the window really ended up in the foreground -
+        // the caller logs that, because an Alt+F4 sent to a window that never got
+        // focus is a vacuous test, not a negative result.
+        public static bool Focus(IntPtr hWnd) {
+            ShowWindow(hWnd, 9); // SW_RESTORE
+            IntPtr fg = GetForegroundWindow();
+            uint pidDummy;
+            uint fgThread = (fg == IntPtr.Zero) ? 0 : GetWindowThreadProcessId(fg, out pidDummy);
+            uint me = GetCurrentThreadId();
+            bool attached = false;
+            if (fgThread != 0 && fgThread != me) attached = AttachThreadInput(me, fgThread, true);
+            bool ok = SetForegroundWindow(hWnd);
+            if (attached) AttachThreadInput(me, fgThread, false);
+            return ok && GetForegroundWindow() == hWnd;
+        }
+
+        // A real Alt+F4, as SikuliX's type(Key.F4, Key.ALT) sends it: synthetic
+        // input to whatever owns the foreground. The window manager turns it into
+        // WM_SYSCOMMAND/SC_CLOSE, and only DefWindowProc turns THAT into WM_CLOSE -
+        // so this is not the same thing as posting WM_CLOSE, and an app is free to
+        // treat the two differently.
+        public static void AltF4() {
+            const byte VK_MENU = 0x12, VK_F4 = 0x73;
+            const uint KEYUP = 0x0002;
+            keybd_event(VK_MENU, 0, 0, UIntPtr.Zero);
+            keybd_event(VK_F4,   0, 0, UIntPtr.Zero);
+            keybd_event(VK_F4,   0, KEYUP, UIntPtr.Zero);
+            keybd_event(VK_MENU, 0, KEYUP, UIntPtr.Zero);
+        }
 
         // Every top-level window owned by the process, in EnumWindows order -
         // the same enumeration _PostWmCloseIf walks.
@@ -329,14 +381,49 @@ function Get-AppWindows {
 # The two closes
 # ---------------------------------------------------------------------------
 
-# First close: what Alt+F4 does - WM_CLOSE to the app's visible main window.
+# First close: the user closing the window, by whichever mechanism -CloseMethod
+# selects. Records the handle so the caller can see, at the moment the second
+# close goes out, whether this one had already taken effect.
+$script:MainWindow = [IntPtr]::Zero
 function Close-MainWindow {
     param([int]$TargetPid)
     $main = @(Get-AppWindows -TargetPid $TargetPid | Where-Object { $_.Visible -and $_.Title }) | Select-Object -First 1
     if (-not $main) { Write-Warning "No visible main window for pid $TargetPid"; return $false }
-    Write-Step ("  close #1 -> `"{0}`"" -f $main.Title)
-    [void][DwgRepro.Win32]::PostMessageW($main.Handle, [DwgRepro.Win32]::WM_CLOSE, [IntPtr]::Zero, [IntPtr]::Zero)
+    $script:MainWindow = $main.Handle
+    switch ($CloseMethod) {
+        'AltF4' {
+            $fg = [DwgRepro.Win32]::Focus($main.Handle)
+            Write-Step ("  close #1 -> Alt+F4 to `"{0}`" (foreground: {1})" -f $main.Title, $fg)
+            if (-not $fg) {
+                # Say so loudly. Synthetic input goes to whatever owns the
+                # foreground, so without focus this closes something else, or
+                # nothing, and the whole attempt is meaningless.
+                Write-Warning "    could not focus the window - the Alt+F4 did NOT go to DWG TrueView"
+            }
+            [DwgRepro.Win32]::AltF4()
+        }
+        'SysCommand' {
+            Write-Step ("  close #1 -> WM_SYSCOMMAND/SC_CLOSE to `"{0}`"" -f $main.Title)
+            [void][DwgRepro.Win32]::PostMessageW($main.Handle, [DwgRepro.Win32]::WM_SYSCOMMAND,
+                                                 [IntPtr][DwgRepro.Win32]::SC_CLOSE, [IntPtr]::Zero)
+        }
+        'WmClose' {
+            Write-Step ("  close #1 -> WM_CLOSE to `"{0}`"" -f $main.Title)
+            [void][DwgRepro.Win32]::PostMessageW($main.Handle, [DwgRepro.Win32]::WM_CLOSE,
+                                                 [IntPtr]::Zero, [IntPtr]::Zero)
+        }
+    }
     return $true
+}
+
+# Cheap enough to call right before the second close without moving its timing:
+# tells a close that was swallowed apart from a teardown that simply finished
+# first, which the exit time alone cannot.
+function Get-MainWindowState {
+    if ($script:MainWindow -eq [IntPtr]::Zero) { return 'unknown' }
+    if (-not [DwgRepro.Win32]::IsWindow($script:MainWindow)) { return 'destroyed' }
+    if (-not [DwgRepro.Win32]::Visible($script:MainWindow)) { return 'hidden' }
+    return 'still-up'
 }
 
 # Second close: _PostWmCloseIf, reimplemented. Every top-level window of the
@@ -444,7 +531,7 @@ function Invoke-Iteration {
     switch ($Mode) {
         'TurboStop' {
             Start-Sleep -Milliseconds $SecondCloseDelayMs
-            Write-Step "  close #2 -> turbo stop $SessionName"
+            Write-Step "  close #2 -> turbo stop $SessionName (main window: $(Get-MainWindowState))"
             Stop-TurboSession
             $exitSec = Wait-ProcessGone
         }
