@@ -250,7 +250,28 @@ function Start-App {
     )
     if ($XvmVersion) { $turboArgs += "--vm=$XvmVersion" }
     Write-Step "turbo $($turboArgs -join ' ')"
-    Start-Process -FilePath 'turbo.exe' -ArgumentList $turboArgs -NoNewWindow -Wait | Out-Null
+    Invoke-Turbo $turboArgs
+}
+
+# Never `Start-Process -Wait` for turbo.
+#
+# -Wait does not wait for the launched process: it waits on a job object holding
+# that process AND every descendant. `turbo try -d` deliberately leaves a
+# `turbo start <session>` behind to host the container, so the job never
+# completes while the container is up and -Wait never returns. On os-test3 this
+# hung the very first launch: the app came up fine and settled on the Start tab,
+# and the script sat there for 11 minutes having printed nothing past
+# "Running new session dwgrepro#158acfb0".
+#
+# The CI test never hit this because it launches with subprocess.Popen and does
+# not wait at all. -PassThru plus WaitForExit waits for turbo itself and nothing
+# it spawned, which is what was meant.
+function Invoke-Turbo {
+    param([string[]]$TurboArgs, [int]$TimeoutSec = 900)
+    $p = Start-Process -FilePath 'turbo.exe' -ArgumentList $TurboArgs -NoNewWindow -PassThru
+    if (-not $p.WaitForExit($TimeoutSec * 1000)) {
+        Write-Warning "turbo $($TurboArgs[0]) still running after $TimeoutSec s - continuing"
+    }
 }
 
 function Get-AppProcess {
@@ -265,15 +286,19 @@ function Get-AppProcess {
 function Wait-AppReady {
     $deadline = (Get-Date).AddSeconds($ReadyTimeoutSec)
     $proc = $null
+    $windowed = $false
     while ((Get-Date) -lt $deadline) {
         $proc = Get-AppProcess
         if ($proc) {
             $titled = @(Get-AppWindows -TargetPid $proc.Id | Where-Object { $_.Visible -and $_.Title })
-            if ($titled.Count -gt 0) { break }
+            if ($titled.Count -gt 0) { $windowed = $true; break }
         }
         Start-Sleep -Milliseconds 500
     }
-    if (-not $proc) { return $null }
+    # Both conditions matter. Falling out of the loop on the deadline used to
+    # leave $proc set and report the app ready, which would have closed an app
+    # that never finished coming up.
+    if (-not $proc -or -not $windowed) { return $null }
 
     $last = $proc.TotalProcessorTime
     $quiet = 0
@@ -329,7 +354,7 @@ function Send-WmCloseBroadcast {
 }
 
 function Stop-TurboSession {
-    Start-Process -FilePath 'turbo.exe' -ArgumentList @('stop', $SessionName) -NoNewWindow -Wait | Out-Null
+    Invoke-Turbo @('stop', $SessionName) -TimeoutSec 180
 }
 
 function Wait-ProcessGone {
