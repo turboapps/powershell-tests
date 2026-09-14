@@ -25,10 +25,37 @@ wait("file_location.png")
 paste(os.path.join(script_path, os.pardir, "resources", "US_Superstore_10.0.twbx"))
 type(Key.ENTER)
 wait("workbook-open.png")
+
+# Switch to the Product Drilldown dashboard. The workbook opens on Overview,
+# whose "Monthly Sales by Product Category" pane carries its own white-on-white
+# "Furniture" row label on the right-hand side. Tableau needs several seconds to
+# repaint this dashboard on a loaded VM, so without an anchor the search below
+# matches that label on the dashboard we are leaving and clicks the wrong place.
+# Wait for a caption that exists only here, and keep the search in the left-hand
+# column where this dashboard's row headers live so the Overview label can never
+# win even mid-repaint.
 click("product-tab.png")
-click("furniture.png")
-rightClick("furniture-selected.png")
-click("keep-only.png")
+wait("product-drilldown.png", 120)
+headers = Region(0, 0, SCREEN.getW() // 2, SCREEN.getH())
+
+# Filter the crosstab down to the Furniture category. Locate the row header
+# once and reuse the match, so a retry cannot drift onto the second "Furniture"
+# label further down the dashboard.
+header = headers.wait("furniture.png")
+keep_only = None
+for attempt in range(3):
+    click(header)
+    rightClick(header)
+    keep_only = exists("keep-only.png", 10)
+    if keep_only:
+        break
+    # A right-click that lands beside the header opens the dashboard-item menu
+    # ("Go to Sheet", "Remove from Dashboard") instead of the header menu.
+    # Dismiss whatever opened and aim again.
+    type(Key.ESC)
+if not keep_only:
+    keep_only = wait("keep-only.png")
+click(keep_only)
 wait("keep-only-result.png")
 
 # Check "help".
