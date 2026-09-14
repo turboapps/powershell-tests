@@ -1,4 +1,8 @@
-# The tests for mozilla/firefox, mozilla/firefox-x64 and mozilla/firefox-arm64 are the same.
+# Every mozilla/firefox* variant runs this same test, so a fix belongs in all of
+# them: the reference images are shared byte for byte (the Firefox crops are
+# locale-independent icons and the Settings ones are en-US either way), and the
+# only body difference is mozilla/firefox-esr-arm64, whose shortcut is named
+# differently. Anything else diverging between the variants is drift.
 
 script_path = os.path.dirname(os.path.abspath(sys.argv[0])) 
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
@@ -42,23 +46,32 @@ type("l", Key.CTRL)
 wait(2)
 paste("about:preferences")
 type(Key.ENTER)
-wait("settings_page.png")
+wait("help-link.png")
 
-# Check "help".
-click("help-link.png")
-wait("help_page.png")
+# Check "help". The click has to go through util.click_settled: the
+# about:preferences sidebar drops its "Firefox Labs" category a moment after the
+# page paints, shifting the help row up out from under an already-located click
+# (see click_settled).
+util.click_settled("help-link.png", "help_page.png")
 type("q", Key.CTRL + Key.SHIFT)
 util.wait_app_quiet("firefox.exe")
 
 # Set default browser.
-type("i", Key.WIN)
-wait("windows_setting_default.png")
-paste("Default apps")
-wait(3)
-type(Key.ENTER)
-wait(3)
-click("search-apps.png")
-paste("firefox")
+#
+# search-apps.png is the "Search apps" placeholder on the Default apps page, and
+# at SikuliX's default 0.7 it also matches the Windows 11 taskbar Search pill --
+# the same grey placeholder text on the same light rounded field. In App Tests run
+# 34423171312 that is what happened once Settings failed to leave its Home page:
+# the pill matched at 0.714, the click opened Windows Search, every click after it
+# landed in that flyout, and the run died at set-default.png four lines later. The
+# real field matches at 0.988 in every run measured, so 0.90 separates the two
+# with room on either side -- and it is what makes the page check inside
+# open_settings_page mean anything, because the pill is on screen whether or not
+# the page opened.
+search_apps = util.open_settings_page("windows_setting_default.png", "Default apps",
+                                      Pattern("search-apps.png").similar(0.90))
+click(search_apps)
+util.paste_text("firefox")
 click("windows_setting_default_firefox.png")
 wait(3)
 click("set-default.png")

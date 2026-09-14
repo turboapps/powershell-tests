@@ -132,7 +132,10 @@ wait("word_result_5.png")
 
 type(Key.F1)
 wait("word_help.png")
-type(Key.F4, Key.ALT)
+# F1 leaves the keyboard focus in the Help pane, which is a WebView2 hosted
+# out of process and swallows Alt+F4 whole; click back into the document
+# before closing (see util.close_window).
+util.close_window("word_result_5.png", refocus="word_result_5.png")
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 
 # Check if the session terminates.
@@ -172,7 +175,7 @@ wait("excel_print.png")
 type(Key.ESC)
 wait("excel_csv.png")
 
-type(Key.F4, Key.ALT)
+util.close_window("excel_csv.png", refocus="excel_csv.png")
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 
 # Check if the session terminates.
@@ -215,7 +218,7 @@ type(Key.ESC)
 wait("outlook_new_email_2.png")
 type(Key.DELETE)
 wait(15)
-type(Key.F4, Key.ALT)
+util.close_window("outlook_new_email_1.png", refocus="outlook_new_email_1.png")
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 util.check_running(12, 5) # retry 12 times and delay 5s
 
@@ -302,7 +305,7 @@ wait("ppt_print.png")
 type(Key.ESC)
 wait("ppt_result_4.png")
 
-type(Key.F4, Key.ALT)
+util.close_window("ppt_result_4.png", refocus="ppt_result_4.png")
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 
 # Check if the session terminates.
@@ -317,7 +320,7 @@ if exists("notebooks-cancel.png",15):
 if exists("onenote_not_now.png",15):
     click("onenote_not_now.png")
 wait("onenote_add_page.png")
-type(Key.F4, Key.ALT)
+util.close_window("onenote_add_page.png")
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 
 
@@ -374,7 +377,7 @@ wait("access_print.png")
 type(Key.ESC)
 wait("access_result_1.png")
 
-type(Key.F4, Key.ALT)
+util.close_window("access_result_1.png", refocus="access_result_1.png")
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 
 

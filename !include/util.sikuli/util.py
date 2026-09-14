@@ -185,13 +185,33 @@ def adobe_cc_login(username, password):
     paste(username)
     wait(3)
     type(Key.ENTER)
-    wait(Pattern("adobe_login_pass.png").similar(0.40),15)
-    wait(3)
-    click(Pattern("adobe_login_pass.png").similar(0.40))
+    # Wait for the password page itself, not for anything shaped like a text
+    # field. The email page and the password page are the same shape - a label
+    # over a rounded input box - so the old reference (a "Password" crop matched
+    # at similar(0.40)) also matched the EMAIL field, at 0.42-0.50. That made
+    # this wait return immediately on the very page it was meant to wait past,
+    # leaving the fixed wait(3) below as the only thing between the email box
+    # and paste(password): when Adobe's page took longer than that to navigate,
+    # the password went in after the email address, the sign-in failed, and the
+    # test died many steps later on an unrelated image of whatever the app shows
+    # when it is not signed in - with the password in cleartext in the
+    # diagnostics artifact. The reference is now the "Continue with password"
+    # label of the current page, which scores 0.98-1.00 there and 0.47-0.55 on
+    # the email page, so the default similarity separates the two and this is a
+    # real wait. Re-capture it if Adobe relabels the page: a stale reference is
+    # what forced the 0.40 in the first place. The offset clicks into the field
+    # below the label.
+    wait("adobe_login_pass.png",60)
+    wait(1)
+    click(Pattern("adobe_login_pass.png").targetOffset(0,27))
     wait(3)
     paste(password)
     wait(3)
     type(Key.ENTER)
+    # Fail at the cause, not 30 steps downstream: a sign-in that worked leaves
+    # the password page, a sign-in that did not keeps it up (with an error).
+    if not waitVanish("adobe_login_pass.png",60):
+        raise FindFailed("adobe_cc_login: sign-in did not complete, the password page is still up")
     if exists("adobe_login_signout_others.png",15):
         click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
         click(Pattern("adobe_login_continue.png").similar(0.80))
@@ -336,6 +356,83 @@ def check_stopped(name="test"):
         if name in line.split():
             assert "Running" not in line, "session %s is still running: %s" % (name, line.strip())
             return
+
+# Close the application window with its close keystroke and check that it took.
+#
+# `type(Key.F4, Key.ALT)` is fire-and-forget: SikuliX logs the chord as sent and
+# returns, and nothing looks at whether the window went away. When the close does
+# not happen the test walks on into check_running, which fails 60 s later against
+# a session that is still Running - so the report points at the container
+# teardown instead of at the close that never happened.
+#
+# App Tests run 34423171312 (proplus, Word) failed that way, as did runs
+# 33949816065 and 34097555049 on a different VM build - 3 of the last 8 proplus
+# failures, all three at the Word site and at no other. Every one of them shows
+# the same picture: the step frame taken immediately before the keystroke and the
+# failure screenshot 60 s later are the same window, same document, same Help
+# pane, and Word is still the active window throughout.
+#
+# The reason is `refocus`. The Office apps park the keyboard focus in a surface
+# that is not theirs to close: Word's F1 Help pane is a WebView2 hosted out of
+# process, so while the focus is inside it Alt+F4 goes to msedgewebview2.exe,
+# which ignores it and Word never sees the close at all. Whether the keystroke
+# wins that race decides whether the run passes. A probe that delayed the
+# keystroke until the pane had certainly settled (branch
+# probe-office-swallow-first-altf4, run 34540575598) reproduced the failure on
+# demand and then failed to close Word with two further Alt+F4 - once the pane
+# owns the focus, no number of retries helps. Clicking back onto the
+# application's own frame first does close it (branch
+# probe2-office-help-pane-settled, runs 34542422854 and 34542431749, which hold
+# 20 s to guarantee that state and then pass).
+#
+# PowerPoint does it too, and not behind a Help pane: run 34546961826 logged
+# ppt_result_4.png still on screen after both Alt+F4. So `refocus` is passed at
+# every site with an image that is safe to click - a cell, a slide thumbnail, a
+# mail row, a datasheet row. OneNote is the exception: the only image the caller
+# holds there is the Add Page button, which a click would act on, so that site
+# keeps the outcome check without the click.
+#
+# `witness` is an image the caller has just seen on the application's window. If
+# it is still on screen `grace` seconds after the keystroke the window has not
+# begun to close, so try again. An application that is merely slow to quit has
+# already taken the keystroke and taken its window off screen, so it returns on
+# the first attempt and never reaches the retry. `prompt`, when given, is a
+# dialog the close is expected to raise (a save-changes prompt): that is the
+# application acting on the keystroke too, and the caller deals with the dialog.
+#
+# Each poll is a hooked exists(), so the successful path adds a step frame or two
+# per site and a stuck close leaves a frame per look - which is the evidence the
+# failure was missing in the first place.
+#
+# `key`, `modifier` and `label` name the keystroke. Alt+F4 is the default and is
+# what every Office site uses, but an application whose quit hotkey is its own -
+# vlc quits its skinned interface with Ctrl+Q, and Alt+F4 is not equivalent
+# there - passes its own. `label` is only what the Debug lines are allowed to
+# call the chord; SikuliX's modifier constants are unprintable characters, so it
+# cannot be derived.
+#
+# Returns True once the application has acted. On False the caller's own
+# assertion still fails, but the log now says the window never went away.
+def close_window(witness, attempts=2, grace=15, poll=2, prompt=None, refocus=None,
+                 key=Key.F4, modifier=Key.ALT, label="Alt+F4"):
+    for attempt in range(attempts):
+        if refocus:
+            click(refocus)
+        type(key, modifier)
+        waited = 0
+        while waited < grace:
+            if prompt and exists(prompt, 0):
+                return True
+            if not exists(witness, 0):
+                if attempt:
+                    Debug.user("close_window: %s went away after %d %s"
+                               % (witness, attempt + 1, label))
+                return True
+            wait(poll)
+            waited += poll
+        Debug.user("close_window: %s still on screen %d s after %s (attempt %d of %d)"
+                   % (witness, grace, label, attempt + 1, attempts))
+    return False
 
 # Check if the most recently created Turbo session is terminated.
 # It is usually the session for the app to be tested.
@@ -741,3 +838,349 @@ def navigate_browser(window, url, done_image, attempts=3, settle=3, timeout=30):
         Debug.user("navigate_browser: '%s' did not reach '%s' on attempt %d of %d"
                    % (url, done_image, attempt + 1, attempts))
     raise FindFailed("navigate_browser: '%s' never loaded in %d attempts" % (url, attempts))
+
+# Open a Windows Settings page through the Settings search box, and prove it opened.
+#
+# Settings does not navigate on Enter by itself. Enter activates the highlighted
+# row of the search suggestion list, so it does nothing at all when that list has
+# not been drawn yet, and paste() returns as soon as the clipboard is written --
+# the fixed wait that used to follow it was a bet on how fast Settings renders.
+# In App Tests run 34423171312 (mozilla_firefox-nl) the bet lost: step frame 026,
+# taken just before the Enter, shows the box holding "Default apps" with no list
+# under it, and frame 027 -- three seconds after the Enter -- shows the list
+# finally opening with Settings still on its Home page.
+#
+# Nothing downstream noticed, which is what made it expensive. The test went on
+# clicking, the page it wanted was never on screen, and the run died four lines
+# later at an image that page was the only thing that could have shown. So check
+# that the page actually opened and redo the search if it did not: by the retry
+# the list is up, and the Enter lands on it.
+#
+# The anchor has to be an image that only the wanted page can show, and it has to
+# be matched tightly enough that nothing else on screen can satisfy it -- the
+# verification is worth nothing if a stray match elsewhere passes for the page.
+# See the search-apps.png note in the firefox tests for what that costs when the
+# threshold is left at the default.
+#
+# search_box_image is the empty box's placeholder ("Find a setting"), which stops
+# matching once the box has text in it (0.99 empty, 0.58 typed in), so it is
+# waited on once up front and never again; the retry clicks the Match it returned
+# and clears the box with Ctrl+A instead. Returns the anchor's Match so the caller
+# can click it without searching for it a second time.
+def open_settings_page(search_box_image, query, anchor, attempts=3, timeout=20):
+    type("i", Key.WIN)
+    box = wait(search_box_image)
+    for attempt in range(attempts):
+        click(box)
+        wait(0.5)
+        type("a", Key.CTRL)
+        paste_text(query)
+        type(Key.ENTER)
+        found = exists(anchor, timeout)
+        if found:
+            return found
+        Debug.user("open_settings_page: '%s' did not open on attempt %d of %d"
+                   % (query, attempt + 1, attempts))
+    raise FindFailed("open_settings_page: '%s' never opened in %d attempts" % (query, attempts))
+
+# Give a container's console window the keyboard, and check that it took.
+#
+# StandardTest -> HidePowerShellWindow (Test.ps1) ends with
+# Shell.Application.MinimizeAll() and an ESC keystroke, and nothing after that
+# hands the container's console window the foreground. Whether it happens to own
+# the keyboard when a test starts typing is a race, and on the win11-arm pool the
+# nodejs arm64 tests lost it in 13 of the 15 App Tests results between 2026-09-06
+# and 09-09: every keystroke went to the taskbar Search box instead, Edge opened
+# on a Bing search for the run of concatenated commands, and the console sat at
+# its prompt untouched until the test gave up 4 minutes later. Waiting for an
+# image on the window cannot catch this - the console is visible the whole time,
+# it just is not focused - which is why the wait("node-cmd-prompt.png") those
+# tests already did passed and then typed into nothing.
+#
+# App(title).focus() is no help here either: a container console's title changes
+# while the test runs (cmd.exe -> node-gyp -> cmd.exe for nodejs), and App() name
+# matching on container consoles is already unreliable under xvm 26.9.x - a lone
+# App("conhost").focus() restored nothing in the ggerganov_llama-cpp runs above.
+# So click the window instead, located by an image the caller supplies, and then
+# ask which window is actually in front before trusting it.
+#
+# Returns the Match that was clicked so the caller can go on using it as an
+# anchor. Raises FindFailed only if the image never appears: once the window is
+# on screen the click is the fix, and the confirmation is a diagnostic that must
+# not itself be the reason a test fails.
+def focus_console(image, attempts=10, poll=3):
+    match = None
+    for attempt in range(attempts):
+        match = exists(image, poll)
+        if match is None:
+            continue
+        click(match.getTarget())
+        # A click in a console with QuickEdit mode on (the Windows 11 default)
+        # leaves a zero-width selection anchor; ESC drops it so that it cannot
+        # later grow into a selection, which would suspend the console's output.
+        type(Key.ESC)
+        # Let the activation land before asking what is in front, or the common
+        # case - the first click works - still reads the old foreground window
+        # and clicks again.
+        wait(1)
+        if _foreground_covers(match):
+            return match
+        Debug.user("focus_console: %s is on screen but another window is in front (attempt %d of %d)"
+                   % (image, attempt + 1, attempts))
+    if match is None:
+        raise FindFailed("focus_console: %s never appeared" % image)
+    Debug.user("focus_console: could not confirm focus on %s; typing anyway" % image)
+    return match
+
+# True when the foreground window's rectangle covers `region`.
+#
+# This only decides whether focus_console clicks again, so "cannot tell" counts
+# as good enough: a SikuliX build that will not report the focused window must
+# not turn into a test failure.
+def _foreground_covers(region):
+    try:
+        win = App.focusedWindow()
+    except:
+        Debug.user("focus_console: cannot read the foreground window: %s" % sys.exc_info()[1])
+        return True
+    if win is None:
+        return False
+    return (win.getX() <= region.getX()
+            and win.getY() <= region.getY()
+            and win.getX() + win.getW() >= region.getX() + region.getW()
+            and win.getY() + win.getH() >= region.getY() + region.getH())
+
+# Locate an image only once it has stopped moving, and return that match.
+#
+# A find that lands mid-animation returns coordinates that are already stale by
+# the time the click's mouse-down arrives, and nothing about the result says so:
+# the match score is perfect, because the content is identical and only its
+# position has changed.
+#
+# RStudio's New Project Wizard slides each page in horizontally, and the
+# "Package name" field of the Create R Package page is the first thing the
+# r-project_rtools / rstudio_rstudio tests look for after triggering that slide
+# - every other step in the wizard has a wait() on the line before the click,
+# which burns enough time for the page to come to rest, so only this one is
+# exposed. In App Tests runs 34423171312, 34295135821, 34097555049 and
+# 34097578991 it was found mid-slide and clicked 180-245 px right of where it
+# settled (1145 / 1159 / 1173 / 1208 against a settled 963), which is outside
+# the field: the caret never landed in it, the package name stayed empty and
+# Create Project answered "Invalid package name ''". The x offset differed every
+# run and y never did - the signature of a horizontal slide - and a run that
+# happened to catch the page at rest passed.
+#
+# So poll until the match sits in the same place `stable` times running and hand
+# the caller that one. A settle long enough to cover the animation would do the
+# same job only for as long as the animation stays as short as it is today;
+# asking the screen whether it has stopped moving does not have to guess.
+def find_settled(image, timeout=30, stable=3, poll=0.4):
+    deadline = time.time() + timeout
+    where = None
+    repeats = 0
+    while time.time() < deadline:
+        match = exists(image, 0)
+        if match is None:
+            where, repeats = None, 0
+        else:
+            here = (match.getX(), match.getY())
+            repeats = repeats + 1 if here == where else 1
+            where = here
+            if repeats >= stable:
+                return match
+        wait(poll)
+    raise FindFailed("find_settled: %s never held still for %.1f s" % (image, timeout))
+
+# Click a target whose position may still be shifting, then confirm the click
+# actually did something.
+#
+# find_settled alone closes most of the window but not all of it: it returns a
+# match that has held still, and the mouse-down still arrives a few hundred ms
+# later, so a one-off relayout can always fall in that last gap. Where the click
+# has a visible outcome, checking for it is what makes the step reliable - and on
+# a retry the page has had time to come to rest, so the second click lands.
+#
+# The about:preferences sidebar is the case this was written for. Firefox paints
+# the sidebar with a "Firefox Labs" category and then removes it once the
+# experimental-feature list resolves empty, which shifts every row below it up by
+# one row height (39 px at 1080p). In App Tests run 34558812671 the firefox-x64-fr
+# help row was found at y=902 and clicked 595 ms later, by which time Labs was
+# gone and the row had moved to y=864: the click landed 38 px below it in empty
+# sidebar space, no tab opened, and the following wait("help_page.png") spent its
+# full 30 s on a page that was never going to change. The passing en variant in
+# the same run had its second tab already loading in the frame after the click,
+# and the passing de variant - same click coordinate - simply had not hit the
+# relayout yet, so which locale loses the race is luck rather than anything about
+# the locale.
+def click_settled(target, done_image, attempts=3, timeout=30):
+    for attempt in range(1, attempts + 1):
+        click(find_settled(target, timeout))
+        # The last check is a wait(), not an exists(), so that a step that is
+        # really broken still fails the way an unwrapped wait would: the step
+        # hook saves a FAILED-<done_image> frame - the screen the investigation
+        # starts from, and what diagnosed this defect in the first place - and
+        # the error carries SikuliX's own match detail. exists() returns None
+        # instead of raising, which would have left neither.
+        if attempt == attempts:
+            wait(done_image, timeout)
+            return
+        if exists(done_image, timeout) is not None:
+            return
+        Debug.user("click_settled: %s did not reach %s on attempt %d of %d"
+                   % (target, done_image, attempt, attempts))
+
+# ---------------------------------------------------------------------------
+# VS Code
+# ---------------------------------------------------------------------------
+# The x64 and arm64 VS Code tests are the same test twice, and every helper
+# below was duplicated in both. They drifted: arm64 was missing the workspace
+# trust grant, the retrying file open, the trust-aware window wait, the
+# session-aware relaunch, the verified extension install and the Python and
+# Java run guards, which is most of what made it fail where x64 passed. One
+# copy here, called from both.
+#
+# These live in util rather than a vscode-specific module on purpose:
+# pre_test() installs the per-step screenshot hooks into the calling test's
+# namespace and util's own, so a helper defined anywhere else would silently
+# stop producing step frames.
+
+# Opening a folder raises the workspace-trust modal, and without trust the C#
+# Dev Kit refuses to run ("Unable to execute C# Dev Kit command. Some features
+# execute code and can only run in a trusted workspace") - the window stays in
+# Restricted Mode and the run produces no output at all, so no wait length can
+# rescue it. Key on the button, and fall back to the Restricted Mode banner if
+# the modal has already been dismissed.
+def vscode_grant_workspace_trust(timeout=30):
+    if exists("trust_folder_yes.png", timeout):
+        click("trust_folder_yes.png")
+        wait(3)
+        return True
+    # No modal: the folder opened straight into Restricted Mode, either because
+    # VS Code remembers a previous decline or because it never prompted.
+    # restricted_mode_banner.png is the *file* wording ("Trust this window") and
+    # cannot match the folder banner ("Trust this folder"), so key on the Manage
+    # link, which is common to both, and grant trust in the editor it opens.
+    if exists("restricted_mode_manage.png", 10):
+        click("restricted_mode_manage.png")
+        if exists("workspace_trust_window.png", 20):
+            click("workspace_trust_button.png")
+            wait(5)
+            if exists("workspace_trust_window.png", 3):
+                type("w", Key.CTRL)   # close the Workspace Trust tab
+                wait(2)
+    # Trust is granted once the Restricted Mode banner is gone.
+    return not exists("restricted_mode_manage.png", 5)
+
+# The file-trust prompt only appears while the folder is still untrusted; once
+# trust has been granted VS Code remembers it, so it must be optional.
+def vscode_dismiss_file_trust():
+    if exists("remember-checkbox.png", 5):
+        click("remember-checkbox.png")
+        type(Key.TAB)
+        type(Key.SPACE)
+        if exists("trust-continue.png", 20):
+            click("trust-continue.png")
+
+# Ctrl+O opens the file dialog, but the pasted path is intermittently swallowed:
+# the autocomplete list takes the Enter and navigates into the folder instead of
+# opening the file, leaving the dialog up with an empty File name box, and the
+# tab wait that follows then fails. Confirm the tab actually opened and retry
+# once. Paths are normalised because the dialog resolves ".." oddly.
+def vscode_open_file(path, tab_image, timeout=60):
+    path = os.path.normpath(path)
+    for attempt in range(2):
+        if not exists("open_location.png", 2):
+            type("o", Key.CTRL)
+            wait("open_location.png")
+        wait(2)
+        paste(path)
+        wait(2)
+        type(Key.ENTER)
+        vscode_dismiss_file_trust()
+        if exists(tab_image, timeout):
+            return True
+    return False
+
+# turbo try -d launches VS Code detached and Windows does not always grant it
+# the foreground. When it does not, the taskbar shows the VS Code button
+# flashing for attention while the keyboard focus ring sits on the Start button,
+# and a keystroke never reaches the app - the frames either side of the ESC
+# differ by 0 px and the modal is still up.
+#
+# Do NOT dismiss this by clicking vscode-signin.png. That image is the modal's
+# "Continue without Signing In" button, and clicking it ADVANCES the wizard to
+# its "Make It Yours" theme page rather than closing it, so code_window_2 never
+# matches afterwards. ESC cancels the wizard outright.
+def vscode_dismiss_signin():
+    for attempt in range(3):
+        activate_app_window("Visual Studio Code", 3)
+        type(Key.ESC)
+        if not exists("vscode-signin.png", 5):
+            return True
+        Debug.user("vscode_dismiss_signin: the sign-in modal survived ESC "
+                   "(attempt %d)" % (attempt + 1))
+    return False
+
+# The folder-trust dialog ("Trust Folder & Continue") can surface tens of
+# seconds after a file is opened - well after vscode_open_file's own 20 s window
+# on trust-continue.png has closed - and it then sits on top of the window this
+# wait is looking for. Clear it before giving up.
+def vscode_wait_code_window(timeout=60):
+    if exists("code_window_2.png", 10):
+        return True
+    if exists("trust-continue.png", 3):
+        click("trust-continue.png")
+        wait(3)
+    return exists("code_window_2.png", timeout)
+
+# The extension install runs in a container whose cmd.exe crashes often enough
+# to cost a run: Turbo logged "Application exited: -1073741819" (0xC0000005)
+# 17 s in, and the dump was an NX execute fault at an address inside no loaded
+# module. Nothing checked that return value, so the run carried on with no
+# extensions and died 40 lines later on a missing Run button. merge-user puts
+# container writes in the real profile - the tests already lean on that for
+# hello_world.py - so the extension folders can be checked from here.
+def vscode_install_extensions(turbocmd, extensions, marker="ms-python.python",
+                              attempts=2):
+    extensions_dir = os.path.join(os.environ["USERPROFILE"], ".vscode",
+                                  "extensions")
+    for attempt in range(attempts):
+        run(turbocmd + extensions)
+        if find_file(extensions_dir, marker):
+            return True
+        Debug.user("vscode_install_extensions: %s is not in %s after attempt "
+                   "%d - the install container most likely crashed; retrying"
+                   % (marker, extensions_dir, attempt + 1))
+    return False
+
+# Alt+F4 closes an app's window, but its Turbo session can outlive it and a
+# launch that lands in that gap dies with "Failed to start application in
+# already running session" on a bare desktop: the client logs "Existing session
+# with same sandbox is not running" and then switches to LaunchInSession anyway,
+# hangs ~36 s and gives up. Wait for the session and the process to go quiet
+# first, and if the error dialog still appears, clear it and launch again.
+#
+# Not VS Code specific: any test that closes an app and relaunches it through
+# the file association can land in the same gap.
+def reopen_in_new_window(path, tab_image, executable, attempts=3):
+    for attempt in range(attempts):
+        # A lingering process keeps the session alive, so this closes the most
+        # common part of the window. It cannot close all of it: the client can
+        # have already decided the sandbox is dead while the stale session
+        # record outlives the process, and only the retry below saves that case.
+        wait_app_quiet(executable, 120)
+        run("explorer " + path)
+        # Wait for whichever lands first: the client blocks ~36 s before giving
+        # up and a healthy launch beats that easily, so polling for both avoids
+        # paying either timeout in the common case.
+        for poll in range(60):
+            if exists(tab_image, 2):
+                return True
+            if exists("turbo-session-error.png", 1):
+                Debug.user("reopen_in_new_window: Turbo refused the launch into "
+                           "a session it had already logged as not running; "
+                           "clearing the error and retrying")
+                click(Pattern("turbo-session-error.png").targetOffset(145, 34))
+                wait(5)
+                break
+    return False

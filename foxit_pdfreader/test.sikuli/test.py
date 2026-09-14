@@ -70,9 +70,77 @@ def highlight_sample_word(attempts=3, settle=20):
         raise FindFailed("highlight_sample_word: clicked Highlight but no highlight "
                          "appeared - the doubleClick did not select the word")
 
+# Close Foxit by asking Foxit, rather than stopping the container out from under
+# it.
+#
+# `turbo stop` does not just end the container. The injected VM DLL in every
+# container process runs TerminateSelfGracefullyCallback, which posts WM_CLOSE to
+# *every* top-level window that process owns - no visibility, WS_EX_TOOLWINDOW or
+# owner filter (vm/Vm/Engine/vm.cpp, _PostWmCloseIf) - and then TerminateProcess
+# after 10 s. A --diagnostic run measured 17 WM_CLOSE posts into
+# FoxitPDFReader.exe while it had one visible frame on screen, so the other 16
+# went to windows no user could ever close. Foxit does not survive that: one of
+# them belongs to PlgDynLoader.fpi, closing it makes the CWnd self-delete, and
+# the plug-in's static destructor deletes the same pointer again at FreeLibrary.
+# That double free (c0000374) writes a WER dump on every single run, and since
+# applab #108 a dump fails the run even when SikuliX passed.
+#
+# Measured 11/11 crashes when `turbo stop` ended it against 0/5 when Foxit was
+# closed first, on xvm 26.9.26.1052 and on the 26.3.18.1034 baseline alike - so
+# this is not a build regression, and closing the app is what avoids it. Alt+F4
+# reaches only the main frame and lets MFC unwind its children in order.
+#
+# Verify the window actually went, instead of trusting the keystroke: with
+# `turbo stop` gone nothing else ends this session, so a missed Alt+F4 would
+# otherwise surface much later as an unexplained "still Running". Polled with
+# exists() rather than waitVanish() so each look leaves a step frame.
+def close_foxit(attempts=3, settle=15):
+    for attempt in range(attempts):
+        type(Key.F4, Key.ALT)
+        for _ in range(settle):
+            if not exists("foxit_window.png", 1):
+                return
+        Debug.user("close_foxit: window still up after attempt %d of %d"
+                   % (attempt + 1, attempts))
+    raise FindFailed("close_foxit: Foxit did not close on Alt+F4")
+
+# Wait for the named session to end, then take its VM logs.
+#
+# Scoped to the one session on purpose - util.check_running() cannot work here,
+# and not by accident. It polls `turbo sessions -l`, and -l is --latest: one
+# session, the most recent. A `try` session is *removed* from the listing when
+# it ends, so the moment this one goes away the newest session becomes the
+# sikulixide container this very script runs inside - which is Running, and
+# stays Running for the rest of the test. check_running() is therefore
+# guaranteed to fail at this point rather than merely likely to; it only works
+# at the end of a test, where the newest session is the app's own. Measured on
+# the first cut: runs 34413026906/34413037750/34413048443 (26.9.26) and
+# 34413058542/34413069056 (26.3.18.1034) all died here, every one of them with
+# no foxit session in the listing at all and only `sikulixide ... Running`.
+#
+# collect_vm_logs() is what check_running() would have done for us: the try
+# session's logs are wiped when the app is launched again a few lines below, so
+# they have to be copied out now or not at all.
+def wait_for_session_end(name="test", max_retries=12, delay=5):
+    for attempt in range(max_retries):
+        output = run("turbo sessions")
+        if not [l for l in output.splitlines() if name in l.split() and "Running" in l]:
+            if attempt:
+                Debug.user("wait_for_session_end: %s ended after %d s" % (name, attempt * delay))
+            util.collect_vm_logs()
+            return
+        wait(delay)
+    Debug.user("wait_for_session_end: %s still Running after %d s\n%s"
+               % (name, max_retries * delay, output))
+    assert False, "session %s did not end after the app was closed" % name
+
 # Test of `turbo run`.
 wait("foxit_window.png")
-run("turbo stop test")
+close_foxit()
+# `turbo stop` used to be what ended this session; now the app exiting is, so
+# check the container really did go away before the shortcut launch starts a
+# new one.
+wait_for_session_end()
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Foxit PDF Reader", "Foxit PDF Reader.lnk"))
@@ -110,8 +178,21 @@ rightClick("sample-pdf-desktop.png")
 click("open-with.png")
 click("choose-another-app.png")
 click("open-with-foxit-reader.png")
+# "Always" is the dialog's own confirm button: clicking it sets the association
+# and opens the file, so nothing further is needed here. This used to be
+# followed by a blind type(Key.ENTER), which had no dialog left to confirm and
+# went to whatever the shell had focused instead. When that was the taskbar
+# Start button - which is where focus lands after the Explorer right-click
+# chain often enough to matter - the Enter opened the Start menu, and the Start
+# menu sits over the middle of the screen and does not go away, so the wait
+# below timed out against a Foxit window that had opened the PDF perfectly well
+# behind it (App Tests runs 34295135821 and 34399259372: the FAILED frame shows
+# the document, the Start menu covering it, and the focus ring on the Start
+# button one frame earlier). The other 31 tests that drive this same Win11
+# "Select an app to open this .pdf file" dialog - the whole adobereader family
+# included - click Always and go straight to waiting for the window; foxit was
+# the only one sending the extra Enter.
 click("always.png")
-type(Key.ENTER)
 wait(Pattern("foxit_opened.png").similar(0.60))
 wait(5)
 click("foxit_opened.png")

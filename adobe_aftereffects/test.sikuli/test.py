@@ -57,7 +57,11 @@ wait(5)
 paste(os.path.join(script_path, os.pardir, "resources", "sample.mp4"))
 wait(2)
 type(Key.ENTER)
-wait("sample-mp4.png",20)
+# Import, not just find: After Effects puts up an "Importing selected items..."
+# progress dialog and only then adds the footage to the Project panel. On a
+# loaded pool VM that dialog was still at 0% when a 20 s budget expired (run
+# 34542100509), so the wait was timing the import rather than the app.
+wait("sample-mp4.png",120)
 doubleClick(Pattern("sample-mp4.png").targetOffset(-6,7))
 
 # Check "Help".
