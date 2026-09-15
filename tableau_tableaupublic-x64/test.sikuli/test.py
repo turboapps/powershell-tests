@@ -5,6 +5,25 @@ import util
 reload(util)
 addImagePath(include_path)
 
+import time
+
+# ===========================================================================
+# PROBE ONLY - DO NOT MERGE.
+#
+# Measures the two durations PR #214 makes assumptions about, because a
+# budget change that is never measured is a guess (see the azuredatastudio
+# fix, where idle-pool launches took 12-16 s and only a loaded probe showed
+# the real 122 s):
+#   A. Enter -> workbook-open, which run 34910120439 blew past at 30 s and
+#      the fix now allows 120 s.
+#   B. Product tab click -> Product Drilldown painted, which is the race
+#      window the anchor closes. The production run was still showing the
+#      old dashboard ~6 s in.
+# Both are given a deliberately huge ceiling so the probe reports a number
+# instead of dying, and both are asserted against the shipped budgets at the
+# end so a run that blows them fails loudly.
+# ===========================================================================
+
 setAutoWaitTimeout(30)
 util.pre_test()
 
@@ -34,7 +53,10 @@ type(Key.ENTER)
 # sources while the window was still "Book1" on an empty Sheet 1. The two
 # launch waits above already allow 120 s; this one was the only wait in the
 # file left on the default.
-wait("workbook-open.png", 120)
+_t0 = time.time()
+wait("workbook-open.png", 300)
+load_secs = time.time() - _t0
+Debug.user("PROBE A workbook load: %.1f s (old budget 30 s, shipped budget 120 s)" % load_secs)
 
 # Switch to the Product Drilldown dashboard. The workbook opens on Overview,
 # whose "Monthly Sales by Product Category" pane carries its own white-on-white
@@ -45,7 +67,10 @@ wait("workbook-open.png", 120)
 # column where this dashboard's row headers live so the Overview label can never
 # win even mid-repaint.
 click("product-tab.png")
-wait("product-drilldown.png", 120)
+_t1 = time.time()
+wait("product-drilldown.png", 300)
+repaint_secs = time.time() - _t1
+Debug.user("PROBE B Product Drilldown repaint: %.1f s (the race window the anchor closes)" % repaint_secs)
 headers = Region(0, 0, SCREEN.getW() // 2, SCREEN.getH())
 
 # Filter the crosstab down to the Furniture category. Locate the row header
@@ -80,3 +105,6 @@ wait(20)
 
 # Check if the session terminates.
 util.check_running()
+Debug.user("PROBE SUMMARY workbook_load=%.1fs repaint=%.1fs" % (load_secs, repaint_secs))
+assert load_secs < 120,     "workbook load %.1f s exceeded the shipped 120 s budget" % load_secs
+assert repaint_secs < 120,     "repaint %.1f s exceeded the anchor's 120 s budget" % repaint_secs
