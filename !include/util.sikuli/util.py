@@ -1121,16 +1121,62 @@ def vscode_dismiss_signin():
                    "(attempt %d)" % (attempt + 1))
     return False
 
-# The folder-trust dialog ("Trust Folder & Continue") can surface tens of
-# seconds after a file is opened - well after vscode_open_file's own 20 s window
-# on trust-continue.png has closed - and it then sits on top of the window this
-# wait is looking for. Clear it before giving up.
-def vscode_wait_code_window(timeout=60):
+# Re-send the caller's close keystroke after a modal has eaten it. Editors are
+# closed one at a time until the watermark shows, so a caller that sent two
+# Ctrl+W does not have to know how many of them the modal actually swallowed.
+def vscode_close_editors(attempts=3):
+    for attempt in range(attempts):
+        if exists("code_window_2.png", 5):
+            return True
+        type("w", Key.CTRL)
+    return exists("code_window_2.png", 5)
+
+# The C# section closes the whole workspace folder rather than an editor, so its
+# recovery is Ctrl+K F, not Ctrl+W.
+def vscode_close_folder():
+    type("k", Key.CTRL)
+    type("f")
+    return exists("code_window_2.png", 5)
+
+# VS Code modals are input-modal: while one is up, keystrokes sent to the window
+# are swallowed. The folder-trust dialog ("Trust Folder & Continue") can surface
+# tens of seconds after a file is opened - well after vscode_open_file's own
+# 20 s window on trust-continue.png has closed - so it routinely lands on top of
+# the Ctrl+W a caller has just sent to close an editor.
+#
+# Clearing the dialog is therefore not enough on its own, which is what this
+# helper used to do. The editor the caller meant to close is still open, and
+# code_window_2.png is the watermark VS Code draws only in an EMPTY editor area,
+# so it can never match however long the wait runs. Run 34873394316 lost the x64
+# test exactly this way: frames 048 and 049 of the diagnostics artifact are
+# md5-identical, the Ctrl+W between them having changed nothing at all, and the
+# 60 s wait that followed was doomed before it started.
+#
+# So clear the dialog AND redo the keystroke it ate.
+#
+# The re-send is deliberately NOT conditional on having found a modal. A modal
+# is only the commonest way a keystroke goes missing in this suite - an unfocused
+# window loses them just as easily - and the re-send is safe either way, because
+# vscode_close_editors checks for the watermark before it types anything, and
+# because the only state this function accepts is "no editor open" regardless.
+def vscode_wait_code_window(timeout=60, retry=vscode_close_editors):
     if exists("code_window_2.png", 10):
         return True
+    # A modal, if one is up, has to go first: it is both covering the window and
+    # swallowing everything sent to it.
     if exists("trust-continue.png", 3):
+        Debug.user("vscode_wait_code_window: a folder-trust modal is covering "
+                   "the window; clearing it")
         click("trust-continue.png")
         wait(3)
+        if exists("code_window_2.png", 10):
+            return True
+    # Whatever the caller sent to close its editor plainly did not take effect.
+    # Send it again.
+    Debug.user("vscode_wait_code_window: the caller's close keystroke never "
+               "took effect; re-sending it")
+    if retry and retry():
+        return True
     return exists("code_window_2.png", timeout)
 
 # The extension install runs in a container whose cmd.exe crashes often enough
