@@ -157,7 +157,7 @@ wait("excel_new_document.png")
 # overwrites it, sliding the formula up into A2 where it refers to itself
 # ("Circular References: A2"). enter_spreadsheet_column re-enters the block
 # from a cleared sheet if the result row does not show up.
-util.enter_spreadsheet_column(["1", "2", "=sum(A1, A2)"], "excel_result.png")
+util.enter_spreadsheet_column(["1", "2", "=sum(A1, A2)"], "excel_result.png", attempts=1)
 
 # more-options.png is a link that exists ONLY on the modern "Save this file"
 # mini-dialog. When Ctrl+S opens the Save As backstage instead - as it did in

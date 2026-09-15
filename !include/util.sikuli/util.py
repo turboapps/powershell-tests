@@ -1244,6 +1244,8 @@ def save_as_path(path, attempts=3, polls=2):
 #
 # The successful path sends exactly the keystrokes it always did and leaves the
 # cursor in the same cell, so an existing result image keeps matching unchanged.
+_SAB_ENTER = [0]
+
 def enter_spreadsheet_column(values, result_image, attempts=3, grace=10):
     for attempt in range(attempts):
         type(Key.ESC)             # leave cell-edit mode / dismiss a warning box
@@ -1252,6 +1254,14 @@ def enter_spreadsheet_column(values, result_image, attempts=3, grace=10):
         type(Key.HOME, Key.CTRL)  # back to A1 with the selection collapsed
         for value in values:
             paste_text(value)
+            # SABOTAGE PROBE, DO NOT MERGE: swallow the SECOND ENTER of the run,
+            # which is what run 35022917000 did. The cell stays in edit mode, the
+            # next paste overwrites it, and the formula lands in A2 referring to
+            # itself - "Circular References: A2".
+            _SAB_ENTER[0] += 1
+            if _SAB_ENTER[0] == 2:
+                Debug.user("SABOTAGE: swallowing the ENTER after '%s'" % value)
+                continue
             type(Key.ENTER)
         if exists(result_image, grace):
             return True
