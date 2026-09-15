@@ -189,7 +189,7 @@ wait(Pattern("result.png").similar(0.80),240)
 wait(10)
 type("k", Key.CTRL)
 type("f")
-if not util.vscode_wait_code_window():
+if not util.vscode_wait_code_window(retry=util.vscode_close_folder):
     raise FindFailed("code_window_2.png never appeared")
 # Extension for JavaScript/TypeScript.
 if not util.vscode_open_file(os.path.join(script_path, os.pardir, "resources", "hello_world.ts"),
