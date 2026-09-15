@@ -21,20 +21,47 @@ run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Tableau Pub
 wait("tableau-open.png",120)
 click("tableau-open.png")
 
-# Ctrl+O is sent immediately after a click whose only job is to raise the
-# window, and on a loaded VM the activation and the chord race each other:
-# run 35002822157 timed out on file_location.png with Tableau still sitting
-# on its start page, so the keystroke had gone nowhere. Sending it again is
-# safe only while the dialog is genuinely absent, so check the outcome and
-# re-assert the focus before each retry rather than trusting either one.
+# ===========================================================================
+# PROBE ONLY - DO NOT MERGE.
+#
+# Sabotage for the Ctrl+O retry. The real defect (run 35002822157) is a
+# keystroke that never reaches the app: the click raised the window, the
+# chord raced the activation and lost, and Tableau stayed on its start page.
+# From the application's side that is indistinguishable from no key being
+# sent at all - so the probe sends nothing. That reproduces the state exactly
+# and, unlike a focus-steal, cannot itself leave stray input on screen.
+#
+#   1. the OLD line (a single wait, 30 s budget) dies when the chord is lost
+#   2. the SHIPPED retry loop recovers from that same state, and needs a
+#      second attempt to do it
+# Asserted at the end so the run reaches both phases and then completes the
+# rest of the test normally.
+# ===========================================================================
+
+# --- Phase 1: the old single-shot wait, with the chord lost ---------------
+old_failed = False
+try:
+    wait("file_location.png", 30)   # no Ctrl+O sent: the chord "went nowhere"
+except FindFailed:
+    old_failed = True
+Debug.user("PROBE 1 old path died with the chord lost: %s" % old_failed)
+
+# --- Phase 2: the shipped retry loop, sabotaged on its first attempt ------
+attempts_used = 0
+opened = False
 for attempt in range(3):
-    type("o", Key.CTRL)
+    attempts_used = attempt + 1
+    if attempt > 0:
+        type("o", Key.CTRL)         # attempt 0 sends nothing: sabotage
     if exists("file_location.png", 15):
+        opened = True
         break
-    Debug.user("Ctrl+O did not open the Open dialog (attempt %d of 3)" % (attempt + 1))
+    Debug.user("PROBE 2 no dialog after attempt %d, refocusing" % attempts_used)
     start_page = exists("tableau-open.png", 5)
     if start_page:
         click(start_page)
+Debug.user("PROBE 2 retry loop opened the dialog: %s after %d attempt(s)" % (opened, attempts_used))
+
 wait("file_location.png")
 paste(os.path.join(script_path, os.pardir, "resources", "US_Superstore_10.0.twbx"))
 type(Key.ENTER)
@@ -94,3 +121,8 @@ wait(20)
 
 # Check if the session terminates.
 util.check_running()
+Debug.user("PROBE SUMMARY old_failed=%s opened=%s attempts=%d" % (old_failed, opened, attempts_used))
+assert old_failed,     "SABOTAGE DID NOT REPRODUCE: the old single-shot wait survived a lost chord"
+assert opened,     "FIX BROKEN: the retry loop never opened the Open dialog"
+assert attempts_used >= 2,     "PROBE INCONCLUSIVE: the dialog opened on the sabotaged attempt that sent nothing"
+Debug.user("PROBE PASSED: lost chord kills the old line, the retry loop recovers on attempt %d" % attempts_used)
