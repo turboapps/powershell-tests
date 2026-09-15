@@ -900,7 +900,18 @@ def open_settings_page(search_box_image, query, anchor, attempts=3, timeout=20):
             type("a", Key.CTRL)
             type(Key.DELETE)
         box = find_settled(search_box_image)
-        click(box)
+        # PROBE ONLY - DO NOT MERGE. Recreate the stale Match from App Tests run
+        # 34925411368 on the first attempt only: click 32 px below the settled
+        # box, which is the offset the unfinished entrance animation baked into
+        # the reused Match (L[476,88] against a settled centre of L[476,56]).
+        if attempt == 0:
+            sabotage = Location(box.getX() + box.getW() / 2,
+                                box.getY() + box.getH() / 2 + 32)
+            Debug.user("PROBE: clicking %d,%d instead of the box"
+                       % (sabotage.getX(), sabotage.getY()))
+            click(sabotage)
+        else:
+            click(box)
         wait(0.5)
         type("a", Key.CTRL)
         paste_text(query)
