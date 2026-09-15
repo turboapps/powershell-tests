@@ -200,6 +200,16 @@ def launch_adobe_cc(username, password):
 def _cc_type_and_submit(box, value, page_image, until_gone=False,
                         attempts=3, timeout=60):
     for attempt in range(1, attempts + 1):
+        # PROBE ONLY - DO NOT MERGE. Reproduce run 34925411368 on demand: take
+        # the foreground away from the sign-in window immediately before the
+        # first ENTER, the way the transient process burst did there, so the
+        # keystroke is swallowed. Clicking bare wallpaper (left of the Creative
+        # Cloud window, below the desktop icons) activates the desktop and
+        # deactivates the window without moving or resizing anything.
+        if attempt == 1:
+            Debug.user("PROBE: stealing the foreground before the ENTER")
+            click(Location(170, 700))
+            wait(1)
         type(Key.ENTER)
         last = attempt == attempts
         if until_gone:
