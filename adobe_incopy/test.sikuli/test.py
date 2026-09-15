@@ -63,7 +63,11 @@ if exists("adobe_login_signout_others.png",120):
 if exists("adobe_login_team.png",10):
     click(Pattern("adobe_login_continue.png").similar(0.80))
 wait("incopy_window.png",20)
-run("turbo stop test")
+# PROBE ONLY - DO NOT MERGE: the stop is removed so the first instance's window
+# stays on the screen. The guard added by this PR must fire here ("the stopped
+# InCopy window is still on screen") instead of the test walking on to match that
+# window with the wait after the launch, which is what main does today.
+# run("turbo stop test")
 closeApp("Command Prompt")
 
 # Let the stopped instance leave the screen before relaunching.
