@@ -161,11 +161,12 @@ util.paste_text("=sum(A1, A2)")
 type(Key.ENTER)
 wait("excel_result.png")
 
-type("s", Key.CTRL)
-click("more-options.png")
-doubleClick("this-pc.png")
-click("save_save.png")
-assert(util.file_exists(save_location, 5))
+# more-options.png is a link that exists ONLY on the modern "Save this file"
+# mini-dialog. When Ctrl+S opens the Save As backstage instead - as it did in
+# App Tests run 35022937873, where the backstage came up reading "You have no
+# recent folders" - there is nothing for this to click. save_as_path takes the
+# classic dialog (F12) from either surface.
+util.save_as_path(save_location)
 type("w", Key.CTRL)
 
 run("explorer " + save_location)
@@ -298,11 +299,12 @@ wait("ppt_file_name.png")
 util.open_file_in_dialog("ppt_file_name.png", os.path.join(script_path, os.pardir, "resources", "red fox.jpg"))
 wait(Pattern("ppt_result_3.png").similar(0.60))
 
-type("s", Key.CTRL)
-click("more-options.png")
-doubleClick("this-pc.png")
-click("save_save.png")
-assert(util.file_exists(save_location, 5))
+# more-options.png is a link that exists ONLY on the modern "Save this file"
+# mini-dialog. When Ctrl+S opens the Save As backstage instead - as it did in
+# App Tests run 35022937873, where the backstage came up reading "You have no
+# recent folders" - there is nothing for this to click. save_as_path takes the
+# classic dialog (F12) from either surface.
+util.save_as_path(save_location)
 type("w", Key.CTRL)
 run("explorer " + save_location)
 wait("ppt_result_4.png")
