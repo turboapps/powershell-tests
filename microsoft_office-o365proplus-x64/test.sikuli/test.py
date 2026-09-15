@@ -111,15 +111,19 @@ click(Pattern("word_insert_menu.png").targetOffset(4,-15))
 wait(2)
 click("word_insert_picture_menu.png")
 wait("word_file_name.png")
-util.paste_text(os.path.join(script_path, os.pardir, "resources", "red fox.jpg"))
-type(Key.ENTER)
+# paste() alone loses its Ctrl on a freshly opened file dialog often enough
+# to matter: the bare "v" becomes the whole file name and the dialog answers
+# "v - File not found". open_file_in_dialog clicks into the field first and
+# retries on that error box.
+util.open_file_in_dialog("word_file_name.png", os.path.join(script_path, os.pardir, "resources", "red fox.jpg"))
 wait("word_result_3.png")
 
-type("s", Key.CTRL)
-click("save-doc-folder.png")
-click("word_save_location.png")
-click(Pattern("word_save_save.png").targetOffset(-38,-2))
-assert(util.file_exists(save_location, 5))
+# Ctrl+S reaches either the modern "Save this file" mini-dialog or the full
+# Save As backstage, and the folder icon this used to click matches an
+# unrelated OneDrive row on the backstage - so the wrong surface silently
+# saved somewhere else. save_as_path takes the classic dialog (F12) from
+# either state and proves the file landed.
+util.save_as_path(save_location)
 type("w", Key.CTRL)
 wait(5)
 run("explorer " + save_location)
@@ -287,8 +291,11 @@ click("ppt_pictures.png")
 wait(2)
 click("ppt_pictures_menu.png")
 wait("ppt_file_name.png")
-util.paste_text(os.path.join(script_path, os.pardir, "resources", "red fox.jpg"))
-type(Key.ENTER)
+# paste() alone loses its Ctrl on a freshly opened file dialog often enough
+# to matter: the bare "v" becomes the whole file name and the dialog answers
+# "v - File not found". open_file_in_dialog clicks into the field first and
+# retries on that error box.
+util.open_file_in_dialog("ppt_file_name.png", os.path.join(script_path, os.pardir, "resources", "red fox.jpg"))
 wait(Pattern("ppt_result_3.png").similar(0.60))
 
 type("s", Key.CTRL)
@@ -424,8 +431,11 @@ click(Pattern("publisher_menu.png").targetOffset(-117,0))
 click("publisher_pictures.png")
 wait(2)
 wait("publisher_file_name.png")
-util.paste_text(os.path.join(script_path, os.pardir, "resources", "red fox.jpg"))
-type(Key.ENTER)
+# paste() alone loses its Ctrl on a freshly opened file dialog often enough
+# to matter: the bare "v" becomes the whole file name and the dialog answers
+# "v - File not found". open_file_in_dialog clicks into the field first and
+# retries on that error box.
+util.open_file_in_dialog("publisher_file_name.png", os.path.join(script_path, os.pardir, "resources", "red fox.jpg"))
 wait("publisher_result_4.png")
 
 type("s", Key.CTRL)

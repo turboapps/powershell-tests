@@ -1184,3 +1184,43 @@ def reopen_in_new_window(path, tab_image, executable, attempts=3):
                 wait(5)
                 break
     return False
+
+# Save the foreground Office document to an exact path through the classic
+# Save As dialog, and prove the file landed.
+#
+# Ctrl+S in an Office app lands on one of TWO different surfaces, and which one
+# appears varies from run to run: the modern "Save this file" mini-dialog (a
+# "Choose a Location" dropdown) or the full Save As backstage (a Recent /
+# Favorites / Older list). A test written for one of them does not merely fail
+# on the other - in App Tests run 35002942472 the backstage appeared, the Word
+# test's generic folder icon matched an unrelated OneDrive "recent folder" row
+# in it, and the click opened a browse dialog into OneDrive. The step did the
+# WRONG thing rather than failing cleanly, and the run died 20 s later on the
+# location image with no sign of why.
+#
+# F12 opens the same classic Save As dialog from either state, and typing a
+# full path into it makes the save independent of whatever the account's
+# OneDrive folder list happens to contain.
+#
+# The field opens focused with the suggested name selected, so Ctrl+A + paste
+# replaces it. A paste whose Ctrl is dropped types a bare "v" and the document
+# saves under the wrong name with no error box at all (see save_page_as_html),
+# so the outcome is checked against the path itself and the whole attempt
+# retried - never trusted because the keystrokes were sent.
+#
+# polls is a file_exists try count, not seconds: each poll is 10 s.
+def save_as_path(path, attempts=3, polls=2):
+    for attempt in range(attempts):
+        type(Key.F12)
+        wait(2)
+        type("a", Key.CTRL)
+        paste_text(path)
+        type(Key.ENTER)
+        if file_exists(path, polls):
+            return True
+        Debug.user("save_as_path: '%s' has not appeared after attempt %d of %d"
+                   % (path, attempt + 1, attempts))
+        type(Key.ESC)   # close whatever is still open before trying again
+        wait(1)
+    raise FindFailed("save_as_path: '%s' never appeared after %d attempts"
+                     % (path, attempts))
