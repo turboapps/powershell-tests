@@ -10,6 +10,16 @@ addImagePath(include_path)
 setAutoWaitTimeout(20)
 util.pre_test(no_min=True)
 
+# PROBE ONLY - DO NOT MERGE: steal the foreground from the container console
+# the way the real defect does, by clicking an empty patch of desktop clear of
+# the console and the icons. The console stays fully visible, so nothing is
+# hidden from the search - only the keyboard is gone. Run 34925411368 lost it
+# to the taskbar instead, but the effect on the test is the same: every typed
+# character goes somewhere other than the console.
+Debug.user("PROBE: stealing foreground with a desktop click")
+click(Location(SCREEN.getW() - 60, SCREEN.getH() - 200))
+wait(2)
+
 # Test cpp nodejs project.
 type('cd my-node-cpp-app' + Key.ENTER)
 wait(3)
