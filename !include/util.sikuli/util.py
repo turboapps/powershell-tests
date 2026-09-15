@@ -704,10 +704,21 @@ def paste_text(text, settle=1):
 #
 # field_image is the "File name:" label; the click reaches past it into the
 # field itself.
+_SABOTAGE = {"dialog": 0, "save": 0}
+
 def paste_path_in_dialog(field_image, path):
     click(Pattern(field_image).targetOffset(40, 0))
     wait(0.5)
     type("a", Key.CTRL)
+    # SABOTAGE PROBE, DO NOT MERGE: drop the Ctrl on the FIRST call only, the
+    # way a real freshly opened dialog does, so the retry path runs against a
+    # genuine "v - File not found" box.
+    _SABOTAGE["dialog"] += 1
+    if _SABOTAGE["dialog"] == 1:
+        Debug.user("SABOTAGE: dropping Ctrl on the first file-dialog paste (types a bare v)")
+        type("v")
+        wait(1)
+        return
     paste_text(path)
 
 # Put a path into a Windows file dialog's "File name" field and confirm it.
@@ -1214,7 +1225,14 @@ def save_as_path(path, attempts=3, polls=2):
         type(Key.F12)
         wait(2)
         type("a", Key.CTRL)
-        paste_text(path)
+        # SABOTAGE PROBE, DO NOT MERGE: first attempt saves under the wrong name,
+        # with no error box at all - only the outcome check can notice.
+        _SABOTAGE["save"] += 1
+        if _SABOTAGE["save"] == 1:
+            Debug.user("SABOTAGE: dropping Ctrl on the first save_as_path paste (saves as v)")
+            type("v")
+        else:
+            paste_text(path)
         type(Key.ENTER)
         if file_exists(path, polls):
             return True
