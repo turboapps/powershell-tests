@@ -5,31 +5,25 @@ import util
 reload(util)
 addImagePath(include_path)
 
-# Every wait in this test was budgeted from x64 timings. On ARM64 the same
-# steps routinely need 18-20 s (the Connect dialog after the sign-in splash,
-# the query results, the help page), so 30 s left under 1.5x of headroom and
-# a slower-than-usual run blows it: run 34925411368 timed out at line 28
-# after 32 s and the failure frame already shows the Connect dialog.
-setAutoWaitTimeout(120)
+setAutoWaitTimeout(30)
 util.pre_test(no_min=True)
 
 # Test of `turbo run`.
-deadline = time.time() + 90
-while not exists("ssms_window.png", 0):
-    if time.time() > deadline:
-        raise Exception("SSMS window did not appear within 90 seconds")
-    App("Microsoft SQL Server Management Studio").focus()
-    time.sleep(2)
+wait("ssms_window.png",90)
+App("Microsoft SQL Server Management Studio").focus()
+wait(3)
 click("ssms-close-x.png")
 type(Key.ENTER)
 
 folder_path = util.get_shortcut_path_by_prefix(util.start_menu, "Microsoft SQL Server Tools")
 run("explorer " + util.get_shortcut_path_by_prefix(folder_path, "SQL Server Management Studio"))
-wait(30)
 wait("ssms_window.png",90)
+wait(3)
 click("ssms_window.png")
 
 # Basic operations.
+wait("server_name.png",90)
+wait(3)
 click("server_name.png")
 type("localhost")
 click("security.png")
@@ -69,7 +63,7 @@ wait("query_result_3.png")
 
 # Check "help".
 type(Key.F1)
-wait(15)
+wait(20)
 App().focus("Edge")
 wait("help_url.png",120)
 util.close_app("Edge")
