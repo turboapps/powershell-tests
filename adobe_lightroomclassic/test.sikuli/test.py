@@ -19,11 +19,21 @@ def dismiss_whats_new():
     # step (run 34925411368).  The close button is drawn rather than typed, and
     # scores 0.98 with the dialog up vs <= 0.40 without it either way.
     wait("whats_new_close.png", 120)
+    Debug.user("PROBE: gate matched the close button")
     wait(30)  # the panel keeps loading its content after it first paints
-    click("whats_new_close.png")
+    # PROBE ONLY: sabotage the primary dismissal by clicking 600 px left and
+    # 300 px down of the close button - still inside the dialog's grey panel,
+    # so the click is harmless and the dialog stays open. The ESC fallback must
+    # carry the test from here.
+    click(Pattern("whats_new_close.png").targetOffset(-600, 300))
+    Debug.user("PROBE: sabotaged click done")
     if exists("whats_new_close.png", 5):
+        Debug.user("PROBE: dialog still up - ESC fallback firing")
         type(Key.ESC)  # fall back to the previous dismissal
+    else:
+        Debug.user("PROBE: FALLBACK NOT REACHED - sabotage failed to miss")
     assert waitVanish("whats_new_close.png", 20), "What's New dialog did not close"
+    Debug.user("PROBE: dialog vanished")
 
 
 # Read credentials from the secrets file.
