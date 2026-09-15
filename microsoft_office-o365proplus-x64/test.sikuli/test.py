@@ -153,13 +153,11 @@ wait("excel_window.png",60)
 wait(5)
 doubleClick("excel_window.png")
 wait("excel_new_document.png")
-util.paste_text("1")
-type(Key.ENTER)
-util.paste_text("2")
-type(Key.ENTER)
-util.paste_text("=sum(A1, A2)")
-type(Key.ENTER)
-wait("excel_result.png")
+# A dropped ENTER here leaves the cell in edit mode so the next paste
+# overwrites it, sliding the formula up into A2 where it refers to itself
+# ("Circular References: A2"). enter_spreadsheet_column re-enters the block
+# from a cleared sheet if the result row does not show up.
+util.enter_spreadsheet_column(["1", "2", "=sum(A1, A2)"], "excel_result.png")
 
 # more-options.png is a link that exists ONLY on the modern "Save this file"
 # mini-dialog. When Ctrl+S opens the Save As backstage instead - as it did in

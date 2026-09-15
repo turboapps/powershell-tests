@@ -1224,3 +1224,38 @@ def save_as_path(path, attempts=3, polls=2):
         wait(1)
     raise FindFailed("save_as_path: '%s' never appeared after %d attempts"
                      % (path, attempts))
+
+# Type a column of values into a spreadsheet starting at A1, and prove the sheet
+# ended up the way the caller expects.
+#
+# The obvious "paste, ENTER, paste, ENTER" does not survive a dropped ENTER, and
+# the failure is silent and confusing rather than loud: in App Tests run
+# 35022917000 the ENTER after the second value never landed, so the cell stayed
+# in edit mode and the NEXT paste overwrote it. The formula ended up one row high
+# in A2 referring to A2, and Excel sat there with "Circular References: A2" in
+# the status bar while the test waited 20 s for a result row that could no longer
+# appear.
+#
+# Nothing here tries to detect which ENTER went missing. The whole block is
+# cheap, so on a mismatch the sheet is cleared and the values are re-entered
+# from A1 - Ctrl+A + Delete first, because a dropped ENTER leaves a value in a
+# row the retry would not otherwise overwrite, and ESC first because the cell
+# may still be in edit mode or a circular-reference warning may be up.
+#
+# The successful path sends exactly the keystrokes it always did and leaves the
+# cursor in the same cell, so an existing result image keeps matching unchanged.
+def enter_spreadsheet_column(values, result_image, attempts=3, grace=10):
+    for attempt in range(attempts):
+        type(Key.ESC)             # leave cell-edit mode / dismiss a warning box
+        type("a", Key.CTRL)
+        type(Key.DELETE)
+        type(Key.HOME, Key.CTRL)  # back to A1 with the selection collapsed
+        for value in values:
+            paste_text(value)
+            type(Key.ENTER)
+        if exists(result_image, grace):
+            return True
+        Debug.user("enter_spreadsheet_column: %s did not appear after attempt %d of %d"
+                   % (result_image, attempt + 1, attempts))
+    raise FindFailed("enter_spreadsheet_column: %s never appeared after %d attempts"
+                     % (result_image, attempts))
