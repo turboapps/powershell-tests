@@ -20,7 +20,21 @@ run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Tableau Pub
 # Basic operations.
 wait("tableau-open.png",120)
 click("tableau-open.png")
-type("o", Key.CTRL)
+
+# Ctrl+O is sent immediately after a click whose only job is to raise the
+# window, and on a loaded VM the activation and the chord race each other:
+# run 35002822157 timed out on file_location.png with Tableau still sitting
+# on its start page, so the keystroke had gone nowhere. Sending it again is
+# safe only while the dialog is genuinely absent, so check the outcome and
+# re-assert the focus before each retry rather than trusting either one.
+for attempt in range(3):
+    type("o", Key.CTRL)
+    if exists("file_location.png", 15):
+        break
+    Debug.user("Ctrl+O did not open the Open dialog (attempt %d of 3)" % (attempt + 1))
+    start_page = exists("tableau-open.png", 5)
+    if start_page:
+        click(start_page)
 wait("file_location.png")
 paste(os.path.join(script_path, os.pardir, "resources", "US_Superstore_10.0.twbx"))
 type(Key.ENTER)
