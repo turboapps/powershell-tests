@@ -863,14 +863,43 @@ def navigate_browser(window, url, done_image, attempts=3, settle=3, timeout=30):
 # threshold is left at the default.
 #
 # search_box_image is the empty box's placeholder ("Find a setting"), which stops
-# matching once the box has text in it (0.99 empty, 0.58 typed in), so it is
-# waited on once up front and never again; the retry clicks the Match it returned
-# and clears the box with Ctrl+A instead. Returns the anchor's Match so the caller
-# can click it without searching for it a second time.
+# matching once the box has text in it (0.99 empty, 0.58 typed in). That is why the
+# Match used to be taken once up front and reused for every attempt -- and that
+# reuse is what broke App Tests run 34925411368 (mozilla_firefox-esr-x64). Settings
+# had not finished its entrance animation when the box was first matched, so the
+# Match recorded the window 32 px below where it came to rest: all three attempts
+# clicked L[476,88] while the settled box is centred on L[476,56], which is exactly
+# where all 13 firefox variants that passed the same run clicked. The click landed
+# in the blank band under the box.
+#
+# Missing is not the damaging part. Settings opens with the search box already
+# focused, so the stray click took the focus away: the Ctrl+A, the paste and the
+# Enter all went nowhere and the box was still empty three attempts later. Step
+# frame 026 shows the box with its focus underline and a caret in it, frame 029 --
+# taken after the click and the paste -- shows the underline gone and the box empty.
+# A retry cannot help with any of this, because the one thing it repeats unchanged
+# is the coordinate that is wrong.
+#
+# So re-find the box on every attempt, and find it settled: find_settled wants the
+# same position three polls running, which no entrance animation lasts long enough
+# to satisfy. Being findable at all means the box has to be empty first, and the
+# Ctrl+A + Delete that empties it is right either way -- if the last attempt typed
+# the query then the box still holds the focus and the text goes, and if the click
+# missed then nothing was ever typed and the box is already empty.
+#
+# The up-front wait stays: it is what produces the FAILED-<image> step frame if
+# Settings never opens at all, which find_settled's own raise would not.
+#
+# Returns the anchor's Match so the caller can click it without searching for it a
+# second time.
 def open_settings_page(search_box_image, query, anchor, attempts=3, timeout=20):
     type("i", Key.WIN)
-    box = wait(search_box_image)
+    wait(search_box_image)
     for attempt in range(attempts):
+        if attempt > 0:
+            type("a", Key.CTRL)
+            type(Key.DELETE)
+        box = find_settled(search_box_image)
         click(box)
         wait(0.5)
         type("a", Key.CTRL)
