@@ -24,7 +24,17 @@ type("o", Key.CTRL)
 wait("file_location.png")
 paste(os.path.join(script_path, os.pardir, "resources", "US_Superstore_10.0.twbx"))
 type(Key.ENTER)
-wait("workbook-open.png")
+
+# US_Superstore_10.0.twbx is a packaged workbook with several dashboards
+# (the Product one alone carries 4254 marks), and Tableau builds it in
+# stages: it connects the data sources first and only then materialises the
+# sheets and retitles the window. On a loaded pool VM that outruns the 30 s
+# setAutoWaitTimeout - run 34910120439 timed out here with the load visibly
+# still in progress, the Data pane already listing the workbook's three data
+# sources while the window was still "Book1" on an empty Sheet 1. The two
+# launch waits above already allow 120 s; this one was the only wait in the
+# file left on the default.
+wait("workbook-open.png", 120)
 
 # Switch to the Product Drilldown dashboard. The workbook opens on Overview,
 # whose "Monthly Sales by Product Category" pane carries its own white-on-white
