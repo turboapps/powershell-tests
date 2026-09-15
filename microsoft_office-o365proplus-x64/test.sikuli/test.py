@@ -164,11 +164,26 @@ click("save_save.png")
 assert(util.file_exists(save_location, 5))
 type("w", Key.CTRL)
 
-# Reopening the saved workbook through the shell has to cover Excel loading
-# the file back into an empty window; the default 20 s has no slack for it
-# on a loaded pool VM. The app launch above already budgets 60 s.
-run("explorer " + save_location)
-wait("excel_result.png", 60)
+# --- SABOTAGE PROBE, DO NOT MERGE ------------------------------------------
+# Defer the shell reopen by 35 s so the workbook lands PAST the old 20 s
+# default but INSIDE the 60 s this PR sets. The two arms of this probe
+# differ only in the wait budget below, so the budget alone decides the
+# outcome. Arm under test here: wait("excel_result.png", 60).
+import threading, time as _t
+def _deferred_reopen():
+    _t.sleep(35)
+    Debug.user("SABOTAGE: firing the deferred reopen now")
+    run("explorer " + save_location)
+threading.Thread(target=_deferred_reopen).start()
+Debug.user("SABOTAGE: reopen deferred by 35 s; budget under test starts now")
+_t0 = _t.time()
+try:
+    wait("excel_result.png", 60)
+    Debug.user("SABOTAGE RESULT: matched after %.1f s" % (_t.time() - _t0))
+except FindFailed:
+    Debug.user("SABOTAGE RESULT: gave up after %.1f s" % (_t.time() - _t0))
+    raise
+# --- end sabotage ----------------------------------------------------------
 type("w", Key.CTRL)
 run("explorer " +os.path.join(script_path, os.pardir, "resources", "csv.csv"))
 wait("excel_csv.png")
