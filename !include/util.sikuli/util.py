@@ -184,6 +184,12 @@ def adobe_cc_login(username, password):
     wait(3)
     paste(username)
     wait(3)
+    # PROBE ONLY - DO NOT MERGE. Control for probe-adobe-cc-enter-sabotage:
+    # the same foreground theft, on the code as it is on main. Clicking bare
+    # wallpaper deactivates the sign-in window so the ENTER below is swallowed.
+    Debug.user("PROBE: stealing the foreground before the ENTER")
+    click(Location(170, 700))
+    wait(1)
     type(Key.ENTER)
     # Wait for the password page itself, not for anything shaped like a text
     # field. The email page and the password page are the same shape - a label
