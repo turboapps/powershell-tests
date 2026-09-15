@@ -164,8 +164,11 @@ click("save_save.png")
 assert(util.file_exists(save_location, 5))
 type("w", Key.CTRL)
 
+# Reopening the saved workbook through the shell has to cover Excel loading
+# the file back into an empty window; the default 20 s has no slack for it
+# on a loaded pool VM. The app launch above already budgets 60 s.
 run("explorer " + save_location)
-wait("excel_result.png")
+wait("excel_result.png", 60)
 type("w", Key.CTRL)
 run("explorer " +os.path.join(script_path, os.pardir, "resources", "csv.csv"))
 wait("excel_csv.png")
