@@ -174,17 +174,75 @@ def launch_adobe_cc(username, password):
     wait(5)
     closeApp("Creative Cloud Desktop")
 
+# Type into one of the two Creative Cloud sign-in boxes and press ENTER until
+# the page actually moves on.
+#
+# Neither page is guaranteed to have the keyboard when the test types. In
+# applab run 34925411368 (adobe_bridge) the address was pasted into a focused,
+# foreground window and two seconds later - between the paste and the ENTER -
+# something else took the foreground: the step frame saved before the ENTER
+# shows the "Creative Cloud Desktop" caption text and the email box's focus
+# ring both grey, and the client log records process.count going 169 -> 176 in
+# that same second and back to 170 four seconds later. The ENTER went to
+# whatever that was. By the time the 60 s wait for the password page gave up
+# the window was active again with the address still sitting in the box, so
+# the test died a minute after the keystroke was lost, on an image that was
+# never the problem, with diagnostics showing a perfectly healthy sign-in
+# page. Every sibling adobe_* job in the same run signed in normally, so this
+# is a race, not a page change: the only defence is to check the outcome of
+# the keystroke instead of assuming it landed.
+#
+# The retry re-activates the window, clicks the box, selects whatever is in it
+# and retypes, so it is correct whether the field kept the value, lost it, or
+# the page came back with an error. `attempts` is deliberately smaller on the
+# password box: an attempt there is a real sign-in attempt against Adobe, and
+# repeating a genuinely rejected password is how accounts get locked out.
+def _cc_type_and_submit(box, value, page_image, until_gone=False,
+                        attempts=3, timeout=60):
+    for attempt in range(1, attempts + 1):
+        type(Key.ENTER)
+        last = attempt == attempts
+        if until_gone:
+            if waitVanish(page_image, timeout):
+                return
+            if last:
+                # waitVanish is not one of the wrapped step actions, so save
+                # the screen the sign-in gave up on by hand before raising.
+                _step_capture("FAILED-waitVanish-" + os.path.splitext(page_image)[0])
+                raise FindFailed("adobe_cc_login: sign-in did not complete, "
+                                 "the password page is still up")
+        else:
+            if last:
+                # Let the wait itself fail on the last attempt, so the step
+                # hook saves a FAILED frame and the error carries SikuliX's own
+                # match detail - the same reason click_settled ends on a wait().
+                wait(page_image, timeout)
+                return
+            if exists(page_image, timeout) is not None:
+                return
+        Debug.user("adobe_cc_login: ENTER did not move the page on attempt %d of %d"
+                   " - refocusing the sign-in window and retyping" % (attempt, attempts))
+        activate_app_window("Creative Cloud Desktop", 30)
+        wait(1)
+        click(box)
+        wait(1)
+        type("a", Key.CTRL)
+        paste(value)
+        wait(1)
+
 # Log in for Adobe Creative Cloud.
 def adobe_cc_login(username, password):
     wait(Pattern("adobe_login.png").similar(0.40),60)
     click("cancel-button.png")
     wait(20)
-    wait(Pattern("adobe_login.png").similar(0.40),10)
-    click(Pattern("adobe_login.png").similar(0.40))
+    # Keep the location this run matched: a retry has to click the box that is
+    # on screen now, not run the loose 0.40 pattern again against a page that
+    # may have changed under it.
+    email_box = wait(Pattern("adobe_login.png").similar(0.40),10).getCenter()
+    click(email_box)
     wait(3)
     paste(username)
     wait(3)
-    type(Key.ENTER)
     # Wait for the password page itself, not for anything shaped like a text
     # field. The email page and the password page are the same shape - a label
     # over a rounded input box - so the old reference (a "Password" crop matched
@@ -201,17 +259,17 @@ def adobe_cc_login(username, password):
     # real wait. Re-capture it if Adobe relabels the page: a stale reference is
     # what forced the 0.40 in the first place. The offset clicks into the field
     # below the label.
-    wait("adobe_login_pass.png",60)
+    _cc_type_and_submit(email_box, username, "adobe_login_pass.png")
     wait(1)
-    click(Pattern("adobe_login_pass.png").targetOffset(0,27))
+    password_box = wait("adobe_login_pass.png",30).getCenter().offset(0,27)
+    click(password_box)
     wait(3)
     paste(password)
     wait(3)
-    type(Key.ENTER)
     # Fail at the cause, not 30 steps downstream: a sign-in that worked leaves
     # the password page, a sign-in that did not keeps it up (with an error).
-    if not waitVanish("adobe_login_pass.png",60):
-        raise FindFailed("adobe_cc_login: sign-in did not complete, the password page is still up")
+    _cc_type_and_submit(password_box, password, "adobe_login_pass.png",
+                        until_gone=True, attempts=2)
     if exists("adobe_login_signout_others.png",15):
         click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
         click(Pattern("adobe_login_continue.png").similar(0.80))
