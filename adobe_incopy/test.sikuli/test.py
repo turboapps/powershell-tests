@@ -3,6 +3,7 @@ include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util
 sys.path.append(include_path)
 import util
 import subprocess
+import time
 reload(util)
 addImagePath(include_path)
 
@@ -32,11 +33,39 @@ wait("incopy_window.png",20)
 run("turbo stop test")
 closeApp("Command Prompt")
 
+# Let the stopped instance leave the screen before relaunching.
+#
+# `turbo stop` comes back before the window has gone. In App Tests run 34925411368
+# it gave up on the session outright - "Timeout waiting for session %s to stop"
+# after 12 s - and still returned 0, and the test walked straight on to the
+# shortcut launch. The step frame taken before the wait below and the one taken
+# before the wait above the stop are the same screen to within a mean absolute
+# difference of 0.002: the stopped instance's window, still painted. The client
+# log puts "Application exited: 0" 2.5 s before that frame, so what was on the
+# screen was the dead instance's window rather than a running application. So
+# `wait("incopy_window.png",120)` matched that window and returned at once,
+# spending none of its 120 s on the instance the shortcut had just launched. Ten
+# seconds later the old window was gone and the new InCopy was on its splash
+# ("Initializing plug-ins..."), so the only budget left for it was the 45 s
+# autoWaitTimeout on the click below - short of the >63 s that launch was still
+# taking when the test gave up.
+#
+# waitVanish states the precondition in the same terms the following wait depends
+# on - pixels - so a stop that really does leave the application running fails
+# here, at the cause, instead of at an image several steps later.
+assert waitVanish("incopy_window.png", 120), "the stopped InCopy window is still on screen"
+
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe InCopy"))
 
 # Basic operations.
-wait("incopy_window.png",120)
+# 180 s rather than 120 s: the relaunch in run 34925411368 was still initializing
+# plug-ins 63 s in and was never measured to completion, so the old budget has no
+# measured margin now that it is being spent on the right instance. The Debug line
+# records what the launch actually costs on the pool VMs.
+launch_start = time.time()
+wait("incopy_window.png",180)
+Debug.user("InCopy window up %d s after the shortcut launch" % (time.time() - launch_start))
 wait(10)
 click("incopy_window.png")
 type("n", Key.CTRL)
