@@ -134,6 +134,49 @@ def _install_step_hooks(namespaces):
             original = getattr(fn, "_step_original", None) or fn
             ns[name] = _step_wrap(name, original)
 
+# ======================== PROBE ONLY - DO NOT MERGE =========================
+# Sabotage for validating the vscode_wait_code_window re-send: swallow the first
+# three Ctrl+W keystrokes THE TEST sends, exactly the way an input-modal VS Code
+# dialog swallows them. Nothing else is touched - no modal is faked, and
+# vscode_wait_code_window itself is unmodified.
+#
+# The hook goes into the TEST's namespace only, never util's, so the Ctrl+W that
+# vscode_close_editors sends during recovery still lands. That is the real
+# situation: the modal ate what the test sent, and by the time the helper
+# retries the dialog is gone.
+#
+# Three is chosen to cover both caller shapes: x64 test.py:79 and :81 are the
+# two-Ctrl+W Python section, and :92 is the single-Ctrl+W C section. Line 135's
+# type("w") is the one-argument close-all-editors form and is left alone.
+#
+# Expected: FAIL on main at "code_window_2.png never appeared" (the old helper
+# only re-waits), PASS on the fix.
+_SABOTAGE_SWALLOW = [3]
+
+def _sabotage_wrap_type(original):
+    def swallowing(*args, **kwargs):
+        if (len(args) == 2 and args[0] == "w" and args[1] == Key.CTRL
+                and _SABOTAGE_SWALLOW[0] > 0):
+            _SABOTAGE_SWALLOW[0] -= 1
+            Debug.user("SABOTAGE: swallowed a Ctrl+W sent by the test (%d more "
+                       "to swallow). Only the vscode_wait_code_window re-send "
+                       "can recover this run." % _SABOTAGE_SWALLOW[0])
+            return None
+        return original(*args, **kwargs)
+    swallowing.__name__ = "type"
+    return swallowing
+
+def _sabotage_install(ns):
+    fn = ns.get("type")
+    if fn is None:
+        Debug.user("SABOTAGE: no type() in the test namespace, probe INACTIVE")
+        return
+    ns["type"] = _sabotage_wrap_type(fn)
+    Debug.user("SABOTAGE: installed on the test namespace; the next %d Ctrl+W "
+               "keystrokes the test sends will be dropped"
+               % _SABOTAGE_SWALLOW[0])
+# ====================== END PROBE ONLY - DO NOT MERGE =======================
+
 # Operations before running app test.
 def pre_test(no_min=False):
     # Per-step screenshots for the calling test and for util's own helpers.
@@ -143,6 +186,11 @@ def pre_test(no_min=False):
         _install_step_hooks([sys._getframe(1).f_globals, globals()])
     except:
         Debug.user("step screenshots: hook install failed, no frames this run: %s" % sys.exc_info()[1])
+    # PROBE ONLY - DO NOT MERGE.
+    try:
+        _sabotage_install(sys._getframe(1).f_globals)
+    except:
+        Debug.user("SABOTAGE: install failed, probe INACTIVE: %s" % sys.exc_info()[1])
 
     # Workaround for the bug that when Num-Lock is on, Key.SHIFT does not work with arrow keys: https://answers.launchpad.net/sikuli/+question/143874.
     if Env.isLockOn(Key.NUM_LOCK):
