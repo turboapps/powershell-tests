@@ -9,6 +9,23 @@ setAutoWaitTimeout(20)
 
 util.pre_test()
 
+def dismiss_whats_new():
+    # The What's New panel is HTML, and the test launches Lightroom with
+    # --enable=disablefontpreload, so the container's Adobe Clean is not always
+    # registered with the system: the heading then falls back to a wider system
+    # font (158 px vs 138 px at the same cap height).  The "What's New" text crop
+    # scores ~0.45 on the real dialog in that state - below SikuliX' 0.7, and
+    # below the ~0.51 it reaches on unrelated screens - so it cannot gate this
+    # step (run 34925411368).  The close button is drawn rather than typed, and
+    # scores 0.98 with the dialog up vs <= 0.40 without it either way.
+    wait("whats_new_close.png", 120)
+    wait(30)  # the panel keeps loading its content after it first paints
+    click("whats_new_close.png")
+    if exists("whats_new_close.png", 5):
+        type(Key.ESC)  # fall back to the previous dismissal
+    assert waitVanish("whats_new_close.png", 20), "What's New dialog did not close"
+
+
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resources", "secrets.txt"))
 username = credentials.get("username")
@@ -27,11 +44,7 @@ type(Key.ENTER)
 App().focus("Command Prompt")
 type(Key.DOWN, Key.WIN)
 
-wait("whats_new.png",120)
-click("whats_new.png")
-wait(30)
-click("whats_new.png")
-type(Key.ESC)
+dismiss_whats_new()
 wait("getting_started.png",20)
 wait(3)
 type(Key.ESC)
@@ -42,11 +55,7 @@ run("turbo stop test")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Adobe Lightroom Classic.lnk"))
-wait("whats_new.png",120)
-click("whats_new.png")
-wait(30)
-click("whats_new.png")
-type(Key.ESC)
+dismiss_whats_new()
 wait("getting_started.png",20)
 wait(3)
 type(Key.ESC)
