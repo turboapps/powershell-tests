@@ -5,7 +5,12 @@ import util
 reload(util)
 addImagePath(include_path)
 
-setAutoWaitTimeout(30)
+# Every wait in this test was budgeted from x64 timings. On ARM64 the same
+# steps routinely need 18-20 s (the Connect dialog after the sign-in splash,
+# the query results, the help page), so 30 s left under 1.5x of headroom and
+# a slower-than-usual run blows it: run 34925411368 timed out at line 28
+# after 32 s and the failure frame already shows the Connect dialog.
+setAutoWaitTimeout(120)
 util.pre_test(no_min=True)
 
 # Test of `turbo run`.
@@ -66,7 +71,7 @@ wait("query_result_3.png")
 type(Key.F1)
 wait(15)
 App().focus("Edge")
-wait("help_url.png",30)
+wait("help_url.png",120)
 util.close_app("Edge")
 wait(10)
 type(Key.F4, Key.ALT)
