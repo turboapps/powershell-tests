@@ -10,7 +10,11 @@ addImagePath(include_path)
 # the query results, the help page), so 30 s left under 1.5x of headroom and
 # a slower-than-usual run blows it: run 34925411368 timed out at line 28
 # after 32 s and the failure frame already shows the Connect dialog.
-setAutoWaitTimeout(120)
+# PROBE ONLY - DO NOT MERGE. Sabotage of the fix: the passing ARM64 run
+# needed 20 s at line 28, so a 15 s budget must fail there with
+# FindFailed(server_name.png). If it passes anyway, the budget is not the
+# load-bearing variable and PR #220 is treating the wrong cause.
+setAutoWaitTimeout(15)
 util.pre_test(no_min=True)
 
 # Test of `turbo run`.
