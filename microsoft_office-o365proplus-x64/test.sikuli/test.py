@@ -123,7 +123,19 @@ wait("word_result_3.png")
 # unrelated OneDrive row on the backstage - so the wrong surface silently
 # saved somewhere else. save_as_path takes the classic dialog (F12) from
 # either state and proves the file landed.
+# --- SABOTAGE PROBE, DO NOT MERGE ------------------------------------------
+# CAUSE the state that broke run 35002942472: Alt+F,A forces the full Save As
+# BACKSTAGE - the surface on which the old folder-icon click wandered into
+# OneDrive. If save_as_path is really surface-independent, F12 still reaches
+# the classic dialog from here and the file still lands.
+type("f", Key.ALT)
+wait(1)
+type("a")
+wait(4)
+Debug.user("SABOTAGE: Save As backstage forced open; calling save_as_path now")
 util.save_as_path(save_location)
+Debug.user("SABOTAGE RESULT: save_as_path saved from the backstage")
+# --- end sabotage ----------------------------------------------------------
 type("w", Key.CTRL)
 wait(5)
 run("explorer " + save_location)
