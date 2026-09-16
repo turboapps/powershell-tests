@@ -1412,7 +1412,7 @@ def ssms_run_query(sql, result_image, timeout=30):
     # the What's new page and nothing runs. Exercises the re-entry stage.
     if not _ssms_probe_fired[0]:
         _ssms_probe_fired[0] = True
-        click("whats_new_tab.png")
+        click("whats_new_tab_inactive.png")
         Debug.user("PROBE: buried the query document before typing")
     type(sql + Key.F5)
     if exists(result_image, timeout):
