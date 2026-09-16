@@ -33,7 +33,8 @@ wait("db_loaded.png")
 # SSMS 22 opens its "What's new" document a couple of seconds after the
 # connection completes, and can bring it back to the front later - over the
 # query editor. Close it here; util.ssms_run_query covers it if it returns.
-util.ssms_close_whats_new()
+# PROBE ONLY: left out so the What's new document is still around to steal with.
+# util.ssms_close_whats_new()
 
 type("n", Key.CTRL)
 

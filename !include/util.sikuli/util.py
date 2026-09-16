@@ -1403,9 +1403,19 @@ def ssms_clear_query():
 # editor has to be cleared and the statement re-entered. Retyping is safe in
 # both orders: a statement that did run is found by the cheap check above and
 # never reaches the retype, and one that did not run left nothing behind.
+_ssms_probe_fired = [False]
+
 def ssms_run_query(sql, result_image, timeout=30):
     wait("query_area.png", timeout)
     type(sql + Key.F5)
+    # PROBE ONLY - DO NOT MERGE: on the first statement, bury the query
+    # document the way SSMS's own "What's new" page did in run 35063730062,
+    # AFTER the F5 - so the statement ran and only its result is hidden.
+    if not _ssms_probe_fired[0]:
+        _ssms_probe_fired[0] = True
+        wait(1)
+        click("whats_new_tab.png")
+        Debug.user("PROBE: buried the query document after F5")
     if exists(result_image, timeout):
         return
     Debug.user("ssms_run_query: %s did not appear in %d s - bringing the query document back"
