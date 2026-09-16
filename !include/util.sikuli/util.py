@@ -1335,6 +1335,63 @@ def enter_spreadsheet_column(values, result_image, attempts=3, grace=10):
     raise FindFailed("enter_spreadsheet_column: %s never appeared after %d attempts"
                      % (result_image, attempts))
 
+# Wait for something that only appears once a slow launch has finished, for as
+# long as the launch is visibly still working.
+#
+# A fixed wait() budget is a guess at how long a launch takes, and it is only a
+# safe guess while the launch cost is under the test's control. GIMP on ARM64 is
+# the standing counter-example: its whole startup is spent on "Querying new
+# Plug-ins", walking ~150 plug-in binaries and spawning a child process for each,
+# and under Turbo on ARM64 that walk has been measured at 134, 157, 188, 210 and
+# 224 s on runs that passed and past 300 s on the one that did not (App Tests
+# 35063730062, xvm 26.9.48), against 6-40 s for the same image on x64. Nothing was
+# wrong in that run - no crash dump, and the splash in the FAILED frame was down
+# to file-another-rawtherapee.exe, near the end of a reverse-alphabetical walk.
+# The budget here has already gone 90 -> 300, and a 600 s attempt was overtaken
+# too; each new number only moves where the coin flip lands.
+#
+# The screen already distinguishes a slow launch from a dead one: while the splash
+# is up, the app is making progress. So wait for `target` and treat every sighting
+# of `busy` as permission to keep waiting, giving up as soon as neither has been
+# on screen for `grace` seconds. A launch that never starts, or dies partway, now
+# fails in about `grace` seconds instead of sitting out the whole budget, which is
+# the half of this that a bigger number cannot buy. `timeout` remains only as a
+# backstop against a splash that is itself stuck, so it is set far beyond any
+# launch ever observed rather than tuned to one.
+#
+# Polling uses SCREEN.exists rather than the hooked exists() on purpose: two
+# lookups every couple of seconds across a ten-minute wait would exhaust the run's
+# step-frame budget (_STEP_MAX_FRAMES) and bury the frames that matter, and the
+# two targets alternating means the repeat suppression in _step_capture would
+# never fire. One frame a minute is saved instead - enough to read the splash's
+# progress line afterwards, which is what made the measurements above possible -
+# plus the usual FAILED frame.
+def wait_while_busy(target, busy, timeout=1800, grace=120, poll=2, frame_interval=60):
+    start = time.time()
+    last_busy = start
+    last_frame = 0.0
+    tag = "wait_while_busy-" + (_step_label(target) or "target")
+    while True:
+        now = time.time()
+        if now - last_frame >= frame_interval:
+            last_frame = now
+            _step_capture(tag)
+        match = SCREEN.exists(target, 0)
+        if match is not None:
+            return match
+        if SCREEN.exists(busy, 0) is not None:
+            last_busy = time.time()
+        elif time.time() - last_busy > grace:
+            _step_capture("FAILED-" + tag)
+            raise FindFailed(
+                "wait_while_busy: neither %s nor %s on screen for %d s (gave up after %d s)"
+                % (target, busy, grace, time.time() - start))
+        if time.time() - start >= timeout:
+            _step_capture("FAILED-" + tag)
+            raise FindFailed("wait_while_busy: %s did not appear within %d s"
+                             % (target, timeout))
+        wait(poll)
+
 # Retire any notification banner sitting in the bottom-right corner.
 #
 # Opening the notification centre moves the banners that are still on screen
