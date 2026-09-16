@@ -19,10 +19,30 @@ password = credentials.get("password")
 util.launch_adobe_cc(username, password)
 
 # Test turbo run
-run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
-wait(5)
-paste('turbo run bridge --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test' + util.read_extra())
-wait(2)
+#
+# Creative Cloud does not stay closed. Seconds after launch_adobe_cc closes it,
+# it puts its own window back up - "Initializing Creative Cloud...", titled
+# "(Not Responding)" - on top of everything, and it holds the foreground while
+# it is wedged there. The command below was then typed into that window
+# instead of the console, and the test died 45 s later at bridge_window.png
+# with the console still sitting at a bare prompt: runs 35011268672 and
+# 35011296309, both with an identical step frame. So take the keyboard back
+# before typing, and check the line actually took the text instead of
+# assuming it did. cmd_prompt.png is the prompt alone, so it matches whatever
+# the line holds; cmd_empty_line.png is the prompt PLUS the blank space after
+# it, so it matches only while the line is still empty - that is the witness.
+turbo_run = ('turbo run bridge --using=isolate-edge-wc,creativeclouddesktop'
+             ' --offline --enable=disablefontpreload --name=test' + util.read_extra())
+for attempt in range(3):
+    # Take the keyboard back from whatever is in front (focus_console verifies
+    # the console really is the foreground window, which App().focus does not),
+    # then clear the line so a retry cannot leave two copies of the command.
+    util.focus_console("cmd_prompt.png")
+    type(Key.ESC)
+    util.paste_text(turbo_run, 2)
+    if exists("cmd_empty_line.png", 2) is None:
+        break
+    Debug.user("turbo run: the line is still empty, the paste was lost (attempt %d of 3)" % (attempt + 1))
 type(Key.ENTER)
 if exists("adobe_login_signout_others.png",60):
     click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
