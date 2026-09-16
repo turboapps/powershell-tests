@@ -49,6 +49,18 @@ if api_key:
     paste("turbo login --api-key=" + api_key)
     wait(2)
     type(Key.ENTER)
+# PROBE ONLY - DO NOT MERGE.
+# Drop the images turbo try needs so the pull is always cold, which is the
+# condition run 35063712843 hit by chance.
+wait(2)
+paste("turbo rmi postgresql/postgresql:16")
+wait(2)
+type(Key.ENTER)
+wait(10)
+paste("turbo rmi pgvector/pgvector")
+wait(2)
+type(Key.ENTER)
+wait(10)
 wait(5)
 paste("turbo pull xvm")
 wait(2)
