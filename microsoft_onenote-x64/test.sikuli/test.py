@@ -104,10 +104,22 @@ run("explorer " + os.path.join(util.start_menu, "OneNote.lnk"))
 # the notebook it is 0.34 and 0.91 the other way (measured on the step frames of
 # those two runs, against a 0.7 threshold). The launched state is checked too so
 # that an already-authenticated VM costs nothing instead of the full budget.
+# SABOTAGE PROBE - not for main. Hide the Sign In card for the first 45 s of the
+# wait, which is how a VM slower than run 35063730062 would present it. Under the
+# old code (a single exists with a 15 s budget) this is an unrecoverable miss; if
+# the run reaches the end, the resolve loop carried it.
+_SABOTAGE_HIDE_UNTIL = None
+
 def wait_onenote_start(timeout=120):
+    global _SABOTAGE_HIDE_UNTIL
     started = time.time()
+    if _SABOTAGE_HIDE_UNTIL is None:
+        _SABOTAGE_HIDE_UNTIL = started + 45
+        Debug.user("SABOTAGE: hiding the sign-in card from wait_onenote_start for 45 s")
     for _ in range(max(1, timeout // 2)):
         for image, state in (("sign-in.png", "sign-in"), ("onenote-launched.png", "launched")):
+            if image == "sign-in.png" and time.time() < _SABOTAGE_HIDE_UNTIL:
+                continue
             if exists(image, 1):
                 Debug.user("wait_onenote_start: %s after %d s" % (state, time.time() - started))
                 return state
