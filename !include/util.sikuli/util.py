@@ -1414,7 +1414,7 @@ def ssms_run_query(sql, result_image, timeout=30):
     if not _ssms_probe_fired[0]:
         _ssms_probe_fired[0] = True
         wait(1)
-        click("whats_new_tab.png")
+        click("whats_new_tab_inactive.png")
         Debug.user("PROBE: buried the query document after F5")
     if exists(result_image, timeout):
         return
