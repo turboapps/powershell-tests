@@ -111,15 +111,19 @@ click(Pattern("word_insert_menu.png").targetOffset(4,-15))
 wait(2)
 click("word_insert_picture_menu.png")
 wait("word_file_name.png")
-util.paste_text(os.path.join(script_path, os.pardir, "resources", "red fox.jpg"))
-type(Key.ENTER)
+# paste() alone loses its Ctrl on a freshly opened file dialog often enough
+# to matter: the bare "v" becomes the whole file name and the dialog answers
+# "v - File not found". open_file_in_dialog clicks into the field first and
+# retries on that error box.
+util.open_file_in_dialog("word_file_name.png", os.path.join(script_path, os.pardir, "resources", "red fox.jpg"))
 wait("word_result_3.png")
 
-type("s", Key.CTRL)
-click("save-doc-folder.png")
-click("word_save_location.png")
-click(Pattern("word_save_save.png").targetOffset(-38,-2))
-assert(util.file_exists(save_location, 5))
+# Ctrl+S reaches either the modern "Save this file" mini-dialog or the full
+# Save As backstage, and the folder icon this used to click matches an
+# unrelated OneDrive row on the backstage - so the wrong surface silently
+# saved somewhere else. save_as_path takes the classic dialog (F12) from
+# either state and proves the file landed.
+util.save_as_path(save_location)
 type("w", Key.CTRL)
 wait(5)
 run("explorer " + save_location)
@@ -149,19 +153,18 @@ wait("excel_window.png",60)
 wait(5)
 doubleClick("excel_window.png")
 wait("excel_new_document.png")
-util.paste_text("1")
-type(Key.ENTER)
-util.paste_text("2")
-type(Key.ENTER)
-util.paste_text("=sum(A1, A2)")
-type(Key.ENTER)
-wait("excel_result.png")
+# A dropped ENTER here leaves the cell in edit mode so the next paste
+# overwrites it, sliding the formula up into A2 where it refers to itself
+# ("Circular References: A2"). enter_spreadsheet_column re-enters the block
+# from a cleared sheet if the result row does not show up.
+util.enter_spreadsheet_column(["1", "2", "=sum(A1, A2)"], "excel_result.png")
 
-type("s", Key.CTRL)
-click("more-options.png")
-doubleClick("this-pc.png")
-click("save_save.png")
-assert(util.file_exists(save_location, 5))
+# more-options.png is a link that exists ONLY on the modern "Save this file"
+# mini-dialog. When Ctrl+S opens the Save As backstage instead - as it did in
+# App Tests run 35022937873, where the backstage came up reading "You have no
+# recent folders" - there is nothing for this to click. save_as_path takes the
+# classic dialog (F12) from either surface.
+util.save_as_path(save_location)
 type("w", Key.CTRL)
 
 # Reopening the saved workbook through the shell has to cover Excel loading
@@ -290,15 +293,19 @@ click("ppt_pictures.png")
 wait(2)
 click("ppt_pictures_menu.png")
 wait("ppt_file_name.png")
-util.paste_text(os.path.join(script_path, os.pardir, "resources", "red fox.jpg"))
-type(Key.ENTER)
+# paste() alone loses its Ctrl on a freshly opened file dialog often enough
+# to matter: the bare "v" becomes the whole file name and the dialog answers
+# "v - File not found". open_file_in_dialog clicks into the field first and
+# retries on that error box.
+util.open_file_in_dialog("ppt_file_name.png", os.path.join(script_path, os.pardir, "resources", "red fox.jpg"))
 wait(Pattern("ppt_result_3.png").similar(0.60))
 
-type("s", Key.CTRL)
-click("more-options.png")
-doubleClick("this-pc.png")
-click("save_save.png")
-assert(util.file_exists(save_location, 5))
+# more-options.png is a link that exists ONLY on the modern "Save this file"
+# mini-dialog. When Ctrl+S opens the Save As backstage instead - as it did in
+# App Tests run 35022937873, where the backstage came up reading "You have no
+# recent folders" - there is nothing for this to click. save_as_path takes the
+# classic dialog (F12) from either surface.
+util.save_as_path(save_location)
 type("w", Key.CTRL)
 run("explorer " + save_location)
 wait("ppt_result_4.png")
@@ -427,8 +434,11 @@ click(Pattern("publisher_menu.png").targetOffset(-117,0))
 click("publisher_pictures.png")
 wait(2)
 wait("publisher_file_name.png")
-util.paste_text(os.path.join(script_path, os.pardir, "resources", "red fox.jpg"))
-type(Key.ENTER)
+# paste() alone loses its Ctrl on a freshly opened file dialog often enough
+# to matter: the bare "v" becomes the whole file name and the dialog answers
+# "v - File not found". open_file_in_dialog clicks into the field first and
+# retries on that error box.
+util.open_file_in_dialog("publisher_file_name.png", os.path.join(script_path, os.pardir, "resources", "red fox.jpg"))
 wait("publisher_result_4.png")
 
 type("s", Key.CTRL)
