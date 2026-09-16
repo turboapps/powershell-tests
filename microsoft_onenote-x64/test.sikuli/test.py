@@ -5,6 +5,7 @@ include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util
 sys.path.append(include_path)
 import util
 reload(util)
+import time
 addImagePath(include_path)
 
 setAutoWaitTimeout(30)
@@ -82,7 +83,38 @@ run("turbo stop test")
 
 # OneNote.
 run("explorer " + os.path.join(util.start_menu, "OneNote.lnk"))
-if exists("sign-in.png",15):
+
+# The relaunched OneNote settles into one of two states: its "Getting things
+# ready for you!" card with a Sign In button, or - on a VM whose Office identity
+# survived the restart - the notebook itself. Which one it is decides whether
+# the sign-in steps below have any work to do, so resolve it by waiting for
+# whichever appears rather than polling the card on a fixed budget.
+#
+# The card is slow to paint and its arrival straddles the 15 s this step used to
+# allow: it came up ~10 s after the launch in App Tests run 35063712843 (pass)
+# and ~15 s in run 35063730062 (fail), where exists("sign-in.png",15) gave up
+# about a second before the card appeared. Missing it is silent and fatal, not
+# merely a lost click: every check below is a post-sign-in surface, so they all
+# fall through, and the run dies 90 s later at onenote-launched.png with the
+# Sign In card still sitting on screen, never clicked - a failure that points at
+# the wrong step entirely.
+#
+# The two images separate the states cleanly, so neither can stand in for the
+# other: on the card, sign-in.png scores 0.91 and onenote-launched.png 0.44; in
+# the notebook it is 0.34 and 0.91 the other way (measured on the step frames of
+# those two runs, against a 0.7 threshold). The launched state is checked too so
+# that an already-authenticated VM costs nothing instead of the full budget.
+def wait_onenote_start(timeout=120):
+    started = time.time()
+    for _ in range(max(1, timeout // 2)):
+        for image, state in (("sign-in.png", "sign-in"), ("onenote-launched.png", "launched")):
+            if exists(image, 1):
+                Debug.user("wait_onenote_start: %s after %d s" % (state, time.time() - started))
+                return state
+    Debug.user("wait_onenote_start: neither state after %d s" % (time.time() - started))
+    return None
+
+if wait_onenote_start() == "sign-in":
     click("sign-in.png")
 enter_signin_username(username, 20)
 if exists("sign-in-email-address.png",10):
