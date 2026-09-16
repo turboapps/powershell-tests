@@ -25,6 +25,13 @@ wait(2)
 paste("password")
 wait(2)
 type(Key.ENTER)
+# PROBE ONLY - DO NOT MERGE.
+# Ctrl+Esc opens the Start menu, which takes the foreground without covering
+# the console's top-left prompt - the exact state run 35063730062 was in when
+# the runas console was on screen but unfocused. Coordinate-free, and unlike
+# Win+D it does not disturb the z-order.
+type(Key.ESC, Key.CTRL)
+wait(3)
 # Take the keyboard from the console runas just opened, do not assume it.
 #
 # runas_ready.png is the child window's own "C:\Windows\System32>" prompt, so
@@ -40,7 +47,9 @@ type(Key.ENTER)
 #
 # focus_console clicks the prompt and confirms the window came forward before
 # returning, so the first paste cannot be thrown away.
-util.focus_console("runas_ready.png")
+# PROBE ONLY: the pre-fix blind wait.
+wait("runas_ready.png")
+wait(2)
 paste("turbo config --domain=" + domain)
 wait(2)
 type(Key.ENTER)
