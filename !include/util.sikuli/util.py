@@ -1150,16 +1150,62 @@ def vscode_dismiss_signin():
                    "(attempt %d)" % (attempt + 1))
     return False
 
-# The folder-trust dialog ("Trust Folder & Continue") can surface tens of
-# seconds after a file is opened - well after vscode_open_file's own 20 s window
-# on trust-continue.png has closed - and it then sits on top of the window this
-# wait is looking for. Clear it before giving up.
-def vscode_wait_code_window(timeout=60):
+# Re-send the caller's close keystroke after a modal has eaten it. Editors are
+# closed one at a time until the watermark shows, so a caller that sent two
+# Ctrl+W does not have to know how many of them the modal actually swallowed.
+def vscode_close_editors(attempts=3):
+    for attempt in range(attempts):
+        if exists("code_window_2.png", 5):
+            return True
+        type("w", Key.CTRL)
+    return exists("code_window_2.png", 5)
+
+# The C# section closes the whole workspace folder rather than an editor, so its
+# recovery is Ctrl+K F, not Ctrl+W.
+def vscode_close_folder():
+    type("k", Key.CTRL)
+    type("f")
+    return exists("code_window_2.png", 5)
+
+# VS Code modals are input-modal: while one is up, keystrokes sent to the window
+# are swallowed. The folder-trust dialog ("Trust Folder & Continue") can surface
+# tens of seconds after a file is opened - well after vscode_open_file's own
+# 20 s window on trust-continue.png has closed - so it routinely lands on top of
+# the Ctrl+W a caller has just sent to close an editor.
+#
+# Clearing the dialog is therefore not enough on its own, which is what this
+# helper used to do. The editor the caller meant to close is still open, and
+# code_window_2.png is the watermark VS Code draws only in an EMPTY editor area,
+# so it can never match however long the wait runs. Run 34873394316 lost the x64
+# test exactly this way: frames 048 and 049 of the diagnostics artifact are
+# md5-identical, the Ctrl+W between them having changed nothing at all, and the
+# 60 s wait that followed was doomed before it started.
+#
+# So clear the dialog AND redo the keystroke it ate.
+#
+# The re-send is deliberately NOT conditional on having found a modal. A modal
+# is only the commonest way a keystroke goes missing in this suite - an unfocused
+# window loses them just as easily - and the re-send is safe either way, because
+# vscode_close_editors checks for the watermark before it types anything, and
+# because the only state this function accepts is "no editor open" regardless.
+def vscode_wait_code_window(timeout=60, retry=vscode_close_editors):
     if exists("code_window_2.png", 10):
         return True
+    # A modal, if one is up, has to go first: it is both covering the window and
+    # swallowing everything sent to it.
     if exists("trust-continue.png", 3):
+        Debug.user("vscode_wait_code_window: a folder-trust modal is covering "
+                   "the window; clearing it")
         click("trust-continue.png")
         wait(3)
+        if exists("code_window_2.png", 10):
+            return True
+    # Whatever the caller sent to close its editor plainly did not take effect.
+    # Send it again.
+    Debug.user("vscode_wait_code_window: the caller's close keystroke never "
+               "took effect; re-sending it")
+    if retry and retry():
+        return True
     return exists("code_window_2.png", timeout)
 
 # The extension install runs in a container whose cmd.exe crashes often enough
@@ -1213,3 +1259,78 @@ def reopen_in_new_window(path, tab_image, executable, attempts=3):
                 wait(5)
                 break
     return False
+
+# Save the foreground Office document to an exact path through the classic
+# Save As dialog, and prove the file landed.
+#
+# Ctrl+S in an Office app lands on one of TWO different surfaces, and which one
+# appears varies from run to run: the modern "Save this file" mini-dialog (a
+# "Choose a Location" dropdown) or the full Save As backstage (a Recent /
+# Favorites / Older list). A test written for one of them does not merely fail
+# on the other - in App Tests run 35002942472 the backstage appeared, the Word
+# test's generic folder icon matched an unrelated OneDrive "recent folder" row
+# in it, and the click opened a browse dialog into OneDrive. The step did the
+# WRONG thing rather than failing cleanly, and the run died 20 s later on the
+# location image with no sign of why.
+#
+# F12 opens the same classic Save As dialog from either state, and typing a
+# full path into it makes the save independent of whatever the account's
+# OneDrive folder list happens to contain.
+#
+# The field opens focused with the suggested name selected, so Ctrl+A + paste
+# replaces it. A paste whose Ctrl is dropped types a bare "v" and the document
+# saves under the wrong name with no error box at all (see save_page_as_html),
+# so the outcome is checked against the path itself and the whole attempt
+# retried - never trusted because the keystrokes were sent.
+#
+# polls is a file_exists try count, not seconds: each poll is 10 s.
+def save_as_path(path, attempts=3, polls=2):
+    for attempt in range(attempts):
+        type(Key.F12)
+        wait(2)
+        type("a", Key.CTRL)
+        paste_text(path)
+        type(Key.ENTER)
+        if file_exists(path, polls):
+            return True
+        Debug.user("save_as_path: '%s' has not appeared after attempt %d of %d"
+                   % (path, attempt + 1, attempts))
+        type(Key.ESC)   # close whatever is still open before trying again
+        wait(1)
+    raise FindFailed("save_as_path: '%s' never appeared after %d attempts"
+                     % (path, attempts))
+
+# Type a column of values into a spreadsheet starting at A1, and prove the sheet
+# ended up the way the caller expects.
+#
+# The obvious "paste, ENTER, paste, ENTER" does not survive a dropped ENTER, and
+# the failure is silent and confusing rather than loud: in App Tests run
+# 35022917000 the ENTER after the second value never landed, so the cell stayed
+# in edit mode and the NEXT paste overwrote it. The formula ended up one row high
+# in A2 referring to A2, and Excel sat there with "Circular References: A2" in
+# the status bar while the test waited 20 s for a result row that could no longer
+# appear.
+#
+# Nothing here tries to detect which ENTER went missing. The whole block is
+# cheap, so on a mismatch the sheet is cleared and the values are re-entered
+# from A1 - Ctrl+A + Delete first, because a dropped ENTER leaves a value in a
+# row the retry would not otherwise overwrite, and ESC first because the cell
+# may still be in edit mode or a circular-reference warning may be up.
+#
+# The successful path sends exactly the keystrokes it always did and leaves the
+# cursor in the same cell, so an existing result image keeps matching unchanged.
+def enter_spreadsheet_column(values, result_image, attempts=3, grace=10):
+    for attempt in range(attempts):
+        type(Key.ESC)             # leave cell-edit mode / dismiss a warning box
+        type("a", Key.CTRL)
+        type(Key.DELETE)
+        type(Key.HOME, Key.CTRL)  # back to A1 with the selection collapsed
+        for value in values:
+            paste_text(value)
+            type(Key.ENTER)
+        if exists(result_image, grace):
+            return True
+        Debug.user("enter_spreadsheet_column: %s did not appear after attempt %d of %d"
+                   % (result_image, attempt + 1, attempts))
+    raise FindFailed("enter_spreadsheet_column: %s never appeared after %d attempts"
+                     % (result_image, attempts))
