@@ -59,6 +59,11 @@ click("yes-sound.png")
 wait("end-test.png")
 click("end-test.png")
 util.close_app("Edge")
+# PROBE ONLY: stand a notification banner in the tray corner, the way run
+# 35063712843 had one there. The control branch (zoom-probe-toast-control)
+# runs this same raiser against main's exit dance and fails on it.
+run('powershell -ExecutionPolicy Bypass -File "' + os.path.join(script_path, "probe-toast.ps1") + '"')
+wait(5)
 # The Zoom tray icon is pinned well above the 0.74 that a Windows Security
 # notification banner's blue shield scores against it: a banner shares the
 # bottom-right corner with the tray flyout, and at SikuliX's 0.7 default the
@@ -75,3 +80,22 @@ wait(20)
 
 # Check if the session terminates.
 util.check_running()
+
+# PROBE ONLY: the threshold half, against SikuliX's own matcher rather than an
+# offline stand-in. probe-run-35063712843-frame.jpg is the step frame captured
+# immediately before the right-click that failed - the tray flyout open, the
+# Windows Security banner over it, the Zoom icon nowhere. At the 0.7 default
+# zoom-systray.png finds the banner's blue shield in it; at the 0.9 this PR
+# pins it to, it finds nothing.
+loose = Finder(os.path.join(script_path, "probe-run-35063712843-frame.jpg"))
+loose.find(Pattern("zoom-systray.png").similar(0.7))
+assert loose.hasNext(), "probe: 0.7 found nothing in the failing frame - the frame or the reference changed"
+hit = loose.next()
+Debug.user("probe: 0.7 matches the failing frame at (%d,%d) score %.3f"
+           % (hit.getX() + hit.getW() / 2, hit.getY() + hit.getH() / 2, hit.getScore()))
+assert 1500 < hit.getX() + hit.getW() / 2 < 1650, "probe: 0.7 did not land on the banner"
+
+tight = Finder(os.path.join(script_path, "probe-run-35063712843-frame.jpg"))
+tight.find(Pattern("zoom-systray.png").similar(0.9))
+assert not tight.hasNext(), "probe: 0.9 still matches the banner - the threshold is not enough"
+Debug.user("probe: 0.9 rejects the failing frame")
