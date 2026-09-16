@@ -1334,3 +1334,86 @@ def enter_spreadsheet_column(values, result_image, attempts=3, grace=10):
                    % (result_image, attempt + 1, attempts))
     raise FindFailed("enter_spreadsheet_column: %s never appeared after %d attempts"
                      % (result_image, attempts))
+
+# ---------------------------------------------------------------------------
+# SQL Server Management Studio
+# ---------------------------------------------------------------------------
+# SSMS 22 opens a "What's new" document on the first launch after an install,
+# which in CI is every run. It is an ordinary full-width document tab, and it
+# can re-activate itself seconds after the test has already moved on into a
+# query window. When it comes forward the query editor, its results pane and
+# the query tab's own label all leave the screen, so every image the test is
+# looking for is simply not there and no wait length can rescue it.
+#
+# App Tests run 35063730062 (xvm 26.9.48) died exactly that way at line 36. The
+# step frame taken as wait("query_result_1.png") began already shows the
+# What's new page in front of a dirty SQLQuery1 tab, the FAILED frame 30 s
+# later shows the same page, and query_result_1.png scores 0.45 against both -
+# absent, not a near miss. The reference image is right: the 26.9.47 sibling in
+# the same sweep matched it at 0.96 one second after its own F5. The query
+# document has to be brought back, not waited on for longer.
+#
+# query_area.png is the probe for "the query document is on screen": it is a
+# crop of the active (bold, white) SQLQuery tab label plus the line-1 gutter
+# under it, and it scores 0.92-0.96 while that tab is active and 0.54 once the
+# What's new document covers it. query_tab.png is the same label in its
+# inactive (regular weight, blue) rendering - 0.92 when the tab is buried,
+# 0.67 when it is the active one - so it is what there is to click on.
+
+# Close the What's new document before the test starts using the editor. Best
+# effort by design: if it is not there, or will not close, the run proceeds
+# exactly as it did before and ssms_run_query still covers the steal.
+def ssms_close_whats_new(timeout=30):
+    if not exists("whats_new_tab.png", timeout):
+        Debug.user("ssms_close_whats_new: no What's new document to close")
+        return False
+    click("whats_new_tab.png")   # focus the document so Ctrl+F4 acts on it
+    type(Key.F4, Key.CTRL)
+    for _ in range(5):
+        if not exists("whats_new_tab.png", 1):
+            return True
+    Debug.user("ssms_close_whats_new: What's new document did not close")
+    return False
+
+# Bring the SQLQuery document back to the front. Returns whether it is there.
+def ssms_query_to_front(timeout=10):
+    if exists("query_area.png", 0):
+        return True
+    tab = exists("query_tab.png", timeout)
+    if tab is None:
+        Debug.user("ssms_query_to_front: no SQLQuery tab on screen")
+        return False
+    click(tab)
+    return exists("query_area.png", 5) is not None
+
+# Clear the editor, ready for the next statement.
+def ssms_clear_query():
+    ssms_query_to_front()
+    type("a", Key.CTRL)
+    type(Key.DELETE)
+
+# Type a statement into the query editor, run it with F5 and wait for its
+# result image.
+#
+# The recovery runs in two stages because the steal can land in two places. If
+# it lands after the F5 the statement has already run and its result is sitting
+# behind the What's new page, so re-activating the query tab is the whole fix.
+# If it lands while the statement is still being typed then the tail of it, and
+# possibly the F5, went to the What's new page instead, nothing ran, and the
+# editor has to be cleared and the statement re-entered. Retyping is safe in
+# both orders: a statement that did run is found by the cheap check above and
+# never reaches the retype, and one that did not run left nothing behind.
+def ssms_run_query(sql, result_image, timeout=30):
+    wait("query_area.png", timeout)
+    type(sql + Key.F5)
+    if exists(result_image, timeout):
+        return
+    Debug.user("ssms_run_query: %s did not appear in %d s - bringing the query document back"
+               % (result_image, timeout))
+    if ssms_query_to_front() and exists(result_image, 10):
+        return
+    Debug.user("ssms_run_query: re-entering the statement for %s" % result_image)
+    ssms_clear_query()
+    wait("query_area.png", timeout)
+    type(sql + Key.F5)
+    wait(result_image, timeout)

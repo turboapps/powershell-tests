@@ -29,37 +29,32 @@ type("localhost")
 click("security.png")
 type(Key.ENTER)
 wait("db_loaded.png")
+
+# SSMS 22 opens its "What's new" document a couple of seconds after the
+# connection completes, and can bring it back to the front later - over the
+# query editor. Close it here; util.ssms_run_query covers it if it returns.
+util.ssms_close_whats_new()
+
 type("n", Key.CTRL)
 
-wait("query_area.png")
-type("CREATE DATABASE TestDB;" + Key.F5)
-wait("query_result_1.png")
-type("a", Key.CTRL)
-type(Key.DELETE)
+util.ssms_run_query("CREATE DATABASE TestDB;", "query_result_1.png")
+util.ssms_clear_query()
 
-wait("query_area.png")
-type("""USE TestDB;
+util.ssms_run_query("""USE TestDB;
 CREATE TABLE Employees (
 EmployeeID INT PRIMARY KEY,
 FirstName VARCHAR(50),
 LastName VARCHAR(50),
-Age INT);""" + Key.F5)
-wait("query_result_1.png")
-type("a", Key.CTRL)
-type(Key.DELETE)
+Age INT);""", "query_result_1.png")
+util.ssms_clear_query()
 
-wait("query_area.png")
-type("""INSERT INTO Employees (EmployeeID, FirstName, LastName, Age) VALUES
+util.ssms_run_query("""INSERT INTO Employees (EmployeeID, FirstName, LastName, Age) VALUES
 (1, 'John', 'Doe', 30),
 (2, 'Jane', 'Smith', 25),
-(3, 'David', 'Johnson', 35);""" + Key.F5)
-wait("query_result_2.png")
-type("a", Key.CTRL)
-type(Key.DELETE)
+(3, 'David', 'Johnson', 35);""", "query_result_2.png")
+util.ssms_clear_query()
 
-wait("query_area.png")
-type("SELECT * FROM Employees;" + Key.F5)
-wait("query_result_3.png")
+util.ssms_run_query("SELECT * FROM Employees;", "query_result_3.png")
 
 # Check "help".
 type(Key.F1)
