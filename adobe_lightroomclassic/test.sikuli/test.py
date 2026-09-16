@@ -25,6 +25,20 @@ def dismiss_whats_new():
         type(Key.ESC)  # fall back to the previous dismissal
     assert waitVanish("whats_new_close.png", 20), "What's New dialog did not close"
 
+def dismiss_getting_started():
+    # The "Getting Started with Lightroom" coach mark (step 1 of 7) ignores ESC.
+    # Measured on runs 35011758209 / 35011773311 / 35011799787 / 35011811790 it
+    # still scores 0.980 thirty seconds after the keystroke, and while it is up
+    # it dims the window enough to drop lightroomcc_window.png from 0.785 to
+    # 0.307 - which is what the next wait was really failing on. Dismiss it with
+    # its own close button: that sits a fixed (+238,-37) from the centre of the
+    # heading match in every frame measured, across two runs.
+    wait("getting_started.png", 20)
+    wait(3)
+    click(Pattern("getting_started.png").targetOffset(238, -37))
+    if exists("getting_started.png", 5):
+        type(Key.ESC)  # previous dismissal, kept as a fallback
+    assert waitVanish("getting_started.png", 20), "Getting Started coach mark did not close"
 
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resources", "secrets.txt"))
@@ -45,9 +59,7 @@ App().focus("Command Prompt")
 type(Key.DOWN, Key.WIN)
 
 dismiss_whats_new()
-wait("getting_started.png",20)
-wait(3)
-type(Key.ESC)
+dismiss_getting_started()
 wait("lightroomcc_window.png",30)
 type("q", Key.CTRL)
 click(Pattern("quit.png").targetOffset(101,28))
@@ -56,9 +68,7 @@ run("turbo stop test")
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Adobe Lightroom Classic.lnk"))
 dismiss_whats_new()
-wait("getting_started.png",20)
-wait(3)
-type(Key.ESC)
+dismiss_getting_started()
 
 # Basic operations.
 wait("lightroomcc_window.png",30)
