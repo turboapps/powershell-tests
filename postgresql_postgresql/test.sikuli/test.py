@@ -66,15 +66,19 @@ wait(10)
 # whole download happens inside this wait. In App Tests run 35063712843 the
 # FAILED frame catches it at "Pulling image postgresql:16.4 ... (55%; 544MB of
 # 987MB)" when the 60 s expired; the run that passed on 2026-09-15 had the
-# images cached and reached the prompt in 14 s. So the test was only ever
-# passing on a warm cache.
+# images cached and reached the prompt in 14 s.
+#
+# What varies is the per-VM pull rate, not just the cache. A sabotage run that
+# forced a cold pull on a fast pool VM downloaded both images and reached the
+# prompt in about 10 s - roughly 100 MB/s against the ~9 MB/s measured in
+# 35063712843. A tenfold spread with a 60 s budget sitting inside it is why
+# this failed intermittently rather than always.
 #
 # Retrying is not an option - re-issuing turbo try against an in-flight pull
 # would make things worse - and there is no earlier outcome to check, so the
-# budget is the lever here. 987 MB at the ~9 MB/s this run measured is ~110 s of
-# download before pgvector, the tail of the turbo pull xvm above (still running
-# 60 s after its Enter in that same run) and container startup; a pool VM
-# sharing bandwidth with the rest of the suite can take several times that.
+# budget is the lever here. 987 MB at the ~9 MB/s the failing run measured is
+# ~110 s of download before pgvector, the tail of the turbo pull xvm above
+# (still running 60 s after its Enter in that same run) and container startup.
 # 600 s is a ceiling, not a delay: the wait returns the moment the prompt
 # appears, so a warm VM still costs the same 14 s it always did.
 setAutoWaitTimeout(600)
