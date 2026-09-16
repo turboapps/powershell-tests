@@ -82,7 +82,13 @@ run("turbo stop test")
 
 # OneNote.
 run("explorer " + os.path.join(util.start_menu, "OneNote.lnk"))
-if exists("sign-in.png",15):
+# SABOTAGE CONTROL - not for main, and NOT the fix. This is the pre-fix code
+# with the sign-in poll shortened from 15 s to 1 s, which guarantees it expires
+# before the card paints (~10-15 s after the launch). If the control is a real
+# control, this run reproduces App Tests run 35063730062 exactly: no CLICK on
+# sign-in.png, every check below falling through, and FindFailed at
+# onenote-launched.png with the Sign In card still on screen.
+if exists("sign-in.png",1):
     click("sign-in.png")
 enter_signin_username(username, 20)
 if exists("sign-in-email-address.png",10):
