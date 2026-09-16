@@ -1334,3 +1334,50 @@ def enter_spreadsheet_column(values, result_image, attempts=3, grace=10):
                    % (result_image, attempt + 1, attempts))
     raise FindFailed("enter_spreadsheet_column: %s never appeared after %d attempts"
                      % (result_image, attempts))
+
+# Retire any notification banner sitting in the bottom-right corner.
+#
+# Opening the notification centre moves the banners that are still on screen
+# into its list, and Esc then puts the centre itself away, so the corner is
+# clear without having to recognise each kind of toast. It also light-dismisses
+# any tray flyout that happened to be open - callers that want one must reopen
+# it after this returns, which is what show_tray_icon does.
+def dismiss_notifications(settle=1):
+    type("n", Key.WIN)
+    wait(settle)
+    type(Key.ESC)
+    wait(settle)
+
+# Open the system-tray overflow flyout with `icon` visible in it, and return
+# that match.
+#
+# A Windows notification banner renders in the same bottom-right corner as the
+# flyout and on top of it. In App Tests run 35063712843 a Windows Security
+# "Turn on Windows Firewall" toast (x 1545-1900, y 812-1013) covered the whole
+# flyout, including the Zoom tray icon that sits at its centre (1745, 996), so
+# the icon the zoom tests right-click was simply not on screen - and the toast
+# carries a blue Windows Security shield of its own, which zoom-systray.png
+# (a blue rounded square) matched at 0.742, over SikuliX's 0.7 default. The
+# right-click went to the toast, opened *its* context menu ("Turn off all
+# notifications for Windows Security") and exit-zoom.png then FindFailed. The
+# real icon scores 0.964-0.976 in the runs that pass, so callers should pin the
+# pattern well above the banner's 0.74; this helper only handles the occlusion.
+#
+# Clear the corner first, then open the flyout: doing it the other way round
+# closes the flyout that was just opened.
+def show_tray_icon(icon, arrow="systray-arrow.png", attempts=3, settle=5):
+    for attempt in range(attempts):
+        match = exists(icon, 0)
+        if match is not None:
+            return match
+        dismiss_notifications()
+        if exists(arrow, 5):
+            click(arrow)
+            wait(settle)
+        match = exists(icon, 10)
+        if match is not None:
+            return match
+        Debug.user("show_tray_icon: %s not in the tray flyout after attempt %d of %d"
+                   % (icon, attempt + 1, attempts))
+    raise FindFailed("show_tray_icon: %s never appeared in the system tray after %d attempts"
+                     % (icon, attempts))
