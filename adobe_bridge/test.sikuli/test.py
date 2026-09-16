@@ -1,7 +1,14 @@
 script_path = os.path.dirname(os.path.abspath(sys.argv[0])) 
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
-resources = os.path.join(script_path, os.pardir, "resources")
+# normpath, because this goes into Adobe Bridge's path bar and Bridge will not
+# resolve a ".." segment: os.path.join leaves
+# "...\adobe_bridge\test.sikuli\..\resources", Bridge rejects it, the bar snaps back
+# to the folder it was already showing and the test then looks for the fox
+# thumbnail on the Desktop. Runs 35011281602 and 35005251292 (different refs,
+# hours apart) both show the unresolved path typed into the bar and the view
+# still on Desktop 45 s later.
+resources = os.path.normpath(os.path.join(script_path, os.pardir, "resources"))
 import util
 reload(util)
 addImagePath(include_path)
