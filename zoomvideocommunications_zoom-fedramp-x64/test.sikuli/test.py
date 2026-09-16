@@ -59,6 +59,12 @@ click("yes-sound.png")
 wait("end-test.png")
 click("end-test.png")
 util.close_app("Edge")
+# PROBE ONLY: stand a notification banner in the tray corner, the way run
+# 35063712843 had one there, and leave the exit dance below exactly as main
+# has it. If this run passes, the probe never reproduced the defect and the
+# fixed variant proves nothing.
+run('powershell -ExecutionPolicy Bypass -File "' + os.path.join(script_path, "probe-toast.ps1") + '"')
+wait(5)
 if exists("systray-arrow.png"):
     click("systray-arrow.png")
     wait(5)
