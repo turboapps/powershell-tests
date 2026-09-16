@@ -49,6 +49,18 @@ if api_key:
     paste("turbo login --api-key=" + api_key)
     wait(2)
     type(Key.ENTER)
+# PROBE ONLY - DO NOT MERGE.
+# Drop the images turbo try needs so the pull is always cold, which is the
+# condition run 35063712843 hit by chance.
+wait(2)
+paste("turbo rmi postgresql/postgresql:16")
+wait(2)
+type(Key.ENTER)
+wait(10)
+paste("turbo rmi pgvector/pgvector")
+wait(2)
+type(Key.ENTER)
+wait(10)
 wait(5)
 paste("turbo pull xvm")
 wait(2)
@@ -77,7 +89,8 @@ wait(10)
 # sharing bandwidth with the rest of the suite can take several times that.
 # 600 s is a ceiling, not a delay: the wait returns the moment the prompt
 # appears, so a warm VM still costs the same 14 s it always did.
-setAutoWaitTimeout(600)
+# PROBE ONLY: the pre-fix budget.
+setAutoWaitTimeout(60)
 pull_started = time.time()
 wait("pgsql_ready.png")
 Debug.user("container prompt ready %d s after turbo try" % (time.time() - pull_started))
