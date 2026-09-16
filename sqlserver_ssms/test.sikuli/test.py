@@ -33,6 +33,11 @@ type("n", Key.CTRL)
 
 wait("query_area.png")
 type("CREATE DATABASE TestDB;" + Key.F5)
+# PROBE ONLY - DO NOT MERGE: bury the query document the way SSMS's own
+# "What's new" page did in App Tests run 35063730062, so this control shows
+# what main does when that happens.
+wait(1)
+click("whats_new_tab.png")
 wait("query_result_1.png")
 type("a", Key.CTRL)
 type(Key.DELETE)
