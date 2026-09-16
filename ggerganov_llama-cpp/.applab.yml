@@ -1,0 +1,11 @@
+# llama-server loads llama-2-7b-chat.Q4_K_M (4.1 GB) resident on the CPU. On the
+# default 8 GB static pool VM that leaves almost nothing: the Turbo client resource
+# telemetry for App Tests run 35063730062 shows memory.available_mb falling 4013 ->
+# 84 while the model loads, with disk.queue_len at 9.4, and Windows then killed 13
+# processes at once (process.count 178 -> 165, 5.4 GB freed) including the runner
+# console -- the job died with "The runner has received a shutdown signal" 69 s into
+# the test, before a single image wait. The passing run of the same test minutes
+# earlier (35063712843) bottomed out at 141 MB, so 8 GB is not marginal-but-fine, it
+# is a cliff this test walks up to every time. The ollama_* tests, which do the same
+# thing, have carried mem-16gb from the start.
+labels: [mem-16gb]
