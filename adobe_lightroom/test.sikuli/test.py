@@ -24,6 +24,11 @@ paste('turbo run lightroom --using=isolate-edge-wc,creativeclouddesktop --offlin
 wait(5)
 type(Key.ENTER)
 wait("lightroom_window.png")
+if exists("adobe_login_signout_others.png",60):
+    click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
+    click(Pattern("adobe_login_continue.png").similar(0.80))
+if exists("adobe_login_team.png",10):
+    click(Pattern("adobe_login_continue.png").similar(0.80))
 if exists("new_feature.png",15):
     click(Pattern("new_feature.png").targetOffset(485,-3))
 if exists("got_it.png",10):

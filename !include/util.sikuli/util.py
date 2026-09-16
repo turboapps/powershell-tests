@@ -181,7 +181,7 @@ def adobe_cc_login(username, password):
     wait(20)
     wait(Pattern("adobe_login.png").similar(0.40),10)
     click(Pattern("adobe_login.png").similar(0.40))
-    wait(3)
+    wait(6)
     paste(username)
     wait(3)
     type(Key.ENTER)
