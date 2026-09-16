@@ -54,10 +54,17 @@ click("yes-sound.png")
 wait("end-test.png")
 click("end-test.png")
 util.close_app("Edge")
+# The Zoom tray icon is pinned well above the 0.74 that a Windows Security
+# notification banner's blue shield scores against it: a banner shares the
+# bottom-right corner with the tray flyout, and at SikuliX's 0.7 default the
+# right-click went to the toast instead (App Tests run 35063712843).
+zoom_systray = Pattern("zoom-systray.png").similar(0.9)
 if exists("systray-arrow.png"):
-    click("systray-arrow.png")
-    wait(5)
-    rightClick("zoom-systray.png")
+    rightClick(util.show_tray_icon(zoom_systray))
+    # A banner arriving between the flyout opening and the right-click covers
+    # the icon and swallows the menu; reopen a clear flyout and click again.
+    if not exists("exit-zoom.png", 10):
+        rightClick(util.show_tray_icon(zoom_systray))
     click("exit-zoom.png")
 wait(20)
 
