@@ -1391,6 +1391,7 @@ def wait_while_busy(target, busy, timeout=1800, grace=120, poll=2, frame_interva
             raise FindFailed("wait_while_busy: %s did not appear within %d s"
                              % (target, timeout))
         wait(poll)
+
 # Retire any notification banner sitting in the bottom-right corner.
 #
 # Opening the notification centre moves the banners that are still on screen
