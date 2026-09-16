@@ -37,7 +37,7 @@ type("CREATE DATABASE TestDB;" + Key.F5)
 # "What's new" page did in App Tests run 35063730062, so this control shows
 # what main does when that happens.
 wait(1)
-click("whats_new_tab.png")
+click("whats_new_tab_inactive.png")
 wait("query_result_1.png")
 type("a", Key.CTRL)
 type(Key.DELETE)
