@@ -1403,8 +1403,17 @@ def ssms_clear_query():
 # editor has to be cleared and the statement re-entered. Retyping is safe in
 # both orders: a statement that did run is found by the cheap check above and
 # never reaches the retype, and one that did not run left nothing behind.
+_ssms_probe_fired = [False]
+
 def ssms_run_query(sql, result_image, timeout=30):
     wait("query_area.png", timeout)
+    # PROBE ONLY - DO NOT MERGE: on the first statement, bury the query
+    # document BEFORE anything is typed, so the statement and its F5 land on
+    # the What's new page and nothing runs. Exercises the re-entry stage.
+    if not _ssms_probe_fired[0]:
+        _ssms_probe_fired[0] = True
+        click("whats_new_tab.png")
+        Debug.user("PROBE: buried the query document before typing")
     type(sql + Key.F5)
     if exists(result_image, timeout):
         return
