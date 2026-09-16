@@ -35,10 +35,21 @@ def dismiss_getting_started():
     # heading match in every frame measured, across two runs.
     wait("getting_started.png", 20)
     wait(3)
-    click(Pattern("getting_started.png").targetOffset(238, -37))
+    Debug.user("PROBE: coach mark matched")
+    # PROBE ONLY: sabotage the close-button click by aiming at the coach mark's
+    # own body instead of its X. If the X click is what really dismisses this
+    # thing, the ESC fallback cannot save it and the assert below must fire with
+    # "Getting Started coach mark did not close" - which is the point: it proves
+    # the click is load-bearing and that the assert reports at the cause.
+    click(Pattern("getting_started.png").targetOffset(0, 60))
+    Debug.user("PROBE: sabotaged click done")
     if exists("getting_started.png", 5):
+        Debug.user("PROBE: coach mark still up - ESC fallback firing")
         type(Key.ESC)  # previous dismissal, kept as a fallback
+    else:
+        Debug.user("PROBE: UNEXPECTED - coach mark gone without the X click")
     assert waitVanish("getting_started.png", 20), "Getting Started coach mark did not close"
+    Debug.user("PROBE: UNEXPECTED - coach mark vanished after sabotage")
 
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resources", "secrets.txt"))
