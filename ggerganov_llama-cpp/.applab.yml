@@ -8,4 +8,4 @@
 # earlier (35063712843) bottomed out at 141 MB, so 8 GB is not marginal-but-fine, it
 # is a cliff this test walks up to every time. The ollama_* tests, which do the same
 # thing, have carried mem-16gb from the start.
-labels: [mem-16gb]
+labels: [mem-12gb]
