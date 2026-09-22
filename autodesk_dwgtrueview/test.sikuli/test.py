@@ -47,6 +47,33 @@ def wait_app_loaded(timeout=120):
 # Test of `turbo run`.
 wait_app_loaded()
 type(Key.F4, Key.ALT) # Close app.
+# Let DWG TrueView finish its own exit before the session is stopped.
+#
+# This is the only close in the test that a `turbo stop` follows, and it is the
+# only one that has ever produced a crash dump. `turbo stop` does not kill the
+# process: the VM posts WM_CLOSE to every top-level window in the container
+# (CSystemManager::TerminateSelfGracefullyCallback), so a stop issued while the
+# Alt+F4 teardown is still running delivers a SECOND close into a shutdown that
+# is already in progress. DWG TrueView does not guard against that: about a
+# second later, unloadAllModules tears the managed ObjectARX layer down twice
+# and an MFC CString buffer is freed twice, and dwgviewr.exe dies with c0000374
+# STATUS_HEAP_CORRUPTION (bucket
+# HEAP_CORRUPTION_ACTIONABLE_BlockNotBusy_DOUBLE_FREE, ucrtbase!free_base <-
+# mfc140u!CStringT::~CStringT). SikuliX never notices - the app is closing
+# anyway, every step frame is clean and the script runs to the end - and the job
+# is failed by the crash-dump gate instead.
+#
+# Measured at 8/22 cycles with the stop racing the teardown and 0/27 with the
+# stop issued after the process had gone (probe branch
+# probe-dwgtrueview-turbostop-race, five App Tests runs, Fisher one-sided
+# p = 0.0007). Most recently on xvm 26.9.48 in App Tests run 35654098667
+# (dwgviewr.exe.8160.dmp).
+#
+# The application exits ~2 s after Alt+F4, so this normally costs nothing. Wait
+# on the process and not on the session: Autodesk leaves AdskAccessService /
+# ADPClientService inside the container, which keeps the session Running well
+# past the application's own exit.
+util.wait_process_gone("dwgviewr.exe", 120)
 run("turbo stop test")
 
 # Launch the app.
