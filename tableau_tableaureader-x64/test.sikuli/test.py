@@ -147,11 +147,16 @@ def purge_dumps(names):
 # dialog nothing dismissed, an instance that never finished loading, a container
 # still up. taskkill terminates rather than faulting, so nothing here can write a
 # dump of its own and inflate the next cycle's count.
+# Never name conhost.exe here. The harness's own PowerShell is hosted by one, and
+# killing every conhost on the box takes the job's console with it: probe runs
+# 35776009034 / 35776018836 / 35776027615 / 35776036449 / 35776046182 all died
+# with 0xC0000142 and staged no artifacts at all, so eight measured cycles per
+# job were lost. Kill only the app's own processes.
 def reset_between_cycles():
     type(Key.ESC)
     wait(1)
     run("turbo stop test")
-    for image in ("tabreader.exe", "tabprotosrv.exe", "conhost.exe"):
+    for image in ("tabreader.exe", "tabprotosrv.exe"):
         os.system('cmd /c taskkill /f /im "%s" /t' % image)
     wait(5)
 
