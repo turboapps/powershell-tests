@@ -422,9 +422,30 @@ assert(util.file_exists(save_location, 5))
 # build spent 16 s of the 20 s right here. Budget the reopen like the launch
 # above, and click the match the wait already found rather than searching the
 # screen a second time.
+# PROBE ONLY - DO NOT MERGE. The fix this branch sits on widens the reopen
+# budget from the 20 s default to 60 s. Cause the state that broke the two
+# runs: fire the reopen from a timer 30 s after the wait has already started,
+# so the security bar cannot appear inside the old 20 s and only the widened
+# budget can carry the step.
+#
+# The launch goes through SikuliX's own run() - the test already uses it for
+# this exact command and it returns immediately - and through the UNWRAPPED
+# function, so the timer thread never takes a step screenshot while the main
+# thread is searching. An earlier version of this probe shelled out with
+# os.system('cmd /c start /b ...') and hung the job for 54 minutes: the
+# detached batch inherited the stdout pipe and handed it to explorer, which
+# never exits, so os.system never returned.
+import threading
+import time
+_raw_run = getattr(run, "_step_original", run)
 type(Key.F4, Key.ALT)
-run("explorer " + save_location)
+Debug.user("PROBE: deferring the reopen of " + save_location + " by 30 s")
+threading.Timer(30.0, _raw_run, ["explorer " + save_location]).start()
+_t0 = time.time()
 click(wait("access_open_enable.png", 60))
+_elapsed = time.time() - _t0
+Debug.user("PROBE: the reopen wait returned after %.1f s" % _elapsed)
+assert _elapsed > 20, "PROBE INVALID: the bar appeared in %.1f s, inside the old budget" % _elapsed
 doubleClick("access_open_table1.png")
 wait("access_result_1.png")
 
