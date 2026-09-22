@@ -97,8 +97,33 @@ click("help_support.png")
 # from this run's lossless -fail.png and scores 1.0 on both failures (0.44 next
 # best elsewhere on the screen, 0.44 on the pre-Edge frame, so it still cannot
 # pass before the page is up).
+# ---------------------------------------------------------------------------
+# PROBE ONLY - DO NOT MERGE. Sabotage of the focus half of the fix.
+#
+# The budget half of the fix is arithmetic (9 x 10 s vs 20 s) and needs no
+# probe. The focus half does: focus_and_wait's whole claim is that
+# App("Edge").focus() brings a buried Edge back, and App("Edge") is a process
+# match, which has been vacuous before (the acrobatpro F1 help check passed for
+# months on an App("Edge") that matched nothing).
+#
+# So cause the state the claim is about. Give Edge long enough to be up, then
+# raise the maximized Power BI window over it -- Edge sits at x 20..945 inside
+# it, so the address bar is completely covered. The control assert proves the
+# sabotage took: if help_url is still findable, Edge was never buried and
+# anything the helper does next proves nothing.
+Debug.on(3)
+wait(60)
+if not exists("help_url.png", 10):
+    raise Exception("PROBE INCONCLUSIVE: page never loaded, nothing to bury")
+App("Power BI Desktop").focus()
+wait(3)
+if exists("help_url.png", 5):
+    raise Exception("PROBE CONTROL FAILED: Power BI did not cover Edge")
+Debug.user("PROBE: Edge buried, address bar not findable - calling focus_and_wait")
 if not util.focus_and_wait("Edge", "help_url.png", attempts=9, poll=10):
-    wait("help_url.png", 5)
+    raise Exception("PROBE FAILED: focus_and_wait did not recover a buried Edge")
+Debug.user("PROBE OK: focus_and_wait recovered Edge from behind Power BI")
+# ---------------------------------------------------------------------------
 util.close_app("Edge")
 wait(10)
 type(Key.F4, Key.ALT)
