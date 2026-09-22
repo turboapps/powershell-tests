@@ -24,7 +24,11 @@ wait("file-open.png")
 paste(os.path.join(script_path, os.pardir, "resources", "HelloWorld.java"))
 wait(2)
 type(Key.ENTER)
-wait(Pattern("hello-world-class.png").similar(0.85), 60)
+# Opening the first Java file puts up a modal "Opening File HelloWorld.java"
+# progress dialog while NetBeans activates Java SE and starts its modules,
+# so wait for the editor for as long as that dialog says it is still working.
+util.wait_while_busy(Pattern("hello-world-class.png").similar(0.85),
+                     "opening-file.png", timeout=600)
 wait(20)
 click("Run-menu.png")
 click("run-file.png")
