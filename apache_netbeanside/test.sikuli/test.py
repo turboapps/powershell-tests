@@ -27,8 +27,12 @@ type(Key.ENTER)
 # Opening the first Java file puts up a modal "Opening File HelloWorld.java"
 # progress dialog while NetBeans activates Java SE and starts its modules,
 # so wait for the editor for as long as that dialog says it is still working.
+# SABOTAGE PROBE B (dead witness): same tight grace, but the busy image is
+# click-me-button.png, which cannot be on screen until the file has been run.
+# With nothing to see the wait must give up at about 8 s. The gap between this
+# run's "gave up after N s" and probe A's is the dialog doing its job.
 util.wait_while_busy(Pattern("hello-world-class.png").similar(0.85),
-                     "opening-file.png", timeout=600)
+                     "click-me-button.png", timeout=600, grace=8)
 wait(20)
 click("Run-menu.png")
 click("run-file.png")
