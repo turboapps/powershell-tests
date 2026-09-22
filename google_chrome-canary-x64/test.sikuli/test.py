@@ -85,8 +85,50 @@ wait("webpage.png") # To gain focus.
 wait(2)
 App().focus("Google Chrome")
 wait(5)
+# PROBE - do not merge. Films the hole App Tests run 35775591957 vanished into.
+#
+# There, the frame taken just before this Ctrl+N (13:24:30.9) shows Chrome healthy
+# on google.com, and the next frame, 7.7 s later at the paste below, is a bare
+# desktop with no Chrome left in the taskbar. In between, at 13:24:35.5, the
+# container reported `Application exited: 2` with no crash dump, no error and no
+# warning in any client log. Numeric wait()s are deliberately not captured by the
+# step hooks, so that whole event happened between two frames and the artifacts
+# cannot say when Chrome went, or whether the processes went before the container
+# or with it.
+#
+# So take a frame and a process count every 2 s across the same window, with the
+# session listing at each end. On a healthy run the count rises by a renderer or
+# two for the new window and the test carries on; on a vanish it names the second
+# the processes went and whether the session was still Running when they did.
+#
+# Kept to 2 s ticks on purpose: this VM has 4 vCPU and was at 100% CPU through
+# the original event, and every run() here spawns a shell from inside the
+# sikulixide container - a 1 s poll would be measuring the probe.
+def probe_procs(tag):
+    try:
+        listing = run('tasklist /FI "IMAGENAME eq chrome.exe" /NH')
+        Debug.user("probe[%s]: chrome.exe x%d" % (tag, listing.count("chrome.exe")))
+    except:
+        Debug.user("probe[%s]: tasklist failed: %s" % (tag, sys.exc_info()[1]))
+
+def probe_sessions(tag):
+    try:
+        Debug.user("probe[%s]: turbo sessions -l%s%s" % (tag, chr(10), run("turbo sessions -l")))
+    except:
+        Debug.user("probe[%s]: turbo sessions failed: %s" % (tag, sys.exc_info()[1]))
+
+probe_sessions("before-ctrl-n")
+probe_procs("before-ctrl-n")
+util._step_capture("probe-before-ctrl-n")
+
 type("n", Key.CTRL)
-wait(5)
+
+for _tick in range(1, 9):
+    wait(2)
+    util._step_capture("probe-t%02ds" % (_tick * 2))
+    probe_procs("t+%02ds" % (_tick * 2))
+
+probe_sessions("after-ctrl-n")
 paste("https://google.com")
 type(Key.ENTER)
 wait(5)
