@@ -26,7 +26,7 @@ click(Pattern("cran_source_ok.png").targetOffset(-36,4))
 # This only says the binary downloads have landed, not that the install is
 # over: install.packages("tidyverse") prints "The downloaded binary packages
 # are in" and then goes on to build the packages CRAN ships as sources only
-# (tinytex, selectr), which keeps the console busy with no prompt for minutes.
+# (tinytex, selectr), which keeps the console busy with no prompt afterwards.
 # r_console_pac_installed.png reads "The downloaded source packages are in" and
 # matches that binary line at 0.87 - the two are one word apart - so this wait
 # has always been returning on the binary line. Kept as an early signal that the
@@ -34,12 +34,18 @@ click(Pattern("cran_source_ok.png").targetOffset(-36,4))
 wait("r_console_pac_installed.png", 120)
 
 # Wait for the prompt to come back. The prompt is the only thing on screen that
-# says R is idle again, and the source builds above put minutes between it and
-# the line waited for above. This used to be click("console.png",90): click()'s
+# says R is idle again. This used to be click("console.png",90): click()'s
 # second argument is a modifier mask, not a timeout, so the prompt got only the
 # 20 s setAutoWaitTimeout (and the click was issued with stray modifiers held),
 # and runs 35654098667 and 35678863980 both died here with the console still
 # showing "installing the source packages 'tinytex', 'selectr'".
+#
+# Measured on three probe runs, the prompt comes back 23.7-24.2 s after the wait
+# above returns - i.e. the old budget was losing by about four seconds, which is
+# why this went from passing (2026-09-17) to failing every run without anything
+# in the test changing. Don't replace the 20 s with a slightly bigger number:
+# how long CRAN's source-only packages take to build is not ours to predict, so
+# wait on the thing that actually marks the end and give it room.
 click(wait("console.png", 600))
 type("library(tidyverse)")
 wait(2)
