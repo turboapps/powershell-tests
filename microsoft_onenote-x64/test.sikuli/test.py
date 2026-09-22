@@ -198,7 +198,12 @@ def my_notebook_sections():
     if link is None:
         return None
     height = link.y - region.y
-    if height <= 0:
+    # A notebook with no sections left leaves nothing between its own row and
+    # the link, and searching a region shorter than the image raises a SikuliX
+    # exception rather than missing - which is how the end-of-test deletes blew
+    # up in run 35794139999 after they had removed every section there was. One
+    # row is about 36 px; anything under that holds nothing to find.
+    if height < 36:
         return None
     return Region(region.x, region.y, region.w, height)
 
