@@ -734,7 +734,12 @@ def office_signin_address(username, done_image=None, attempts=3, timeout=60, set
         anchor = _office_signin_address_page(timeout)
         if attempt:
             type("a", Key.CTRL)
-        paste_text(username, 2)
+        # PROBE ONLY - DO NOT MERGE: throw the first address away so the page
+        # rejects it and stays up. A pass proves the retry below recovers a lost
+        # address; without it the run must die at the password step.
+        paste_text("" if attempt == 0 else username, 2)
+        Debug.user("PROBE: office_signin_address attempt %d pasted %s"
+                   % (attempt + 1, "NOTHING" if attempt == 0 else "the address"))
         type(Key.ENTER)
         if waitVanish(anchor, settle):
             return
