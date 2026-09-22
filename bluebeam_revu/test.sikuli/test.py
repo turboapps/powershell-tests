@@ -194,8 +194,48 @@ if not pdf_loaded:
 # A prompt that arrived with or just after the document would otherwise still
 # be modal when the app is closed below.
 dismiss_open_prompts()
+
+
+# The Open-with launch does not reuse the container the test has been working
+# in: Windows runs Revu from shortcuts\Revu\DEFAULT.txt, which is a session of
+# its own - `revu` in `turbo sessions -l`, next to the harness's `test`. So this
+# close has to actually land, and closeApp() is fire-and-forget: it reports that
+# it asked, not that Revu went away.
+#
+# It loses to a late prompt. Run 35776214358 had the document up at 13:51, ran
+# closeApp, and at 13:54 still showed Revu with the Windows Default apps page
+# covering the exact rect the default-viewer prompt renders in: the prompt this
+# test used to block on had simply arrived minutes after the document instead of
+# never, and a Revu with a modal up does not act on a close. check_running then
+# spent its whole 60 s budget on a `revu` session that was never going to end
+# and failed the run there, pointing at container teardown rather than at the
+# close that never happened.
+#
+# The same loop covers a second Revu window surviving from the first launch:
+# the two Alt+F4s at lines 46-48 are equally fire-and-forget, and when they do
+# not finish before the shortcut relaunch the test ends up with two Revu
+# windows and two sessions (that leftover is also why the default-viewer prompt
+# goes missing in the first place - an associated launch handed to an already
+# running Revu never runs the startup check that raises it).
+def session_running():
+    return "Running" in run("turbo sessions -l")
+
+
 closeApp("Revu")
-wait(60)
+deadline = time.time() + 120
+while time.time() < deadline:
+    if not session_running():
+        break
+    # Something is still holding a Revu open. Clear it and ask again.
+    settings = exists("default-apps.png", 0)
+    if settings:
+        # Raise the Settings window first: an Alt+F4 sent while Revu has the
+        # foreground would close the document instead and prove nothing.
+        click(settings)
+        type(Key.F4, Key.ALT)
+    dismiss_open_prompts()
+    closeApp("Revu")
+    wait(5)
 
 # Check if the session terminates.
 util.check_running()
