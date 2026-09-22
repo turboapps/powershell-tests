@@ -39,7 +39,14 @@ util.pre_test()
 # Office activation page, the notebook - so it names this one page. Use a
 # placeholder when one is on screen, because it points straight at the field,
 # and fall back to the heading when none is.
-SIGNIN_PLACEHOLDERS = ("sign-in-username.png", "sign-in-username-2.png", "sign-in-username-3.png")
+# PROBE ONLY - DO NOT MERGE. Empty the placeholder list so the sign-in step has
+# to go through the heading fallback, which is the state App Tests run
+# 35654098667 was actually in: the dialog up, the field focused, and no
+# placeholder anywhere on screen. A pass here means the heading locates the
+# field, the click lands in it and the typed username is accepted - none of
+# which a healthy VM would exercise, because it draws a placeholder the fast
+# path would match first.
+SIGNIN_PLACEHOLDERS = ()
 
 def on_signin_username_page(timeout=1):
     if exists("sign-in-heading.png", timeout):
