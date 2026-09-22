@@ -238,7 +238,11 @@ pdf_loaded = None
 deadline = time.time() + 180
 while time.time() < deadline and not pdf_loaded:
     dismiss_open_prompts()
-    pdf_loaded = exists("pdf-loaded.png", 5)
+    # PROBE ONLY: an unmatchable magenta block in place of the real
+    # document check, so the loop can never be satisfied. A run on this
+    # branch must die at the deadline with "the sample PDF did not open in
+    # Revu within 180 seconds"; if it passes, the loop is vacuous.
+    pdf_loaded = exists("probe-never.png", 5)
 if not pdf_loaded:
     raise FindFailed("the sample PDF did not open in Revu within 180 seconds")
 # A prompt that arrived with or just after the document would otherwise still
