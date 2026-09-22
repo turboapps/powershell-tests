@@ -356,7 +356,14 @@ for attempt in range(3):
     link = my_notebook_new_section()
     if link is None:
         raise FindFailed("My Notebook has no New Section link")
-    click(link)
+    # PROBE ONLY - DO NOT MERGE. Throw the first click away, the way OneNote
+    # throws one away when the pane is not ready for it. That is the state run
+    # 35787162482 was in, and the whole point of the check below: a pass here
+    # means the missing rename editor was noticed and the second click made the
+    # section, instead of the keystrokes going into the page and building a
+    # table nobody sees until onenote_result_1.png fails 90 s later.
+    if attempt > 0:
+        click(link)
     if exists("section-rename.png", 15):
         break
     Debug.user("new section: no rename editor on attempt %d" % (attempt + 1))
