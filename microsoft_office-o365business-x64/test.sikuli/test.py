@@ -30,7 +30,19 @@ password = credentials.get("password")
 # functional, a later step fails.)
 if exists("office_signin.png",120):
     click(Pattern("office_signin.png").targetOffset(-114,106))
-    wait("office_signin_email.png",30)
+    # "Email or phone" is an input placeholder, and the WebView2 sign-in host
+    # sometimes paints the whole page without those glyphs: in App Tests runs
+    # 35774940564 and 35774950776 the failure frame differed from a passing
+    # one only inside the 97x13 box the placeholder occupies - same heading,
+    # same caret, same Next button, 340 pixels apart across a 440x550 dialog.
+    # Waiting on it makes readiness depend on the one string that can go
+    # missing, so fall back to the account link under the field: it paints
+    # with the rest of the page and scores 0.36 on the dialog that precedes
+    # this one, so it cannot match early. No click is added here on purpose -
+    # the page focuses the field itself and clicking it defocused the field in
+    # the rework this test was fixed for in #162/#168.
+    if not exists("office_signin_email.png", 30):
+        wait("office_signin_create.png", 30)
     util.paste_text(username)
     type(Key.ENTER)
     if exists("office_signin_password.png",10):
@@ -58,7 +70,19 @@ save_location = os.path.join((os.environ["USERPROFILE"]), "Documents", "First li
 run("explorer " + os.path.join(util.start_menu, "Word.lnk"))
 if exists("office_signin.png",30):
     click(Pattern("office_signin.png").targetOffset(-114,106))
-    wait("office_signin_email.png",30)
+    # "Email or phone" is an input placeholder, and the WebView2 sign-in host
+    # sometimes paints the whole page without those glyphs: in App Tests runs
+    # 35774940564 and 35774950776 the failure frame differed from a passing
+    # one only inside the 97x13 box the placeholder occupies - same heading,
+    # same caret, same Next button, 340 pixels apart across a 440x550 dialog.
+    # Waiting on it makes readiness depend on the one string that can go
+    # missing, so fall back to the account link under the field: it paints
+    # with the rest of the page and scores 0.36 on the dialog that precedes
+    # this one, so it cannot match early. No click is added here on purpose -
+    # the page focuses the field itself and clicking it defocused the field in
+    # the rework this test was fixed for in #162/#168.
+    if not exists("office_signin_email.png", 30):
+        wait("office_signin_create.png", 30)
     util.paste_text(username)
     type(Key.ENTER)
 if exists("office_signin_password.png",10):
