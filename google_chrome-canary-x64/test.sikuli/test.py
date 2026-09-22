@@ -90,8 +90,28 @@ wait(5)
 paste("https://google.com")
 type(Key.ENTER)
 wait(5)
+# SABOTAGE PROBE - do not merge. Proves the re-cropped print_window.png is not
+# vacuous: that it matches the print dialog because the print dialog is there,
+# and stops matching when it is not.
+#
+# Ctrl+P is left in place and the anchor is waited on normally first, so the
+# positive half is measured on the live screen (score logged below, and the
+# branch's own frames show the dialog). Then Escape closes the preview and the
+# same wait is repeated against a 20 s budget: it MUST raise
+#   FindFailed ( print_window.png: (364x64) ... )
+# on the line marked below. A probe run that gets past it means the image is
+# matching browser chrome that is on screen either way, and the fix is worth
+# nothing.
 type("p", Key.CTRL)
-wait("print_window.png",60)
+m = wait("print_window.png",60)
+Debug.user("probe: anchor found with the dialog open, score %.3f at %s" % (m.getScore(), m.getTarget()))
+
+type(Key.ESC)
+wait(5)
+Debug.user("probe: print preview dismissed; the wait below must FindFailed")
+wait("print_window.png",20)   # <-- the probe fails HERE, or the anchor is vacuous
+Debug.user("probe: VACUOUS - the anchor still matched with no print dialog on screen")
+assert False, "probe: anchor matched with no print dialog on screen"
 click(Pattern("print_print.png").targetOffset(-28,8))
 wait("print_location.png")
 paste(save_location)
