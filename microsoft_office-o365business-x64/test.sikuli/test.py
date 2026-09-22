@@ -88,6 +88,18 @@ if exists("office_signin.png",30):
 if exists("office_signin_password.png",10):
     util.paste_text(password)
     type(Key.ENTER)
+# The single-sign-on prompts follow whichever sign-in actually asks for the
+# password, and that is not always the first one: `turbo stop test` above
+# resets the container, so this launch can be the one that authenticates. Only
+# the block above used to clear them, and in App Tests run 35777114121 the
+# "Sign in to all apps and websites on this device?" modal came up here
+# instead, sat on top of Word and failed the next wait. Mirror the two prompts
+# from that block - both optional, both no-ops when the sign-in above was a
+# no-op.
+if exists("yes-all-apps.png",10):
+    click("yes-all-apps.png")
+if exists("device-reg-done.png",15):
+    click("device-reg-done.png")
 if exists("privacy-close.png",10):
     click("privacy-close.png")
 wait(10) # wait for welcome window to go away
