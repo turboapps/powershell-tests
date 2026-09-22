@@ -376,9 +376,19 @@ type("s", Key.CTRL)
 wait("access_save.png")
 type(Key.ENTER)
 assert(util.file_exists(save_location, 5))
+# Alt+F4 closes Access itself, where Word/Excel/PowerPoint above only close
+# the document with Ctrl+W and leave the app resident. That ends the session,
+# so reopening the database through the shell is a cold container launch and
+# the security bar cannot appear until Access is back up. The 20 s default has
+# no slack for that: it ran out on a bare desktop in App Tests runs
+# 35678863980 and 35654098667 (Access finished loading seconds later, with the
+# bar on screen in the failure capture), and the passing sibling of the same
+# build spent 16 s of the 20 s right here. Budget the reopen like the launch
+# above, and click the match the wait already found rather than searching the
+# screen a second time.
 type(Key.F4, Key.ALT)
 run("explorer " + save_location)
-click("access_open_enable.png")
+click(wait("access_open_enable.png", 60))
 doubleClick("access_open_table1.png")
 wait("access_result_1.png")
 
