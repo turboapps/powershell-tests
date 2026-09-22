@@ -24,32 +24,42 @@ click("r_window.png")
 type('install.packages("tidyverse")' + Key.ENTER)
 wait("cran_source.png")
 click(Pattern("cran_source_ok.png").targetOffset(-36,4))
-# This only says the binary downloads have landed, not that the install is
-# over: install.packages("tidyverse") prints "The downloaded binary packages
-# are in" and then goes on to build the packages CRAN ships as sources only
-# (tinytex, selectr), which keeps the console busy with no prompt for minutes.
-# r_console_pac_installed.png reads "The downloaded source packages are in" and
-# matches that binary line at 0.87 - the two are one word apart - so this wait
-# has always been returning on the binary line. Kept as an early signal that the
-# install got going at all; the prompt below is what says it finished.
-wait("r_console_pac_installed.png", 120)
-
-# Wait for the prompt to come back. The prompt is the only thing on screen that
-# says R is idle again, and the source builds above put minutes between it and
-# the line waited for above. This used to be click("console.png",90): click()'s
-# second argument is a modifier mask, not a timeout, so the prompt got only the
-# 20 s setAutoWaitTimeout (and the click was issued with stray modifiers held),
-# and runs 35654098667 and 35678863980 both died here with the console still
-# showing "installing the source packages 'tinytex', 'selectr'".
-# PROBE ONLY - DO NOT MERGE. Proves the fix above is load-bearing rather than
-# lucky: (1) at the moment the old code clicked the prompt, no prompt was on
-# screen, and (2) the prompt needs more than the old 20 s budget to come back.
-# Either assert failing means the diagnosis does not hold on this run.
-assert exists("console.png", 0) is None, "PROBE: prompt already back when the pac_installed wait returned - old code would have passed"
+# Wait out the whole install in one go: the prompt is gone while R works and
+# comes back when it is done, so "prompt vanished, then prompt returned" covers
+# the download, the unpack, and the builds of the packages CRAN ships as sources
+# only (tinytex, selectr) without the test having to know how long any stage
+# takes.
+#
+# This replaces wait("r_console_pac_installed.png", 120) + click("console.png",90),
+# which failed for two separate reasons. click()'s second argument is a modifier
+# mask, not a timeout, so the prompt only ever got the 20 s setAutoWaitTimeout -
+# about four seconds short of the 23.7-24.2 s the source builds need - and that
+# is what killed runs 35654098667 and 35678863980, both with the console still
+# on "installing the source packages 'tinytex', 'selectr'". And the image it
+# waited on reads "The downloaded source packages are in" but matches the
+# earlier "The downloaded binary packages are in" line at 0.87, so it returned
+# mid-install; its own 120 s then proved too short as well, on a slower run that
+# was still unpacking binaries when it expired (35780080379). Both were fixed
+# budgets standing in for work of unknown length, so neither is kept.
+#
+# The vanish guard is what makes the single wait safe: the live prompt matches
+# console.png at 0.75, so without it a wait starting before R got busy could
+# return on the prompt the install has not consumed yet. Measured right after
+# the mirror click the prompt is already gone (0.28-0.37), so in practice this
+# returns at once - it is here for the run where it does not.
+# PROBE ONLY - DO NOT MERGE. Probes the risk this rewrite introduces - that a
+# single wait for the prompt could return on the prompt the install has not
+# consumed yet - and the one the old code died on. Asserts, in order: the prompt
+# is really gone once the install is under way (so the wait below cannot match
+# early), and it then takes longer to come back than the 20 s the old click had.
+# A passing probe run means the single wait is doing real waiting; either assert
+# firing means the rewrite rests on something that is not true.
+assert waitVanish("console.png", 60), "R never started installing - the prompt never went away"
+assert exists("console.png", 0) is None, "PROBE: prompt still on screen after the install started - a single wait could match it"
 _t0 = time.time()
-click(wait("console.png", 600))
+click(wait("console.png", 900))
 _elapsed = time.time() - _t0
-Debug.user("PROBE: prompt came back %.1f s after the pac_installed wait returned" % _elapsed)
+Debug.user("PROBE: install ran %.1f s from the mirror click to the prompt coming back" % _elapsed)
 assert _elapsed > 20, "PROBE: prompt came back in %.1f s - the old 20 s budget would have covered it" % _elapsed
 type("library(tidyverse)")
 wait(2)
