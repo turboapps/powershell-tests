@@ -74,6 +74,16 @@ def find_signin_field(timeout=60):
 # landed by watching for the page to stop asking for one, which holds whatever
 # the placeholder says; the old check - placeholder gone, so the text is in -
 # could not tell an accepted username from a placeholder that was never drawn.
+#
+# Nothing here selects the field's contents before typing. An earlier draft
+# pressed Ctrl+A first, so that a retry would replace a half-typed value rather
+# than append to it, and probe run 35776082425 showed what that costs: the click
+# did not focus the field, so Ctrl+A selected the whole sign-in page instead, and
+# the select-all highlight inverted the heading and every other anchor on it. The
+# page then read as gone, the step reported a username it had never entered, and
+# the run died 90 s later at new-section.png. The value being replaced was
+# hypothetical - a dropped attempt leaves the field empty, which is the case on
+# record - and the check below is what a real one would need anyway.
 def enter_signin_username(username, timeout=60):
     for attempt in range(3):
         target = find_signin_field(timeout if attempt == 0 else 15)
@@ -81,20 +91,31 @@ def enter_signin_username(username, timeout=60):
             return False
         click(target)
         wait(1)
-        # A retry lands in a field that may already hold a half-typed value, so
-        # replace what is there instead of appending to it.
-        type("a", Key.CTRL)
         type(username)
         wait(2)
         type(Key.ENTER)
         # Give the page 30 s to move on: it goes to the password page when the
-        # username was taken, and stays put with an error when Enter submitted
-        # an empty field.
+        # username was taken, and stays put - with an error, or with the field
+        # exactly as it was - when the click never reached the field or Enter
+        # submitted an empty one. Either way the next attempt re-locates the
+        # field and clicks it again, which is also what clears a first click
+        # that only woke the dialog's window instead of focusing anything in it.
+        #
+        # Read the page as gone only when two checks in a row agree. A single
+        # miss is not enough: anything that repaints the page over the anchors
+        # reads exactly like the page having moved on, and that is a silent
+        # false pass - the run carries on unauthenticated and dies much later
+        # somewhere unrelated.
+        gone = 0
         for _ in range(15):
             if exists("office_signin_password.png", 0):
                 Debug.user("enter_signin_username: password page on attempt %d" % (attempt + 1))
                 return True
-            if not on_signin_username_page(1):
+            if on_signin_username_page(1):
+                gone = 0
+                continue
+            gone += 1
+            if gone >= 2:
                 Debug.user("enter_signin_username: accepted on attempt %d" % (attempt + 1))
                 return True
         Debug.user("enter_signin_username: page still asking after attempt %d" % (attempt + 1))
