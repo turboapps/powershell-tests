@@ -116,18 +116,84 @@ wait("open-with.png")
 click("open-with.png")
 wait(3)
 click("always.png")
-wait("default-pdf-ok.png",120)
-click(Pattern("default-pdf-ok.png").targetOffset(-180,36))
-type(Key.ENTER)
-wait("default-apps.png")
-wait(5)
-type(Key.F4, Key.ALT)
-wait("gfx-warning.png",10)
-click("gfx-warning.png")
-# pdf-loaded.png is the "Name: <file>  Pages: 7" properties bar above the document:
-# it does not depend on the zoom level Revu picks for the page (the drawing content
-# rendered at a different scale in 21.11 than the previous capture).
-wait("pdf-loaded.png")
+
+
+# "Always" both registers Revu as the .pdf handler and opens the file in it.
+# What Revu puts on screen while that happens is NOT a fixed sequence, and
+# waiting for one fixed step of it deadlocks whenever that is the step which
+# does not come:
+#
+#   * default-pdf-ok.png - "Please confirm Revu as the default PDF viewer",
+#     followed by the Windows Default apps page. Revu only raises it when it
+#     finds it is not already the registered .pdf handler, which is exactly
+#     what the "Always" click just made it, so whether it appears at all is a
+#     race with the shell committing the association. It did NOT appear in
+#     runs 35654098667 and 35678863980 - its best OpenCV TM_CCOEFF_NORMED
+#     score over both 120 s waits was 0.32, i.e. absent rather than a near
+#     miss - and the old wait("default-pdf-ok.png",120) on the line below was
+#     where both runs died, together with 35168163987 before them.
+#   * gfx-warning.png - "Hardware rendering has been disabled due to an issue
+#     with the graphics driver". Up at the timeout in 35678863980 (0.989) and
+#     never shown at all in 35654098667.
+#   * "The file you are opening contains Layers. Would you like to open the
+#     Layers Tab?" - a page banner, not a dialog. It blocks nothing.
+#
+# In both of those runs the document itself was open and rendered the whole
+# time (pdf-loaded.png scores 0.944 on both FAILED frames): the test was
+# blocked on an optional prompt while what it actually asserts had already
+# happened. So dismiss whichever prompts are really up, in whatever order they
+# come, and finish on the document.
+def dismiss_default_viewer_prompt():
+    """Revu's "confirm Revu as the default PDF viewer" prompt, if it is up.
+
+    Ticks "Do not show this message again" (the targetOffset), presses the
+    default OK button, and closes the Windows Default apps page that OK opens.
+    """
+    if not exists("default-pdf-ok.png", 0):
+        return False
+    click(Pattern("default-pdf-ok.png").targetOffset(-180, 36))
+    type(Key.ENTER)
+    # OK sends the shell to Settings > Default apps. Close that only once it is
+    # really there: the Alt+F4 used to be unconditional, so on any run where
+    # the page did not open it would have landed on Revu instead.
+    if exists("default-apps.png", 30):
+        wait(5)
+        type(Key.F4, Key.ALT)
+        waitVanish("default-apps.png", 30)
+    return True
+
+
+def dismiss_gfx_warning():
+    """Revu's hardware-rendering warning, if it is up."""
+    warning = exists("gfx-warning.png", 0)
+    if not warning:
+        return False
+    click(warning)
+    return True
+
+
+def dismiss_open_prompts():
+    """Clear whatever Revu is showing over the document. Order is not free:
+    gfx-warning.png is a bare 50x22 "OK" button and matches the OK button of
+    the default-pdf-ok dialog at 0.837, well over SikuliX's 0.7 threshold, so
+    the large distinctive dialog has to be tested first."""
+    return dismiss_default_viewer_prompt() or dismiss_gfx_warning()
+
+
+# pdf-loaded.png is the "Name: <file>  Pages: 7" properties bar above the
+# document: it does not depend on the zoom level Revu picks for the page (the
+# drawing content rendered at a different scale in 21.11 than the previous
+# capture).
+pdf_loaded = None
+deadline = time.time() + 180
+while time.time() < deadline and not pdf_loaded:
+    dismiss_open_prompts()
+    pdf_loaded = exists("pdf-loaded.png", 5)
+if not pdf_loaded:
+    raise FindFailed("the sample PDF did not open in Revu within 180 seconds")
+# A prompt that arrived with or just after the document would otherwise still
+# be modal when the app is closed below.
+dismiss_open_prompts()
 closeApp("Revu")
 wait(60)
 
