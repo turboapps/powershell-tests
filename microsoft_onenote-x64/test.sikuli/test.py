@@ -91,7 +91,13 @@ def enter_signin_username(username, timeout=60):
             return False
         click(target)
         wait(1)
-        type(username)
+        # PROBE ONLY - DO NOT MERGE. Drop the username on the first attempt, the
+        # way the dialog drops it while it is still rendering, so Enter submits
+        # an empty field. A pass here means the check below noticed that the page
+        # was still asking and the retry recovered - the path a green run on a
+        # healthy VM never touches.
+        if attempt > 0:
+            type(username)
         wait(2)
         type(Key.ENTER)
         # Give the page 30 s to move on: it goes to the password page when the
