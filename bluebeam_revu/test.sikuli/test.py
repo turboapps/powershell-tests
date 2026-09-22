@@ -286,7 +286,11 @@ def close_revu():
         Debug.user("close_revu: no Revu window to close (%s)" % sys.exc_info()[1])
 
 
-close_revu()
+# PROBE ONLY: the first close is removed, so the only thing that can close
+# Revu is the recovery loop below. A run on this branch must still PASS,
+# and its log must show the loop doing the closing (many turbo sessions -l
+# polls, no end_session stop); if it fails, the loop is decorative.
+# close_revu()
 deadline = time.time() + 60
 while time.time() < deadline:
     if not session_running():
