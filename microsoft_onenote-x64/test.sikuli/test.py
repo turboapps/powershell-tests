@@ -12,41 +12,92 @@ setAutoWaitTimeout(30)
 
 util.pre_test()
 
-# Microsoft renamed the sign-in field label from "Email, phone, or Skype" to
-# "Email or phone" and is rolling the change out gradually, so a given VM still
-# gets either one - which is why this test fails at whichever
-# sign-in-username.png wait it happens to reach first and passes on the VMs that
-# still serve the old dialog. sign-in-username.png carries the old label and
-# sign-in-username-2.png the new one; match whichever is on screen. Both crops
-# are the same size and start at the same left edge as the field, so the click
-# offsets below are unchanged.
-def find_signin_username(timeout=60):
-    for _ in range(max(1, timeout // 2)):
-        for image in ("sign-in-username.png", "sign-in-username-2.png"):
-            match = exists(image, 1)
+# The Microsoft account sign-in page names its username field only through the
+# field's placeholder, and Microsoft keeps rewriting that placeholder - and
+# sometimes does not draw it at all. Three wordings have been seen so far, each
+# with its own crop, all 163x25 and all taken from the field's own text row so
+# the click offset below is the same for every one of them:
+#
+#   sign-in-username.png    "Email, phone, or Skype"
+#   sign-in-username-2.png  "Email or phone"
+#   sign-in-username-3.png  "Email or phone, including Gmail and iCloud"
+#
+# and in App Tests run 35654098667 the field came up with no placeholder at all
+# - an empty, focused box that never gained one in the 60 s the step allowed.
+# That run died at the first sign-in and run 35678863980 died at the one after
+# the relaunch on the third wording, both of them spending a full budget
+# hunting for placeholders that were not on screen.
+#
+# So do not depend on the placeholder to find the field. The page's "Sign in"
+# heading is the same on all of those variants and sits at a fixed distance
+# above the field. sign-in-heading.png carries it with the rest of its line, and
+# the empty line matters: the "Sign in to all apps and websites on this device?"
+# page that follows the password opens with the same two words in the same face,
+# and a crop of the words alone matches it at 0.98. Measured over the 185 step
+# frames of both runs, the full-line crop scores 0.98-1.00 on every sign-in page
+# and at most 0.48 anywhere else - the all-apps page, the password page, the
+# Office activation page, the notebook - so it names this one page. Use a
+# placeholder when one is on screen, because it points straight at the field,
+# and fall back to the heading when none is.
+SIGNIN_PLACEHOLDERS = ("sign-in-username.png", "sign-in-username-2.png", "sign-in-username-3.png")
+
+def on_signin_username_page(timeout=1):
+    if exists("sign-in-heading.png", timeout):
+        return True
+    for image in SIGNIN_PLACEHOLDERS:
+        if exists(image, 0):
+            return True
+    return False
+
+def find_signin_field(timeout=60):
+    """Where to click to put the caret in the sign-in username field."""
+    started = time.time()
+    while True:
+        for image in SIGNIN_PLACEHOLDERS:
+            match = exists(image, 0)
             if match:
-                return match
-    return None
+                return match.getTarget().offset(75, 2)
+        heading = exists("sign-in-heading.png", 0)
+        if heading:
+            # Measured on the run 35678863980 frames: the heading crop centres
+            # on (919,378) and the field's text row on (937,439), 13 px above
+            # the underline that closes the box.
+            return heading.getTarget().offset(18, 61)
+        if time.time() - started >= timeout:
+            return None
+        wait(1)
 
 # Click into the email field and enter the username. The dialog keeps rendering
 # after the field first appears, so text placed from the first sighting is
 # sometimes dropped and Enter then submits an empty field - the dialog comes back
-# with "Please enter a valid email address or phone number". Both labels are the
-# field placeholder rather than a caption above it, so they disappear as soon as
-# the field actually holds a value: use that to confirm the text landed, and
-# retry if it did not.
+# with "Please enter a valid email address or phone number". Confirm the username
+# landed by watching for the page to stop asking for one, which holds whatever
+# the placeholder says; the old check - placeholder gone, so the text is in -
+# could not tell an accepted username from a placeholder that was never drawn.
 def enter_signin_username(username, timeout=60):
     for attempt in range(3):
-        box = find_signin_username(timeout if attempt == 0 else 15)
-        if box is None:
+        target = find_signin_field(timeout if attempt == 0 else 15)
+        if target is None:
             return False
-        click(box.getTarget().offset(75, 2))
+        click(target)
         wait(1)
+        # A retry lands in a field that may already hold a half-typed value, so
+        # replace what is there instead of appending to it.
+        type("a", Key.CTRL)
         type(username)
         wait(2)
-        if find_signin_username(2) is None:
-            type(Key.ENTER)
-            return True
+        type(Key.ENTER)
+        # Give the page 30 s to move on: it goes to the password page when the
+        # username was taken, and stays put with an error when Enter submitted
+        # an empty field.
+        for _ in range(15):
+            if exists("office_signin_password.png", 0):
+                Debug.user("enter_signin_username: password page on attempt %d" % (attempt + 1))
+                return True
+            if not on_signin_username_page(1):
+                Debug.user("enter_signin_username: accepted on attempt %d" % (attempt + 1))
+                return True
+        Debug.user("enter_signin_username: page still asking after attempt %d" % (attempt + 1))
     return False
 
 # Read credentials from the secrets file.
