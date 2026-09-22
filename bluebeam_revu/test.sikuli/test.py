@@ -84,6 +84,9 @@ password_box_image = Pattern("password-box.png").similar(0.85)
 # Every click goes to the Match that was just found, never to a freshly built
 # Pattern: clicking a Pattern searches the screen a second time, which is
 # exactly how the 35794698469 FindFailed happened.
+_probe_dropped = [0]
+
+
 def sign_in(timeout):
     end = time.time() + timeout
     while time.time() < end:
@@ -97,6 +100,15 @@ def sign_in(timeout):
             # position is how it ends up in the Bluebeam ID field in the clear.
             wait(3)
             box = exists(password_box_image, 0)
+            # PROBE ONLY: throw the first re-locate away, which is exactly what
+            # a reload between the sighting and the click does - the mechanism
+            # that killed run 35794708819. The run must still PASS: the loop has
+            # to come back round and sign in anyway. If it fails, the recovery
+            # path is decorative and the rewrite proves nothing.
+            if not _probe_dropped[0]:
+                _probe_dropped[0] = 1
+                Debug.user("PROBE: dropped the first password-box re-locate")
+                box = None
             if not box:
                 continue
             click(box)
