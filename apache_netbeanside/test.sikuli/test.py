@@ -27,8 +27,12 @@ type(Key.ENTER)
 # Opening the first Java file puts up a modal "Opening File HelloWorld.java"
 # progress dialog while NetBeans activates Java SE and starts its modules,
 # so wait for the editor for as long as that dialog says it is still working.
+# SABOTAGE PROBE A (live witness): grace cut to 8 s. If opening-file.png is
+# really being matched the wait survives for as long as the dialog is up and
+# only dies in the blank-pane gap after it closes, so the "gave up after N s"
+# in the FindFailed must be far greater than 8. Expected to FAIL, late.
 util.wait_while_busy(Pattern("hello-world-class.png").similar(0.85),
-                     "opening-file.png", timeout=600)
+                     "opening-file.png", timeout=600, grace=8)
 wait(20)
 click("Run-menu.png")
 click("run-file.png")
