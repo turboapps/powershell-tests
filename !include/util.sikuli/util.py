@@ -672,6 +672,30 @@ def wait_app_quiet(executable, max_wait=60, poll=2):
     Debug.user("wait_app_quiet: %s still had a session or a process after %d s" % (executable, max_wait))
     return False
 
+# Wait for an application's own process to leave the process list, ignoring the
+# session.
+#
+# wait_app_quiet() above waits for the session as well, which is the right
+# question before a relaunch. It is the wrong question before a `turbo stop`:
+# apps that leave a helper inside the container (Autodesk leaves
+# AdskAccessService / ADPClientService / conhost) keep the session Running long
+# after the application itself has exited, so wait_app_quiet() burns its whole
+# budget and then logs a failure for a teardown that went perfectly.
+#
+# Returns the seconds waited, or -1 if the process never went away. A crash also
+# takes a process off the list, so this returns on a crashed exit too - it is a
+# settle, not an assertion.
+def wait_process_gone(executable, max_wait=120, poll=2):
+    waited = 0
+    while waited <= max_wait:
+        if executable not in run('tasklist /FI "IMAGENAME eq ' + executable + '"'):
+            Debug.user("wait_process_gone: %s exited after %d s" % (executable, waited))
+            return waited
+        wait(poll)
+        waited += poll
+    Debug.user("wait_process_gone: %s was still running after %d s" % (executable, max_wait))
+    return -1
+
 # Paste text without racing the next clipboard write.
 #
 # SikuliX's paste() puts the text on the clipboard and sends Ctrl+V, then returns
