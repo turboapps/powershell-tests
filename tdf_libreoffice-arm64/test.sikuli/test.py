@@ -8,6 +8,23 @@ addImagePath(include_path)
 setAutoWaitTimeout(50)
 util.pre_test()
 
+# PROBE ONLY - DO NOT MERGE. Sabotage of the fix on branch
+# libreoffice-reopen-session-race.
+#
+# The fix's claim is that the Base reopen at the old line 73 races the container
+# teardown that Alt+F4 started, and that the blind wait(5) before it is what
+# lets the race be lost. This branch makes that state happen on purpose instead
+# of waiting for it: the settle before the Base reopen is removed entirely, so
+# the launch goes out while the sandbox is certainly still shutting down.
+#
+# A trailing assert names what was actually on screen, so a failure here reads
+# as the TURBO.NET box rather than as a missing document image. If this branch
+# fails at the Base reopen with turbo-session-error.png on screen, the
+# mechanism is the one the fix addresses; if it passes every time, the fix is
+# aimed at the wrong thing and the wait(5) was not the lever.
+#
+# Everything after the Base reopen is left exactly as main has it.
+
 # Test of `turbo run`.
 wait("office-launched.png",90)
 run("turbo stop test")
@@ -68,9 +85,15 @@ type(Key.ENTER)
 assert(util.file_exists(save_path, 5))
 wait(5)
 type(Key.F4, Key.ALT)
-wait(5)
-run("explorer " + save_path)
-wait("test-db-open.png")
+run("explorer " + save_path)   # PROBE: no settle at all - maximise the race
+if not exists("test-db-open.png", 60):
+    saw_error = exists("turbo-session-error.png", 0) is not None
+    Debug.user("PROBE: the Base reopen did not open the database; "
+               "turbo-session-error.png on screen: %s" % saw_error)
+    assert not saw_error, ("PROBE REPRODUCED: the launch lost the teardown race "
+                           "and Turbo refused it with the already-running-session error")
+    raise FindFailed("PROBE: test-db-open.png never appeared, and the Turbo "
+                     "error box was not the reason")
 wait(3)
 type(Key.F4, Key.ALT)
 
