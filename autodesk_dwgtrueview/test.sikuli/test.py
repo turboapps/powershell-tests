@@ -73,7 +73,13 @@ type(Key.F4, Key.ALT) # Close app.
 # on the process and not on the session: Autodesk leaves AdskAccessService /
 # ADPClientService inside the container, which keeps the session Running well
 # past the application's own exit.
-util.wait_process_gone("dwgviewr.exe", 120)
+# SABOTAGE PROBE - DO NOT MERGE. The wait this branch exists to test is
+# neutered: it is pointed at a process name that is never running, so it returns
+# at once and the `turbo stop` goes out into the teardown exactly as it does on
+# main. Everything else on this branch, including util.wait_process_gone itself,
+# is byte-identical to dwgtrueview-stop-after-exit, so a crash here and none on
+# that branch can only be the wait.
+util.wait_process_gone("dwgviewr-sabotage-never-running.exe", 0)
 run("turbo stop test")
 
 # Launch the app.
