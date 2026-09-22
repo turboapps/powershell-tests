@@ -30,7 +30,19 @@ password = credentials.get("password")
 # functional, a later step fails.)
 if exists("office_signin.png",120):
     click(Pattern("office_signin.png").targetOffset(-114,106))
-    wait("office_signin_email.png",30)
+    # "Email or phone" is an input placeholder, and the WebView2 sign-in host
+    # sometimes paints the whole page without those glyphs: in App Tests runs
+    # 35774940564 and 35774950776 the failure frame differed from a passing
+    # one only inside the 97x13 box the placeholder occupies - same heading,
+    # same caret, same Next button, 340 pixels apart across a 440x550 dialog.
+    # Waiting on it makes readiness depend on the one string that can go
+    # missing, so fall back to the account link under the field: it paints
+    # with the rest of the page and scores 0.36 on the dialog that precedes
+    # this one, so it cannot match early. No click is added here on purpose -
+    # the page focuses the field itself and clicking it defocused the field in
+    # the rework this test was fixed for in #162/#168.
+    if not exists("office_signin_email.png", 30):
+        wait("office_signin_create.png", 30)
     util.paste_text(username)
     type(Key.ENTER)
     if exists("office_signin_password.png",10):
@@ -58,12 +70,36 @@ save_location = os.path.join((os.environ["USERPROFILE"]), "Documents", "First li
 run("explorer " + os.path.join(util.start_menu, "Word.lnk"))
 if exists("office_signin.png",30):
     click(Pattern("office_signin.png").targetOffset(-114,106))
-    wait("office_signin_email.png",30)
+    # "Email or phone" is an input placeholder, and the WebView2 sign-in host
+    # sometimes paints the whole page without those glyphs: in App Tests runs
+    # 35774940564 and 35774950776 the failure frame differed from a passing
+    # one only inside the 97x13 box the placeholder occupies - same heading,
+    # same caret, same Next button, 340 pixels apart across a 440x550 dialog.
+    # Waiting on it makes readiness depend on the one string that can go
+    # missing, so fall back to the account link under the field: it paints
+    # with the rest of the page and scores 0.36 on the dialog that precedes
+    # this one, so it cannot match early. No click is added here on purpose -
+    # the page focuses the field itself and clicking it defocused the field in
+    # the rework this test was fixed for in #162/#168.
+    if not exists("office_signin_email.png", 30):
+        wait("office_signin_create.png", 30)
     util.paste_text(username)
     type(Key.ENTER)
 if exists("office_signin_password.png",10):
     util.paste_text(password)
     type(Key.ENTER)
+# The single-sign-on prompts follow whichever sign-in actually asks for the
+# password, and that is not always the first one: `turbo stop test` above
+# resets the container, so this launch can be the one that authenticates. Only
+# the block above used to clear them, and in App Tests run 35777114121 the
+# "Sign in to all apps and websites on this device?" modal came up here
+# instead, sat on top of Word and failed the next wait. Mirror the two prompts
+# from that block - both optional, both no-ops when the sign-in above was a
+# no-op.
+if exists("yes-all-apps.png",10):
+    click("yes-all-apps.png")
+if exists("device-reg-done.png",15):
+    click("device-reg-done.png")
 if exists("privacy-close.png",10):
     click("privacy-close.png")
 wait(10) # wait for welcome window to go away
@@ -376,9 +412,19 @@ type("s", Key.CTRL)
 wait("access_save.png")
 type(Key.ENTER)
 assert(util.file_exists(save_location, 5))
+# Alt+F4 closes Access itself, where Word/Excel/PowerPoint above only close
+# the document with Ctrl+W and leave the app resident. That ends the session,
+# so reopening the database through the shell is a cold container launch and
+# the security bar cannot appear until Access is back up. The 20 s default has
+# no slack for that: it ran out on a bare desktop in App Tests runs
+# 35678863980 and 35654098667 (Access finished loading seconds later, with the
+# bar on screen in the failure capture), and the passing sibling of the same
+# build spent 16 s of the 20 s right here. Budget the reopen like the launch
+# above, and click the match the wait already found rather than searching the
+# screen a second time.
 type(Key.F4, Key.ALT)
 run("explorer " + save_location)
-click("access_open_enable.png")
+click(wait("access_open_enable.png", 60))
 doubleClick("access_open_table1.png")
 wait("access_result_1.png")
 
