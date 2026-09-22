@@ -60,45 +60,83 @@ wait(15)
 # 0.949-0.985. 0.85 sits clear of both.
 password_box_image = Pattern("password-box.png").similar(0.85)
 
-def submit_email():
-    click(email_box)
-    type(username)
-    type(Key.ENTER)
+# The sign-in card is a web view that reloads whenever it likes: it goes blank
+# ("Loading... signin.bluebeam.com"), comes back at the *email* step, and only
+# then swaps in the password fields. The shape this replaces assumed that
+# happened at most once, and only before the password box was first seen -
+# submit, one look, one retry if that look failed, then a 120 s wait. Both
+# assumptions cost a run in this PR's round-4 validation:
+#
+#   * 35794708819, and 35788530266 before it - the single look FOUND the
+#     password box, so the retry was skipped; the card then reloaded back to the
+#     email step and the 120 s wait never saw the box again.
+#     FindFailed(password-box.png ... seen at (787, 596) with 0.98), where
+#     "seen at" is SikuliX's lastSeen hint and not a current score.
+#   * 35794698469 - the retry did fire, but by then a reload had moved the card
+#     ON, so the blind click had no email-label.png to find:
+#     FindFailed(email-label.png ... seen at (798, 367) with 0.88).
+#
+# So stop counting reloads. Look at which step the card is showing, do the thing
+# that moves that step forward, and finish on the card closing - the only real
+# evidence the sign-in took. A reload at any point just puts the loop back at
+# the email step, which it already knows how to handle.
+#
+# Every click goes to the Match that was just found, never to a freshly built
+# Pattern: clicking a Pattern searches the screen a second time, which is
+# exactly how the 35794698469 FindFailed happened.
+def sign_in(timeout):
+    end = time.time() + timeout
+    while time.time() < end:
+        box = exists(password_box_image, 0)
+        if box:
+            # The card keeps rendering after the password box first appears -
+            # the "Select Region" dropdown at its top lands late and pushes the
+            # fields down - so let it settle and re-locate before clicking. If
+            # it has gone by then the view reloaded under us, and going round
+            # again is the one safe move: typing the password at a remembered
+            # position is how it ends up in the Bluebeam ID field in the clear.
+            wait(3)
+            box = exists(password_box_image, 0)
+            if not box:
+                continue
+            click(box)
+            type(password)
+            type(Key.ENTER)
+            # The window closes once the credentials are accepted. If it is
+            # still up, the card reloaded rather than signed in, and the loop
+            # starts over from whichever step it came back at. email-label.png
+            # is the card's "Bluebeam ID / (Your Email Address)" heading,
+            # present on both of its steps and nowhere else.
+            if waitVanish("email-label.png", 60):
+                # The heading also goes away for a few seconds every time the
+                # view reloads, so a vanish on its own is not proof that the
+                # card closed. Settle and make sure neither step has come back
+                # before calling the sign-in done.
+                wait(5)
+                if not exists("email-label.png", 0) and not exists(password_box_image, 0):
+                    return True
+            continue
+        label = exists(email_box, 0)
+        if label:
+            click(label)
+            type(username)
+            type(Key.ENTER)
+            # Getting from the email step to the password step is a full
+            # web-view reload and took ~26 s on 2026-09-10, so give it a
+            # generous look before concluding the submit did not land. It may
+            # not have: Revu's splash panel can still cover the whole field area
+            # when the click fires, putting the username on the splash instead
+            # of in the field (run 34539429949).
+            exists(password_box_image, 60)
+            continue
+        # Neither step is on screen: the view is mid-reload. Let it land.
+        wait(2)
+    return False
 
-# Revu's splash panel can still be on top of the sign-in card when the click
-# fires - it covers the whole field area - so the username lands on the splash
-# instead of the field and the card never leaves the email step (run
-# 34539429949). wait_first_run only proves the card is *visible*, and the
-# wait(15) above is a guess, so check the outcome instead: getting from the
-# email step to the password step is a full web-view reload (the card goes
-# blank, "Loading... signin.bluebeam.com", re-renders the *email* step, then
-# swaps in the password fields) and took ~26 s on 2026-09-10, so give the first
-# attempt a generous look before deciding it never landed.
-submit_email()
-if not exists(password_box_image, 60):
-    # Still on the email step: the splash is long gone by now, so type into the
-    # re-rendered card.
-    submit_email()
-wait(password_box_image, 120)
-# The card keeps rendering after the password box first appears - the "Select
-# Region" dropdown at its top lands late and pushes the fields down - so a click
-# placed from the first sighting can miss. Let it settle and locate the box
-# again at its final position. This used to fall back to a bare Tab when the
-# re-location failed; that is how the password reaches an unknown field, so
-# stop instead - nothing below this line is meaningful without a password box.
-wait(3)
-password_box = exists(password_box_image, 60)
-if not password_box:
-    raise FindFailed("password box vanished after the sign-in card settled")
-click(password_box)
-type(password)
-type(Key.ENTER)
-# The sign-in window closes once the credentials are accepted. Assert that here:
-# without it a sign-in that never happened surfaces as a bogus help-window
-# FindFailed ten lines below, pointing the investigation at the wrong step
-# (run 34423171312). email-label.png is the card's "Bluebeam ID / (Your Email
-# Address)" heading, present on both of its steps and nowhere else.
-if not waitVanish("email-label.png", 120):
+
+# password_box_image is matched at similar(0.85) - see above - and that is what
+# keeps the password out of the Bluebeam ID field on the email step.
+if not sign_in(360):
     raise FindFailed("sign-in did not complete: the Bluebeam sign-in window is still open")
 wait(5)
 # Check "help".
