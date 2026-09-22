@@ -8,6 +8,26 @@ addImagePath(include_path)
 setAutoWaitTimeout(50)
 util.pre_test()
 
+# PROBE ONLY - DO NOT MERGE. Vacuity check on branch
+# libreoffice-reopen-session-race.
+#
+# The fix has two protections: util.wait_app_quiet() settles the container
+# before each launch, and util.reopen_in_new_window() additionally clears and
+# retries the TURBO.NET "already running session" box if the race is still lost.
+# A green run proves neither of them fired - the settle alone would produce the
+# same green, and the retry path would be dead code nobody had exercised.
+#
+# So take the settle away and leave only the retry. Every launch now goes out
+# while the sandbox is still tearing down, which is the state that produced
+# App Tests run 35775188040.
+#
+# Reading the result: PASS plus "reopen_in_new_window: Turbo refused the launch"
+# in the log means the retry path is live and rescues the race on its own. PASS
+# with no such line means even a zero settle did not lose the race this time and
+# the run says nothing. FAIL at a reopen means the retry is not enough by
+# itself, which is an argument for the settle, not against it.
+util.wait_app_quiet = lambda *args, **kwargs: True
+
 # Every module below is exercised the same way: save a document, close the
 # window, then reopen the saved file through its file association. Both halves
 # of that are launches into the same Turbo container, and the close before them
