@@ -221,7 +221,22 @@ def session_running():
     return "Running" in run("turbo sessions -l")
 
 
-closeApp("Revu")
+def close_revu():
+    """Ask Revu to close, and treat "there is no Revu to close" as success.
+
+    SikuliX's closeApp() raises java.lang.IndexOutOfBoundsException (Index: 0,
+    Size: 0) when the named app has no window left. Run 35790322362 hit that on
+    the very first call, because Revu had already exited on its own - the state
+    this whole block exists to reach, not a failure. The session poll is the
+    oracle here, not closeApp's temper.
+    """
+    try:
+        closeApp("Revu")
+    except:
+        Debug.user("close_revu: no Revu window to close (%s)" % sys.exc_info()[1])
+
+
+close_revu()
 deadline = time.time() + 120
 while time.time() < deadline:
     if not session_running():
@@ -234,7 +249,7 @@ while time.time() < deadline:
         click(settings)
         type(Key.F4, Key.ALT)
     dismiss_open_prompts()
-    closeApp("Revu")
+    close_revu()
     wait(5)
 
 # Check if the session terminates.
