@@ -23,8 +23,24 @@ click("r_window.png")
 type('install.packages("tidyverse")' + Key.ENTER)
 wait("cran_source.png")
 click(Pattern("cran_source_ok.png").targetOffset(-36,4))
+# This only says the binary downloads have landed, not that the install is
+# over: install.packages("tidyverse") prints "The downloaded binary packages
+# are in" and then goes on to build the packages CRAN ships as sources only
+# (tinytex, selectr), which keeps the console busy with no prompt for minutes.
+# r_console_pac_installed.png reads "The downloaded source packages are in" and
+# matches that binary line at 0.87 - the two are one word apart - so this wait
+# has always been returning on the binary line. Kept as an early signal that the
+# install got going at all; the prompt below is what says it finished.
 wait("r_console_pac_installed.png", 120)
-click("console.png",90)
+
+# Wait for the prompt to come back. The prompt is the only thing on screen that
+# says R is idle again, and the source builds above put minutes between it and
+# the line waited for above. This used to be click("console.png",90): click()'s
+# second argument is a modifier mask, not a timeout, so the prompt got only the
+# 20 s setAutoWaitTimeout (and the click was issued with stray modifiers held),
+# and runs 35654098667 and 35678863980 both died here with the console still
+# showing "installing the source packages 'tinytex', 'selectr'".
+click(wait("console.png", 600))
 type("library(tidyverse)")
 wait(2)
 type(Key.ENTER)
