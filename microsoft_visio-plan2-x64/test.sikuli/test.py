@@ -17,10 +17,7 @@ password = credentials.get("password")
 
 # Test of `turbo run`.
 click(Pattern("office_signin.png").targetOffset(-116,135))
-wait("office_signin_email.png")
-paste(username)
-wait(2)
-type(Key.ENTER)
+util.office_signin_address(username, "office_signin_password.png")
 wait("office_signin_password.png")
 paste(password)
 wait(2)
@@ -44,8 +41,7 @@ run("turbo stop test")
 run("explorer " + os.path.join(util.start_menu, "Visio.lnk"))
 if exists("office_signin.png",30):
     click(Pattern("office_signin.png").targetOffset(-116,135))
-    wait("office_signin_email.png")
-    type(username + Key.ENTER)
+    util.office_signin_address(username, "office_signin_password.png")
 if exists("office_signin_password.png",10):
     type(password + Key.ENTER)
 if exists("privacy-close.png",10):

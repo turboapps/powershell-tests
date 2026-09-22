@@ -692,6 +692,77 @@ def paste_text(text, settle=1):
     paste(text)
     wait(settle)
 
+# Put the account address into Microsoft's account sign-in page and confirm it
+# went in.
+#
+# The page used to be proved ready by waiting for a crop of the address field's
+# placeholder text ("Email or phone"). Microsoft draws that placeholder in more
+# than one way for the same page, and picks the variant per page load rather
+# than per machine or per account. In App Tests run 35654098667
+# (microsoft_visio-plan2-x64) the first launch drew "Email or phone" and the
+# relaunch two minutes later drew "Email or phone, including Gmail and iCloud"
+# in a heavier face on a lower baseline - the shared "Email or phone" prefix
+# scores 0.24 against the old crop, so not even the prefix survives - and in run
+# 35678863980 the relaunch drew the field with no placeholder at all, an empty
+# box with a caret in it, still that way 50 s later when the wait gave up. Both
+# runs died at wait("office_signin_email.png") on a page that was up, painted
+# and ready to be typed into. The placeholder has now moved under the tests
+# twice (PR #162 recaptured it when "Email, phone, or Skype" became "Email or
+# phone"), so stop keying on it.
+#
+# Wait on the furniture around the field instead, which was pixel-identical
+# across both variants: the "No account? Create one!" line, which appears on the
+# address page and nowhere else in this flow, and the "Next" button as a second,
+# independent anchor should Microsoft reword that line too. Scored over the 42
+# step frames of the two runs, "No account? Create one!" reaches 0.92 on every
+# address-page frame and at most 0.49 on the other 30 (the password page, the
+# "Sign in to set up Office" dialog, the device-registration prompt, the app
+# itself); the Next button reaches 0.98 but also 0.74 on the "Sign in to all
+# apps and websites on this device?" prompt, hence the raised similarity on it -
+# at the default 0.7 it would match that prompt.
+#
+# Then check the outcome instead of trusting it. A wait that returns the moment
+# the page paints can still be a step ahead of the field taking focus, and an
+# address that does not go in leaves the page exactly as it was, so the failure
+# surfaces at the password step with nothing to say why. Confirm the address
+# page has gone, and retype if it has not - clearing the field first, since a
+# partial value left by the lost attempt would otherwise be typed into.
+def office_signin_address(username, done_image=None, attempts=3, timeout=60, settle=30):
+    for attempt in range(attempts):
+        if done_image and exists(done_image, 0):
+            return
+        anchor = _office_signin_address_page(timeout)
+        if attempt:
+            type("a", Key.CTRL)
+        paste_text(username, 2)
+        type(Key.ENTER)
+        if waitVanish(anchor, settle):
+            return
+        # The page can be on its way out while still drawn; believe the next
+        # page over the anchor.
+        if done_image and exists(done_image, 0):
+            return
+        Debug.user("office_signin_address: the address page is still up after attempt %d of %d"
+                   % (attempt + 1, attempts))
+    raise FindFailed("office_signin_address: the sign-in page still wants an address after %d attempts"
+                     % attempts)
+
+# The anchor proving Microsoft's sign-in page is asking for an address, returned
+# so the caller can wait for that same anchor to go away.
+#
+# The two anchors are tried one after the other rather than polled together: a
+# loop that alternates between them saves a step screenshot per look (the
+# capture hook only suppresses a repeat of the same target), and a minute of
+# that buries the useful frames in the diagnostics artifact.
+def _office_signin_address_page(timeout, fallback_timeout=5):
+    if exists("office_signin_ready.png", timeout):
+        return "office_signin_ready.png"
+    fallback = Pattern("office_signin_next.png").similar(0.90)
+    if exists(fallback, fallback_timeout):
+        return fallback
+    raise FindFailed("office_signin_address: the sign-in page did not ask for an address in %d s"
+                     % timeout)
+
 # Put a path into a Windows file dialog's "File name" field, leaving it there
 # for the caller to confirm.
 #
