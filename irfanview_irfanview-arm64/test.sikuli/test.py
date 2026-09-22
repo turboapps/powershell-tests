@@ -22,7 +22,11 @@ run("turbo stop test")
 # vendor's own "IrfanView.lnk". Resolve before launching - explorer with a
 # missing path silently opens a Documents window instead of failing, and the
 # test then died at the wait() below pointing at the wrong thing.
-util.launch_shortcut("IrfanView ARM64.lnk", "IrfanView.lnk", base=util.desktop)
+# PROBE ONLY - DO NOT MERGE: drop the candidate that actually exists on the
+# image, leaving only the stale 4.75 name. The fix must now fail LOUDLY here
+# with the real desktop listing, instead of limping on into a 30 s FindFailed
+# at wait("irfanview-menu.png") the way the hardcoded run() did.
+util.launch_shortcut("IrfanView ARM64.lnk", base=util.desktop)
 wait("irfanview-menu.png")
 click("irfanview-menu.png")
 
