@@ -12,6 +12,28 @@ util.pre_test()
 wait("tableau-open.png",120)
 click("tableau-open.png")
 type(Key.F4, Key.ALT)
+# Let Tableau finish its own exit before the session is stopped.
+#
+# Same change, same reason, as tableau_tableaureader-x64: this is the only close
+# in the test that a `turbo stop` follows, Tableau's shutdown spawns
+# `sc  stop "FlexNet Licensing Service 64"` on its way out, and a stop issued
+# while that teardown is still running creates the child into a container that is
+# already unloading. Under xvm 26.9.x such a child comes up with a completely
+# unbound import table and dies with c0000005 EXECUTE at an address that is in no
+# module (VM-2896, a product defect tracked with its own standalone repro; this
+# only stops the test manufacturing the race).
+#
+# This app is where the defect was first root-caused: App Tests 35002798650,
+# 35002810972 and 35022008056 on xvm 26.9.47 each staged an `sc.exe` dump with a
+# clean, complete SikuliX log, failed by the crash-dump gate alone.
+#
+# The A/B was measured on the reader test, which drives the same shutdown through
+# its licence prompt: 5/20 cycles wrote an sc.exe dump with the stop racing the
+# exit and 0/20 with the stop issued after the process had gone (branch
+# probe-tableau-turbostop-race, 5 App Tests runs on xvm 26.9.48, Fisher one-sided
+# p = 0.024). Wait on the process rather than on the session, as
+# autodesk_dwgtrueview does for the same reason.
+util.wait_process_gone("tabpublic.exe", 120)
 run("turbo stop test")
 
 # Launch the app.
