@@ -2,6 +2,7 @@ script_path = os.path.dirname(os.path.abspath(sys.argv[0]))
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
 import util
+import time
 reload(util)
 addImagePath(include_path)
 
@@ -40,7 +41,16 @@ wait("r_console_pac_installed.png", 120)
 # 20 s setAutoWaitTimeout (and the click was issued with stray modifiers held),
 # and runs 35654098667 and 35678863980 both died here with the console still
 # showing "installing the source packages 'tinytex', 'selectr'".
+# PROBE ONLY - DO NOT MERGE. Proves the fix above is load-bearing rather than
+# lucky: (1) at the moment the old code clicked the prompt, no prompt was on
+# screen, and (2) the prompt needs more than the old 20 s budget to come back.
+# Either assert failing means the diagnosis does not hold on this run.
+assert exists("console.png", 0) is None, "PROBE: prompt already back when the pac_installed wait returned - old code would have passed"
+_t0 = time.time()
 click(wait("console.png", 600))
+_elapsed = time.time() - _t0
+Debug.user("PROBE: prompt came back %.1f s after the pac_installed wait returned" % _elapsed)
+assert _elapsed > 20, "PROBE: prompt came back in %.1f s - the old 20 s budget would have covered it" % _elapsed
 type("library(tidyverse)")
 wait(2)
 type(Key.ENTER)
