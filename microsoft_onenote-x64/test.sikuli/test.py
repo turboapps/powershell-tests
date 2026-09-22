@@ -121,6 +121,104 @@ def enter_signin_username(username, timeout=60):
         Debug.user("enter_signin_username: page still asking after attempt %d" % (attempt + 1))
     return False
 
+# --- The navigation pane ------------------------------------------------
+#
+# OneNote greys the whole navigation pane out while it is still opening
+# notebooks and silently drops clicks on it, and a greyed "+ New Section" link
+# still matches new-section.png at 0.88 against the 0.7 threshold - so waiting
+# for that image is not a readiness check at all. App Tests run 35787162482
+# cleared the wait on a disabled pane, clicked a link that did nothing, and then
+# typed the section name into the page title and the note body, where OneNote's
+# Tab turns a paragraph into a table. That table, holding the three lines the
+# test meant to put on a page, is what sits in the middle of every
+# onenote_result_1.png failure - 90 s after the click that caused it. The pane
+# says in as many words that it is busy, so wait for that to go instead.
+def wait_notebooks_loaded(timeout=180):
+    started = time.time()
+    # The message takes a moment to appear after the notebook prompt is
+    # answered, so a single miss proves nothing; want it gone three times over.
+    quiet = 0
+    while time.time() - started < timeout:
+        if exists("notebooks-loading.png", 1):
+            quiet = 0
+        else:
+            quiet += 1
+            if quiet >= 3:
+                return True
+        wait(1)
+    Debug.user("wait_notebooks_loaded: pane still loading after %d s" % (time.time() - started))
+    return False
+
+# Every section this test makes goes in My Notebook, the notebook OneNote keeps
+# on the machine under Documents\OneNote Notebooks. It belongs to the VM, so two
+# runs on two VMs cannot see each other's sections. The account's cloud notebook
+# is the opposite - every run on every machine shares it - and a bare
+# click("new-section.png") takes whichever "+ New Section" link scores highest,
+# which is the cloud notebook's whenever it happens to be open. Anchor every
+# section step on My Notebook's own row instead, so the notebook is never in
+# doubt, sections another run left in the cloud notebook only move rows this
+# test no longer looks at, and nothing here can delete a section another run is
+# working on.
+def topmost(region, image):
+    """The highest match of image within region, or None. Region.exists() gives
+    the best-scoring match rather than the first one, which is no use when the
+    point is to tell one notebook's rows from another's."""
+    try:
+        matches = list(region.findAll(image))
+    except FindFailed:
+        return None
+    if not matches:
+        return None
+    return min(matches, key=lambda match: match.y)
+
+def my_notebook_region():
+    """Every sidebar row from My Notebook's own row down."""
+    row = exists("my-notebook.png", 30)
+    if row is None:
+        return None
+    top = row.getTarget().y + 12
+    return Region(0, top, 200, SCREEN.getH() - top)
+
+def my_notebook_new_section():
+    """My Notebook's "+ New Section" link. It closes that notebook's rows, so
+    within the region it is the topmost one even when another notebook is
+    listed below."""
+    region = my_notebook_region()
+    if region is None:
+        return None
+    return topmost(region, "new-section.png")
+
+def my_notebook_sections():
+    """The rows between My Notebook and its "+ New Section" link - that
+    notebook's sections and nothing else."""
+    region = my_notebook_region()
+    if region is None:
+        return None
+    link = topmost(region, "new-section.png")
+    if link is None:
+        return None
+    height = link.y - region.y
+    if height <= 0:
+        return None
+    return Region(region.x, region.y, region.w, height)
+
+def delete_section(row):
+    """Right-click a section row and delete it, backing out if the menu that
+    opens is not a section's."""
+    rightClick(row)
+    if not exists("delete-note.png", 10):
+        # Not the section menu - a notebook's has no Delete entry. Back out
+        # rather than clicking anything in a menu we did not mean to open.
+        type(Key.ESC)
+        wait(2)
+        return False
+    click("delete-note.png")
+    # the confirmation dialog is not instant; clicking blind misses it
+    wait("yes-delete.png", 20)
+    click("yes-delete.png")
+    wait(5)
+    return True
+
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resources", "secrets.txt"))
 username = credentials.get("username")
@@ -212,40 +310,54 @@ wait("onenote-launched.png",30)
 if exists("notebooks-cancel.png",30):
     click("notebooks-cancel.png")
 
+wait_notebooks_loaded()
 wait("new-section.png",20)
 wait(10)
 
-# Remove default-named sections left behind by an earlier run. The test creates a
-# section and then renames it to "Test"; a run that dies between those two steps
-# leaves "New Section 1" behind, and the cleanup at the end only deletes the
-# sections it named. The notebook lives in the cloud and is shared by every run
-# on every machine, so the leftover is still there for the next run, where it
-# shifts the sidebar under the section images and the delete steps act on the
-# wrong row. Clear them so the sidebar starts in a known state.
+# Remove default-named sections left behind by an earlier run on this VM. The
+# test creates a section and then renames it to "Test"; a run that dies between
+# those two steps leaves "New Section 1" behind, and the cleanup at the end only
+# deletes the sections it named.
+#
+# Look for them only among My Notebook's own section rows. leftover-section.png
+# is "New Section 1" and the link below those rows reads "+ New Section", which
+# it matches at 0.87-0.95 - so searching the whole screen finds the link, every
+# time, in runs that have no leftover at all: the loop then right-clicks it five
+# times over and backs out of a menu with no Delete in it. Cutting the search off
+# above the link removes the false match without touching the image.
 for _ in range(5):
-    if not exists("leftover-section.png",5):
+    sections = my_notebook_sections()
+    if sections is None:
+        break
+    if not sections.exists("leftover-section.png", 5):
         break
     # The sidebar collapses its Recent and Favourites blocks shortly after the
     # notebook opens, which moves every row up, so re-locate immediately before
     # the right-click instead of reusing the first sighting.
     wait(2)
-    leftover = exists("leftover-section.png",3)
+    sections = my_notebook_sections()
+    leftover = sections and sections.exists("leftover-section.png", 3)
     if not leftover:
         break
-    rightClick(leftover)
-    if not exists("delete-note.png",10):
-        # Not the section menu - the notebook menu has no Delete entry. Back out
-        # rather than clicking anything in a menu we did not mean to open.
-        type(Key.ESC)
-        wait(2)
-        continue
-    click("delete-note.png")
-    wait("yes-delete.png",20)
-    click("yes-delete.png")
-    wait(5)
+    delete_section(leftover)
 
-click("new-section.png")
-wait(5)
+# Make the section. Clicking "+ New Section" opens an inline rename editor in
+# the sidebar with the default name selected, and the paste below goes into it;
+# the Tab after that commits the name and moves on to the page title. When the
+# click does not take, none of that is true and the same keystrokes go into the
+# page and build a table instead, so wait for the editor and click again rather
+# than trusting a fixed budget.
+for attempt in range(3):
+    link = my_notebook_new_section()
+    if link is None:
+        raise FindFailed("My Notebook has no New Section link")
+    click(link)
+    if exists("section-rename.png", 15):
+        break
+    Debug.user("new section: no rename editor on attempt %d" % (attempt + 1))
+    wait(5)
+else:
+    raise FindFailed("clicking New Section did not open the rename editor")
 paste("Test")
 wait(2)
 type(Key.TAB)
@@ -293,27 +405,17 @@ type("p", Key.CTRL)
 wait("onenote_print.png",20)
 type(Key.ESC)
 wait("onenote_result_3.png",10)
-if exists("quick-notes-notebook.png",10):
-    rightClick("quick-notes-notebook.png")
-    click("delete-note.png")
-    # the confirmation dialog is not instant; clicking blind misses it
-    wait("yes-delete.png",20)
-    click("yes-delete.png")
-    wait(5)
-if exists("test-section2.png",10):
-    rightClick("test-section2.png")
-    click("delete-note.png")
-    # the confirmation dialog is not instant; clicking blind misses it
-    wait("yes-delete.png",20)
-    click("yes-delete.png")
-    wait(5)
-if exists("test-section.png",10):
-    rightClick("test-section.png")
-    click("delete-note.png")
-    # the confirmation dialog is not instant; clicking blind misses it
-    wait("yes-delete.png",20)
-    click("yes-delete.png")
-    wait(5)
+# Delete only this VM's own sections. Matched against the whole screen these
+# names find the cloud notebook's rows just as readily - it has a "Quick Notes"
+# of its own, and a "Test" left by any run that died before its cleanup - so a
+# run could delete a section another run was working on.
+for image in ("quick-notes-notebook.png", "test-section2.png", "test-section.png"):
+    sections = my_notebook_sections()
+    if sections is None:
+        break
+    row = sections.exists(image, 10)
+    if row:
+        delete_section(row)
 type(Key.F1)
 # The help pane loads its content over the network and intermittently comes back
 # with "Sorry, we cannot load this feature ... Click Retry once you are back
