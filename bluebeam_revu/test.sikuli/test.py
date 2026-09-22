@@ -143,15 +143,27 @@ click("always.png")
 # blocked on an optional prompt while what it actually asserts had already
 # happened. So dismiss whichever prompts are really up, in whatever order they
 # come, and finish on the document.
+# The prompt, with the click placed on its "Do not show this message again"
+# checkbox by offset.
+default_pdf_prompt = Pattern("default-pdf-ok.png").targetOffset(-180, 36)
+
+
 def dismiss_default_viewer_prompt():
     """Revu's "confirm Revu as the default PDF viewer" prompt, if it is up.
 
     Ticks "Do not show this message again" (the targetOffset), presses the
     default OK button, and closes the Windows Default apps page that OK opens.
+
+    The look and the click are one match, not two searches: clicking a freshly
+    built Pattern searches the screen again, and run 35791961407 died there with
+    FindFailed("default-pdf-ok.png ... seen at (751, 418) with 0.92") when the
+    prompt closed in between. exists() on the offset Pattern returns a Match
+    whose target already carries the offset, so click(prompt) needs no research.
     """
-    if not exists("default-pdf-ok.png", 0):
+    prompt = exists(default_pdf_prompt, 0)
+    if not prompt:
         return False
-    click(Pattern("default-pdf-ok.png").targetOffset(-180, 36))
+    click(prompt)
     type(Key.ENTER)
     # OK sends the shell to Settings > Default apps. Close that only once it is
     # really there: the Alt+F4 used to be unconditional, so on any run where
@@ -237,11 +249,11 @@ def close_revu():
 
 
 close_revu()
-deadline = time.time() + 120
+deadline = time.time() + 60
 while time.time() < deadline:
     if not session_running():
         break
-    # Something is still holding a Revu open. Clear it and ask again.
+    # Something on screen is still holding a Revu open. Clear it and ask again.
     settings = exists("default-apps.png", 0)
     if settings:
         # Raise the Settings window first: an Alt+F4 sent while Revu has the
@@ -252,5 +264,15 @@ while time.time() < deadline:
     close_revu()
     wait(5)
 
-# Check if the session terminates.
-util.check_running()
+# Past this point nothing visible is left to clear, and a close that has nothing
+# to address is not the same as a session that has ended. Run 35791920268 sat
+# here with Revu gone from both the screen and the taskbar while its `revu`
+# session stayed Running for the full 180 s that followed - a process tree with
+# no window, which closeApp cannot reach and no amount of waiting fixes.
+#
+# end_session is what !include already offers for that: a last grace for the app
+# to go on its own, then stop the session by id and assert the container tears
+# down - which is Turbo's job rather than Revu's - instead of failing the run on
+# the app's own habits. On a healthy run it returns at the first poll and this
+# costs nothing. paintdotnet and azuredatastudio end the same way.
+util.end_session()
