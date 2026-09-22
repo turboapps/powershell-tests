@@ -58,7 +58,11 @@ wait(15)
 # on the ID field and the password is typed into it in the clear. Measured with
 # OpenCV TM_CCOEFF_NORMED: the ID field peaks at 0.704, a real password box at
 # 0.949-0.985. 0.85 sits clear of both.
-password_box_image = Pattern("password-box.png").similar(0.85)
+# PROBE ONLY: an unmatchable magenta block in place of the password box, so
+# the sign-in loop can never reach the password step. The run must fail with
+# "sign-in did not complete: the Bluebeam sign-in window is still open"; if
+# it passes, the loop is vacuous and never really proves a sign-in.
+password_box_image = Pattern("probe-never.png").similar(0.85)
 
 # The sign-in card is a web view that reloads whenever it likes: it goes blank
 # ("Loading... signin.bluebeam.com"), comes back at the *email* step, and only
