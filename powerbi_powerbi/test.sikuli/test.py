@@ -76,7 +76,29 @@ click("close_apply.png")
 # Check "help".
 click("menu_help.png")
 click("help_support.png")
-wait("help_url.png",20)
+# Help > Support hands the URL to the Edge that the isolate-edge-wc layer brings
+# into the container, so the 20 s budget had to cover a browser cold start, the
+# navigation and a redirect. It did not. Both tests failed here in App Tests run
+# 35678863980 on two different VMs of the same host minutes apart, and in both
+# the FAILED frame -- taken in the except handler, ~9 s past the deadline -- shows
+# the support page fully rendered and scoring 0.8697 against the reference, i.e.
+# the page arrived, just late. The pair had passed the same step on the same xvm
+# build 6 h earlier (run 35654098667) with ~19 s of that 20 s already spent, so
+# the budget was one slow host away from failing every time. Same shape as the
+# acrobatpro F1 wait and the opensearch green-open wait, so use the same helper:
+# it re-asserts the focus each round, which also covers Edge opening behind the
+# Power BI window, and the close_app below then acts on a focused Edge.
+#
+# help_url.png is re-captured at the same time. It had read
+# ".../en-US/support/" since 2024-06-11, but that path now 302s to "/support/",
+# so what kept the step green was the shared prefix of a URL the page no longer
+# shows: 0.8697 against the rendered page, down from the 1.0 it was captured at
+# and eroding with every further change to the URL. The new reference is cropped
+# from this run's lossless -fail.png and scores 1.0 on both failures (0.44 next
+# best elsewhere on the screen, 0.44 on the pre-Edge frame, so it still cannot
+# pass before the page is up).
+if not util.focus_and_wait("Edge", "help_url.png", attempts=9, poll=10):
+    wait("help_url.png", 5)
 util.close_app("Edge")
 wait(10)
 type(Key.F4, Key.ALT)
