@@ -14,6 +14,41 @@ click(Pattern("tableau_reg.png").targetOffset(-289,0))
 type(Key.F4, Key.ALT)
 click(Pattern("tableau_reg_exit.png").targetOffset(-139,10))
 click(Pattern("tableau_reg_exit.png").targetOffset(99,52))
+# Let Tableau finish its own exit before the session is stopped.
+#
+# This is the only close in the test that a `turbo stop` follows, and it is the
+# only place that has ever produced a crash dump. Tableau's shutdown spawns
+# `sc  stop "FlexNet Licensing Service 64"` twice, inside the last ~1.5 s of
+# tabreader.exe's life - the VM logs from App Tests 35775110559 put the
+# NtCreateUserProcess in tabreader.exe's own xclog, not in any Turbo process. So
+# a stop issued while that teardown is still running creates those children into
+# a container that is already unloading. Under xvm 26.9.x such a child comes up with a completely
+# unbound import table - every IAT slot still holds the on-disk RVA of its own
+# IMAGE_IMPORT_BY_NAME record - and dies on its first call through a thunk with
+# c0000005 EXECUTE at an address that is in no module. That is VM-2896, a product
+# defect tracked with its own standalone repro; this only stops the test
+# manufacturing the race.
+#
+# SikuliX never notices: the script passes end to end and the job is failed by
+# the crash-dump gate. App Tests 35678863980 (reader, sc.exe.6080.dmp, fault at
+# 0x13346 = "__C_specific_handler") and 35002798650 / 35002810972 / 35022008056
+# (public, xvm 26.9.47) all look like that.
+#
+# Measured on branch probe-tableau-turbostop-race, 5 App Tests runs x 8 cycles on
+# xvm 26.9.48, the arms alternating inside each job:
+#
+#     stop-races (this test today)  5/20 cycles wrote an sc.exe dump, 7/20 any
+#     stop-after (this change)      0/20                            , 0/20
+#
+# Fisher one-sided p = 0.024 on sc.exe, p = 0.0042 on any dump. The two extra
+# dumps under stop-races were `conhost.exe --headless` - sc.exe's own console
+# host, killed by the same unbound IAT (hint 0x0018 "GetSystemTimeAsFileTime",
+# reached from _security_init_cookie).
+#
+# The application exits ~2 s after the close (the probe measured 2-6 s over 20
+# cycles), so this normally costs nothing. Wait on the process rather than on the
+# session, as autodesk_dwgtrueview does for the same reason.
+util.wait_process_gone("tabreader.exe", 120)
 run("turbo stop test")
 
 # Launch the app.
