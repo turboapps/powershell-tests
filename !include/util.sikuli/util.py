@@ -1153,6 +1153,44 @@ def click_settled(target, done_image, attempts=3, timeout=30):
         Debug.user("click_settled: %s did not reach %s on attempt %d of %d"
                    % (target, done_image, attempt, attempts))
 
+# Click a control that is expected to disappear as a result of the click, and
+# say so when it does not.
+#
+# click_settled is the version for a click with a visible outcome elsewhere on
+# screen. This is the other shape: the button is its own witness, because acting
+# on it dismisses the surface it lives on. A Send button on an open compose is
+# the case this was written for - once the message goes out the compose closes
+# and the button goes with it, so "still there" is exactly "the click did not
+# take".
+#
+# The point is not the retry. It is that the step stops being unverified.
+# click() reports success as soon as the mouse-down is delivered, so a click
+# that lands on an unfocused or covered surface leaves the test carrying on with
+# a compose still open behind it - and the outlook test would then go looking for
+# the calendar, find it in the left rail, print a calendar and pass, having never
+# sent the mail it claims to test.
+#
+# The target must be one that cannot match anything on the screen the click
+# leads to, or the loop reads its own success as a failure and clicks again.
+#
+# Returns True once the target is gone. On False the caller's own assertion is
+# what fails; the log now says how many clicks the control absorbed.
+def click_until_gone(target, attempts=3, grace=15, poll=2):
+    for attempt in range(attempts):
+        click(target)
+        waited = 0
+        while waited < grace:
+            if not exists(target, 0):
+                if attempt:
+                    Debug.user("click_until_gone: %s went away after %d clicks"
+                               % (target, attempt + 1))
+                return True
+            wait(poll)
+            waited += poll
+        Debug.user("click_until_gone: %s still on screen %d s after the click "
+                   "(attempt %d of %d)" % (target, grace, attempt + 1, attempts))
+    return False
+
 # ---------------------------------------------------------------------------
 # VS Code
 # ---------------------------------------------------------------------------
