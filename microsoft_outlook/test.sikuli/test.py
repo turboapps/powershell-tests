@@ -55,7 +55,23 @@ wait(3)
 paste("sikulix test email")
 type(Key.TAB)
 paste("This email can be deleted.")
-click("send-email-button.png")
+# Send, and hold the test to the send actually happening.
+#
+# send-email-button.png used to be the word "Send" on the flat blue button - a
+# 71x25 crop that is almost entirely one colour, so the only thing the match had
+# to go on was the four thin glyphs. It scored 0.738 on the runs that passed,
+# 0.038 over SikuliX's 0.7 default. In App Tests run 35806302540 the compose
+# surface painted its label and its paper-plane icon a weight lighter than usual
+# (the button came out 5 px narrower; everything outside the compose - the Home
+# ribbon, the message list, the subject and body text - was pixel-identical to
+# the passing runs), which took the same on-screen button down to 0.426 and
+# FindFailed on a Send button that was right there, enabled, over a fully
+# addressed message. The reference is now the paper-plane glyph inside the
+# button: a shape rather than text, 0.95-0.97 against both renderings, and 0.46
+# against the New mail button - the one other blue-button-with-white-icon on
+# screen, and the one the click leads back to.
+if not util.click_until_gone("send-email-button.png"):
+    raise FindFailed("send-email-button.png: compose still open after Send")
 wait(5)
 click("calendar-button.png")
 wait("today-icon.png")
