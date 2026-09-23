@@ -175,12 +175,30 @@ def launch_adobe_cc(username, password):
     closeApp("Creative Cloud Desktop")
 
 # Log in for Adobe Creative Cloud.
-def adobe_cc_login(username, password):
-    wait(Pattern("adobe_login.png").similar(0.40),60)
-    click("cancel-button.png")
-    wait(20)
-    wait(Pattern("adobe_login.png").similar(0.40),10)
-    click(Pattern("adobe_login.png").similar(0.40))
+#
+# `reload_page` is the Creative Cloud Desktop dance and only that. There, the
+# first render of the sign-in page does not take the keystrokes, so the helper
+# clicks Cancel to make the host throw that page away and load a fresh one - and
+# it does: Cancel leaves Creative Cloud Desktop sitting on a reloaded sign-in
+# page (different hero image, email box focused), which is why the wait for the
+# page to come back is safe there.
+#
+# It is not safe in an app that hosts the same page itself. Premiere Rush reads
+# Cancel as "skip signing in": the sign-in window closes for good and Rush drops
+# to its signed-out main window (and pops its "Creative Cloud Synced files is
+# being discontinued" notice on top of it). Nothing brings the page back, so the
+# 10 s wait below could not succeed, and premiererush failed on this exact line
+# in every suite run that reached it - identically, six for six, since
+# 2026-09-16. Those callers pass reload_page=False and sign in on the page that
+# is already up.
+def adobe_cc_login(username, password, reload_page=True):
+    login = Pattern("adobe_login.png").similar(0.40)
+    wait(login,60)
+    if reload_page:
+        click("cancel-button.png")
+        wait(20)
+        wait(login,10)
+    click(login)
     wait(6)
     paste(username)
     wait(3)
