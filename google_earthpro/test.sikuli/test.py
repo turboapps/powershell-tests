@@ -39,7 +39,11 @@ def wait_compass(attempts=4, budget=15):
 
 # Test of `turbo run`.
 click(Pattern("DX_mode.png").targetOffset(33,21))
+# PROBE ONLY - DO NOT MERGE: force the losing side of the race by waiting for the
+# announcement balloon to cover the compass before the compass is ever looked for.
+assert exists(Pattern("announcement-close.png").similar(0.8), 120), "PROBE: balloon never appeared"
 wait_compass()
+assert exists(Pattern("announcement-close.png").similar(0.8), 0) is None, "PROBE: balloon survived wait_compass"
 wait(3)
 run("turbo stop test")
 
