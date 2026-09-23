@@ -62,6 +62,7 @@ wait("settings_page.png")
 type(Key.F1)
 wait("help_page.png")
 util.close_app("Chrome")
+util.wait_app_quiet("chrome.exe")
 
 # Set default browser.
 type("i", Key.WIN)
@@ -80,6 +81,7 @@ type(Key.F4, Key.ALT)
 run("explorer " + html_location)
 wait("webpage.png")
 util.close_app("Chrome")
+util.wait_app_quiet("chrome.exe")
 run('explorer "https://google.com/"')
 wait("webpage.png") # To gain focus.
 wait(2)
