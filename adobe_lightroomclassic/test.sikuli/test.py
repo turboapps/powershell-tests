@@ -32,8 +32,7 @@ if exists("adobe_login_signout_others.png",120):
     click(Pattern("adobe_login_continue.png").similar(0.80))
 if exists("adobe_login_team.png",10):
     click(Pattern("adobe_login_continue.png").similar(0.80))
-wait("lightroomcc_window.png",30)
-wait("whats_new.png",20)
+wait("whats_new.png",120)
 click("whats_new.png")
 wait(30)
 click("whats_new.png")
