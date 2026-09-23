@@ -6,6 +6,30 @@ reload(util)
 addImagePath(include_path)
 
 setAutoWaitTimeout(40)
+
+# PROBE ONLY - DO NOT MERGE.
+#
+# Run SikuliX's own matcher - not an OpenCV stand-in - over the archived compose
+# header from App Tests run 35806302540, the render in which the Send button
+# painted a weight lighter and the old reference FindFailed on it. Asserts both
+# directions, so it cannot pass vacuously: the new reference has to match that
+# render, and the old one has to not.
+from org.sikuli.script import Finder, Pattern
+
+def _probe_score(ref):
+    finder = Finder(os.path.join(script_path, "probe-fail-compose.png"))
+    finder.find(Pattern(os.path.join(script_path, ref)).similar(0.4))
+    if not finder.hasNext():
+        return 0.0
+    return finder.next().getScore()
+
+_new = _probe_score("send-email-button.png")
+_old = _probe_score("probe-old-send-email-button.png")
+Debug.user("PROBE archived light-weight render: new ref %.3f, old ref %.3f" % (_new, _old))
+assert _new >= 0.90, "PROBE: new reference misses the failing render (%.3f)" % _new
+assert _old < 0.70, "PROBE: old reference unexpectedly matches the failing render (%.3f)" % _old
+Debug.user("PROBE: new reference matches where the old one FindFailed")
+
 util.pre_test()
 
 # Read credentials from the secrets file.
