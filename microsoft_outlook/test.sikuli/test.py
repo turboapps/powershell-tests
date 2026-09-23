@@ -70,8 +70,10 @@ paste("This email can be deleted.")
 # button: a shape rather than text, 0.95-0.97 against both renderings, and 0.46
 # against the New mail button - the one other blue-button-with-white-icon on
 # screen, and the one the click leads back to.
-if not util.click_until_gone("send-email-button.png"):
-    raise FindFailed("send-email-button.png: compose still open after Send")
+# PROBE ONLY - DO NOT MERGE. Control for probe-outlook-send-sabotage: the same
+# lost click, but through the bare click() the fix replaced. If this branch
+# passes, an unverified Send click is invisible to the test.
+click(Pattern("send-email-button.png").targetOffset(0, 300))
 wait(5)
 click("calendar-button.png")
 wait("today-icon.png")
