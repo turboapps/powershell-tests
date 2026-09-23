@@ -10,6 +10,9 @@ util.pre_test()
 
 # Test of `turbo run`.
 click(Pattern("DX_mode.png").targetOffset(33,21))
+# PROBE ONLY - DO NOT MERGE: control for the fix probe. Same forced ordering, no
+# dismissal - the unhardened wait must burn its budget against a hidden compass.
+assert exists(Pattern("announcement-close.png").similar(0.8), 120), "PROBE: balloon never appeared"
 wait("compass.png")
 wait(3)
 run("turbo stop test")
