@@ -70,7 +70,11 @@ paste("This email can be deleted.")
 # button: a shape rather than text, 0.95-0.97 against both renderings, and 0.46
 # against the New mail button - the one other blue-button-with-white-icon on
 # screen, and the one the click leads back to.
-if not util.click_until_gone("send-email-button.png"):
+# PROBE ONLY - DO NOT MERGE. Send the click 300 px below the button, into the
+# message body, so the mail is never sent and the compose stays open. The
+# fix is supposed to notice and fail here; the control branch
+# (probe-outlook-send-control) is the same sabotage with a bare click().
+if not util.click_until_gone(Pattern("send-email-button.png").targetOffset(0, 300)):
     raise FindFailed("send-email-button.png: compose still open after Send")
 wait(5)
 click("calendar-button.png")
