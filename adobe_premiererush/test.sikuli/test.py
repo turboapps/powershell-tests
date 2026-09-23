@@ -19,7 +19,9 @@ username = credentials.get("username")
 password = credentials.get("password")
 
 # Test of `turbo run`.
-util.adobe_cc_login(username, password)
+# Rush hosts the Adobe sign-in page itself, and its Cancel button skips signing
+# in rather than reloading the page, so do not let the helper click it.
+util.adobe_cc_login(username, password, reload_page=False)
 if exists("cc_discontinued_top.png"):
     click(Pattern("cc_discontinued_top.png").targetOffset(52,-19)) # To gain focus
     click(Pattern("cc_discontinued.png").targetOffset(173,30))
