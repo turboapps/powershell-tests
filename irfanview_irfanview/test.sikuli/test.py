@@ -17,8 +17,13 @@ wait("irfanview-menu.png")
 wait(3)
 run("turbo stop test")
 
-# Launch the app.
-run("explorer " + os.path.join(util.desktop, "IrfanView.lnk"))
+# Launch the app. The desktop shortcut name comes from the image, not the test,
+# and it moves: irfanview-arm64 shipped "IrfanView.lnk" when this test was
+# written, "IrfanView ARM64.lnk" by 4.75, and "IrfanView.lnk" again in 4.76.
+# Resolve before launching - explorer with a missing path does not fail, it
+# silently opens a Documents window and the test then dies at an unrelated
+# wait() further down, pointing at the wrong thing.
+util.launch_shortcut("IrfanView.lnk", base=util.desktop)
 wait("irfanview-menu.png")
 click("irfanview-menu.png")
 
