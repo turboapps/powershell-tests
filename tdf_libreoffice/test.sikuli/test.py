@@ -8,6 +8,34 @@ addImagePath(include_path)
 setAutoWaitTimeout(50)
 util.pre_test()
 
+# Every module below is exercised the same way: save a document, close the
+# window, then reopen the saved file through its file association. Both halves
+# of that are launches into the same Turbo container, and the close before them
+# is fire-and-forget - Alt+F4 returns as soon as the window accepts it, while
+# the sandbox behind it is still tearing down. A launch that lands in that gap
+# opens nothing at all: the client logs
+#
+#   [INF] Retrying after launch in sandbox failed due to potential shutdown
+#         race condition: Failed to start application in already running session
+#   [FTL] Error: Failed to start application in already running session
+#
+# and leaves a TURBO.NET error box on the desktop, so the wait that follows
+# spends its whole budget against a bare desktop and then reports the document
+# image instead of the launch that never happened.
+#
+# App Tests run 35775188040 failed exactly there (line 73, test-db-open.png):
+# step frame 028 is that error box, and the client log shows the client's own
+# two internal retries, 5 s apart, both losing to a session that was still
+# shutting down. The blind wait(5) this file used between the close and the
+# relaunch is shorter than the teardown it is waiting for, and every one of the
+# eleven launch sites had that or nothing at all.
+#
+# util.wait_app_quiet() waits for both halves to go quiet - the process off the
+# task list AND the session out of `turbo sessions -l` - because measured on the
+# pool VMs they settle in either order. util.reopen_in_new_window() does that
+# and then also clears and retries the TURBO.NET box if the race still wins,
+# which is the case a wait alone cannot cover.
+
 # Test of `turbo run`.
 wait("office-launched.png",90)
 run("turbo stop test")
@@ -49,14 +77,14 @@ type(Key.ENTER)
 wait(5)
 assert(util.file_exists(save_path, 5))
 type(Key.F4, Key.ALT)
-wait(5)
-run("explorer " + save_path)
-wait("test-doc-open.png",60)
+if not util.reopen_in_new_window(save_path, "test-doc-open.png", "soffice.bin"):
+    raise FindFailed("the saved Writer document never reopened")
 wait(3)
 type(Key.F4, Key.ALT)
 type("q", Key.CTRL)
 
 # Test Base.
+util.wait_app_quiet("soffice.bin")
 run("explorer " + os.path.join(util.start_menu, "LibreOffice", "LibreOffice Base.lnk"))
 wait("create-new-db.png")
 click(Pattern("create-new-db.png").targetOffset(105,258))
@@ -68,13 +96,13 @@ type(Key.ENTER)
 assert(util.file_exists(save_path, 5))
 wait(5)
 type(Key.F4, Key.ALT)
-wait(5)
-run("explorer " + save_path)
-wait("test-db-open.png")
+if not util.reopen_in_new_window(save_path, "test-db-open.png", "soffice.bin"):
+    raise FindFailed("the saved Base database never reopened")
 wait(3)
 type(Key.F4, Key.ALT)
 
 # Test Calc.
+util.wait_app_quiet("soffice.bin")
 run("explorer " + os.path.join(util.start_menu, "LibreOffice", "LibreOffice Calc.lnk"))
 wait("new-sheet.png")
 click(Pattern("new-sheet.png").targetOffset(-74,-17))
@@ -100,13 +128,13 @@ type(Key.ENTER)
 wait(5)
 assert(util.file_exists(save_path, 5))
 type(Key.F4, Key.ALT)
-wait(5)
-run("explorer " + save_path)
-wait("test-sheet-open.png")
+if not util.reopen_in_new_window(save_path, "test-sheet-open.png", "soffice.bin"):
+    raise FindFailed("the saved Calc sheet never reopened")
 wait(3)
 type(Key.F4, Key.ALT)
 
 # Test Draw.
+util.wait_app_quiet("soffice.bin")
 run("explorer " + os.path.join(util.start_menu, "LibreOffice", "LibreOffice Draw.lnk"))
 wait("shape-tool.png")
 click("shape-tool.png")
@@ -121,13 +149,13 @@ wait(2)
 type(Key.ENTER)
 wait(5)
 type(Key.F4, Key.ALT)
-wait(5)
-run("explorer " + save_path)
-wait("test-drawing-open.png")
+if not util.reopen_in_new_window(save_path, "test-drawing-open.png", "soffice.bin"):
+    raise FindFailed("the saved Draw drawing never reopened")
 wait(3)
 type(Key.F4, Key.ALT)
 
 # Test Impress.
+util.wait_app_quiet("soffice.bin")
 run("explorer " + os.path.join(util.start_menu, "LibreOffice", "LibreOffice Impress.lnk"))
 wait("new-presentation.png")
 doubleClick("new-presentation.png")
@@ -141,13 +169,13 @@ wait(2)
 type(Key.ENTER)
 wait(5)
 type(Key.F4, Key.ALT)
-wait(5)
-run("explorer " + save_path)
-wait("test-presentation-open.png")
+if not util.reopen_in_new_window(save_path, "test-presentation-open.png", "soffice.bin"):
+    raise FindFailed("the saved Impress presentation never reopened")
 wait(3)
 type(Key.F4, Key.ALT)
 
 # Test Math.
+util.wait_app_quiet("soffice.bin")
 run("explorer " + os.path.join(util.start_menu, "LibreOffice", "LibreOffice Math.lnk"))
 wait("elements.png")
 click(Pattern("elements.png").targetOffset(135,12))
@@ -162,9 +190,8 @@ wait(2)
 type(Key.ENTER)
 wait(5)
 type(Key.F4, Key.ALT)
-wait(5)
-run("explorer " + save_path)
-wait("test-formula-open.png")
+if not util.reopen_in_new_window(save_path, "test-formula-open.png", "soffice.bin"):
+    raise FindFailed("the saved Math formula never reopened")
 wait(3)
 type(Key.F4, Key.ALT)
 
