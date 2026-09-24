@@ -79,7 +79,19 @@ click("close_apply.png")
 # forced is recorded and ignored.
 edge_before = util.stop_processes("msedge.exe")
 click("menu_help.png")
-click("help_support.png")
+# SABOTAGE PROBE: hover instead of click, i.e. a lost Support click.
+hover("help_support.png")
+# SABOTAGE PROBE: start a windowless fake msedge.exe (ping.exe copied and started
+# hidden). Passed as -EncodedCommand: a .ps1 written from here lands in the
+# sikulixide sandbox (merge-user isolation) where powershell cannot see it.
+import base64
+probe_script = (r"$d = Join-Path $env:TEMP 'probe-edge'; New-Item -ItemType Directory -Force $d | Out-Null; "
+                r"Copy-Item C:\Windows\System32\PING.EXE (Join-Path $d 'msedge.exe') -Force; "
+                r"Start-Process -FilePath (Join-Path $d 'msedge.exe') -ArgumentList '-n','900','127.0.0.1' -WindowStyle Hidden")
+run("powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand " + base64.b64encode(probe_script.encode("utf-16-le")))
+wait(5)
+probe_fake = util.list_processes("msedge.exe")
+Debug.user("PROBE: fake msedge.exe spawned; msedge.exe now %s" % probe_fake)
 # Help > Support hands the URL to the Edge that the isolate-edge-wc layer brings
 # into the container, so the 20 s budget had to cover a browser cold start, the
 # navigation and a redirect. It did not. Both tests failed here in App Tests run
@@ -133,6 +145,9 @@ for click_round in range(3):
         click("help_support.png")
     opened = util.wait_launched_window("Edge", "help_url.png", "msedge.exe", edge_before, edge_seen,
                                        attempts=5 if click_round == 0 else 4)
+    Debug.user("PROBE: click round %d opened=%s seen=%s" % (click_round, opened, edge_seen))
+    if click_round == 0:
+        assert not opened, "PROBE control: Edge opened without a Support click"
     if not opened and edge_seen:
         opened = util.wait_launched_window("Edge", "help_url.png", "msedge.exe", edge_before, edge_seen, attempts=4)
     if opened or edge_seen:
