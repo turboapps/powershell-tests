@@ -30,21 +30,15 @@ password = credentials.get("password")
 # functional, a later step fails.)
 if exists("office_signin.png",120):
     click(Pattern("office_signin.png").targetOffset(-114,106))
-    # "Email or phone" is an input placeholder, and the WebView2 sign-in host
-    # sometimes paints the whole page without those glyphs: in App Tests runs
-    # 35774940564 and 35774950776 the failure frame differed from a passing
-    # one only inside the 97x13 box the placeholder occupies - same heading,
-    # same caret, same Next button, 340 pixels apart across a 440x550 dialog.
-    # Waiting on it makes readiness depend on the one string that can go
-    # missing, so fall back to the account link under the field: it paints
-    # with the rest of the page and scores 0.36 on the dialog that precedes
-    # this one, so it cannot match early. No click is added here on purpose -
-    # the page focuses the field itself and clicking it defocused the field in
-    # the rework this test was fixed for in #162/#168.
-    if not exists("office_signin_email.png", 30):
-        wait("office_signin_create.png", 30)
-    util.paste_text(username)
-    type(Key.ENTER)
+    # util.office_signin_address confirms the address actually went in. A bare
+    # paste + ENTER does not: in App Tests run 35935367711 the ENTER here was
+    # lost (step frame 008 still shows the address page with the address typed
+    # into it), the password page never came, and this block quietly signed
+    # nobody in. That moves the real sign-in - and the prompts that trail it -
+    # to the Word launch below. The helper anchors on the page furniture rather
+    # than the "Email or phone" placeholder, which is also the one string on
+    # this page that can go unpainted (runs 35774940564 and 35774950776).
+    util.office_signin_address(username, "office_signin_password.png")
     if exists("office_signin_password.png",10):
         util.paste_text(password)
         type(Key.ENTER)
@@ -70,21 +64,15 @@ save_location = os.path.join((os.environ["USERPROFILE"]), "Documents", "First li
 run("explorer " + os.path.join(util.start_menu, "Word.lnk"))
 if exists("office_signin.png",30):
     click(Pattern("office_signin.png").targetOffset(-114,106))
-    # "Email or phone" is an input placeholder, and the WebView2 sign-in host
-    # sometimes paints the whole page without those glyphs: in App Tests runs
-    # 35774940564 and 35774950776 the failure frame differed from a passing
-    # one only inside the 97x13 box the placeholder occupies - same heading,
-    # same caret, same Next button, 340 pixels apart across a 440x550 dialog.
-    # Waiting on it makes readiness depend on the one string that can go
-    # missing, so fall back to the account link under the field: it paints
-    # with the rest of the page and scores 0.36 on the dialog that precedes
-    # this one, so it cannot match early. No click is added here on purpose -
-    # the page focuses the field itself and clicking it defocused the field in
-    # the rework this test was fixed for in #162/#168.
-    if not exists("office_signin_email.png", 30):
-        wait("office_signin_create.png", 30)
-    util.paste_text(username)
-    type(Key.ENTER)
+    # util.office_signin_address confirms the address actually went in. A bare
+    # paste + ENTER does not: in App Tests run 35935367711 the ENTER here was
+    # lost (step frame 008 still shows the address page with the address typed
+    # into it), the password page never came, and this block quietly signed
+    # nobody in. That moves the real sign-in - and the prompts that trail it -
+    # to the Word launch below. The helper anchors on the page furniture rather
+    # than the "Email or phone" placeholder, which is also the one string on
+    # this page that can go unpainted (runs 35774940564 and 35774950776).
+    util.office_signin_address(username, "office_signin_password.png")
 if exists("office_signin_password.png",10):
     util.paste_text(password)
     type(Key.ENTER)
@@ -105,7 +93,28 @@ if exists("privacy-close.png",10):
 wait(10) # wait for welcome window to go away
 wait("word_window.png",15)
 click("word_window.png")
-wait("word_new_doc.png")
+# The prompts above can come later than their windows allow, and the one that
+# matters here is "Your privacy matters": it is app-modal, so it swallows the
+# click on Blank document while word_window.png still matches around it (0.98).
+# In App Tests run 35935367711 this launch was the one that authenticated, the
+# "One moment..." device step ran past the 15 s device-reg-done window, and the
+# privacy prompt landed 19-39 s after the yes-all-apps click - after the 10 s
+# check above had already given up (0.26 at the check, 0.96 twenty seconds
+# later) - so the wait below timed out on a document that was never opened.
+# Keep clearing the optional prompts until the new document is up, and repeat
+# the Blank document click whenever one of them was in the way of it.
+for _ in range(12):
+    if exists("word_new_doc.png", 5):
+        break
+    for prompt in ["yes-all-apps.png", "device-reg-done.png", "privacy-close.png"]:
+        if exists(prompt, 0):
+            Debug.user("Word launch: closing a late %s" % prompt)
+            click(prompt)
+            if exists("word_window.png", 10):
+                click("word_window.png")
+            break
+else:
+    wait("word_new_doc.png", 0)
 wait(3)
 type("First line")
 type(Key.ENTER)
