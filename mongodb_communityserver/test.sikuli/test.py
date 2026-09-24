@@ -56,22 +56,28 @@ def compass_ready(relaunch, attempts=2, timeout=60):
                    % (attempt + 1, attempts, timeout))
     wait("add-connection-button.png", 0)
 
+# Stop every running Compass session, and only those. The listing's Images
+# column tells them apart from mongodbserver (mongodb/communityserver) and from
+# the sikulixide session running this script, which must never be stopped. The
+# `turbo try` session and the installed shortcut's session are both Compass.
+def stop_compass():
+    for line in run("turbo sessions -l").splitlines():
+        fields = line.split()
+        if len(fields) > 2 and fields[2].startswith("mongodb/compass") and "Running" in fields:
+            run("turbo stop " + fields[0])
+    util.wait_process_gone("MongoDBCompass.exe", max_wait=60)
+
 # The first launch is Test.ps1's TryTurboApp; start the replacement the same
 # way, flags included (util.try_verb gives `run` on a diagnostic run).
 def relaunch_try():
-    run("turbo stop test")
-    util.wait_process_gone("MongoDBCompass.exe", max_wait=60)
+    stop_compass()
     subprocess.Popen("turbo " + util.try_verb() + " mongodb/compass --name=test"
                      " --enable=disablefontpreload,usedllinjection,cachefileinfo --network=test"
                      " --disable-proxy-resolve-via-proxy -d" + util.read_extra())
 
-# The second launch is the installed shortcut, which runs in its own session:
-# the newest one, since it started after mongodbserver and this script.
+# The second launch is the installed shortcut.
 def relaunch_shortcut():
-    session = util._latest_session_id()
-    if session:
-        run("turbo stop " + session)
-    util.wait_process_gone("MongoDBCompass.exe", max_wait=60)
+    stop_compass()
     run("explorer " + shortcut)
 
 # Test of `turbo run`.
