@@ -10,6 +10,20 @@ addImagePath(include_path)
 setAutoWaitTimeout(30)
 util.pre_test(no_min=True)
 
+# SABOTAGE PROBE (not for merge): kill Compass once its process is up, so this
+# launch never reaches the sidebar -- the state compass_ready() must recover from.
+def sabotage_launch(label):
+    for i in range(30):
+        if "MongoDBCompass.exe" in run('tasklist /FI "IMAGENAME eq MongoDBCompass.exe"'):
+            break
+        wait(2)
+    wait(3)
+    run("taskkill /F /IM MongoDBCompass.exe")
+    Debug.user("probe: killed Compass at the %s launch" % label)
+
+
+sabotage_launch("try")
+
 # Activate and maximize the app window.
 app_window = App().focus("MongoDB Compass")
 if app_window.isValid():
