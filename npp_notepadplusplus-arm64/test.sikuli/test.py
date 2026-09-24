@@ -45,9 +45,28 @@ click("menu_help.png")
 wait("npp_help_url.png")
 # Close the foreground Edge window with Alt+F4. closeApp("Edge") intermittently fails on
 # the win11-arm pool on Edge's first-ever (cold) start (see aspnet-runtime tests).
-type(Key.F4, Key.ALT)
-type(Key.F4, Key.ALT)
-type(Key.F4, Key.ALT) # Close the explorer window
-wait(20)
+#
+# Each window is closed and then confirmed gone before the next keystroke. Three
+# back-to-back Alt+F4s assumed every window closes instantly and hands the foreground
+# to the next one; in App Tests run 36031790051 Edge took seconds to go away (it
+# crashed on the way out, msedge dump 2.7 s after the first Alt+F4), the other two
+# keystrokes landed while it was still tearing down, and Notepad++ stayed open with
+# the session Running until check_running gave up at line 53.
+util.close_window("npp_help_url.png")
+# Notepad++ is what keeps the session alive, so wait for its process rather than its
+# window, and give it the foreground first so the keystroke cannot land elsewhere:
+# click its document tab (bottom-left of npp_window.png), which selects the tab that
+# is already selected. A title match is avoided on purpose - "Notepad++" read as a
+# pattern also matches a plain "Notepad" window.
+for attempt in range(3):
+    if exists("npp_window.png", 10):
+        click(Pattern("npp_window.png").targetOffset(-90, 27))
+    type(Key.F4, Key.ALT)
+    if util.wait_process_gone("notepad++.exe", max_wait=20) >= 0:
+        break
+# Close the explorer window - only once it holds the foreground: Alt+F4 on the bare
+# desktop opens the Shut Down Windows dialog.
+if util.activate_app_window("Desktop", 10):
+    type(Key.F4, Key.ALT)
 # Check if the session terminates.
 util.check_running()
