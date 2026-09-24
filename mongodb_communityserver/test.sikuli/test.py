@@ -11,6 +11,18 @@ addImagePath(include_path)
 setAutoWaitTimeout(30)
 util.pre_test(no_min=True)
 
+# SABOTAGE PROBE (not for merge): kill Compass once its process is up, so this
+# launch never reaches the sidebar -- the state compass_ready() must recover from.
+def sabotage_launch(label):
+    for i in range(30):
+        if "MongoDBCompass.exe" in run('tasklist /FI "IMAGENAME eq MongoDBCompass.exe"'):
+            break
+        wait(2)
+    wait(3)
+    run("taskkill /F /IM MongoDBCompass.exe")
+    Debug.user("probe: killed Compass at the %s launch" % label)
+
+
 shortcut = os.path.join(util.start_menu, "MongoDB", "MongoDB Compass.lnk")
 
 # Wait for Compass to finish starting, and relaunch it once if it never does.
@@ -81,6 +93,7 @@ def relaunch_shortcut():
     run("explorer " + shortcut)
 
 # Test of `turbo run`.
+sabotage_launch("try")
 compass_ready(relaunch_try)
 type("q", Key.CTRL)
 wait(3)
@@ -89,6 +102,7 @@ run("turbo stop test")
 
 # Launch the app.
 run("explorer " + shortcut)
+sabotage_launch("shortcut")
 
 # Basic operations.
 compass_ready(relaunch_shortcut)
