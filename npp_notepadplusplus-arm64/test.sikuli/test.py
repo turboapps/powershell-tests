@@ -53,6 +53,13 @@ wait("npp_help_url.png")
 # keystrokes landed while it was still tearing down, and Notepad++ stayed open with
 # the session Running until check_running gave up at line 53.
 util.close_window("npp_help_url.png")
+# SABOTAGE PROBE (not for merge): two stray foreground windows that each absorb one Alt+F4.
+# Launched through the host shell, not run() - a child of this script would live in the
+# sikulixide container and keep its session (and the job) alive forever.
+run("explorer C:\\Windows\\System32\\charmap.exe")
+run("explorer C:\\Windows\\System32\\notepad.exe")
+wait(5)
+Debug.user("sabotage: stray charmap + notepad opened")
 # Notepad++ is what keeps the session alive, so wait for its process rather than its
 # window, and give it the foreground first so the keystroke cannot land elsewhere.
 # Focus it by its document name (the title is "...\new 1.txt - Notepad++"), which
@@ -71,5 +78,6 @@ for attempt in range(3):
 # desktop opens the Shut Down Windows dialog.
 if util.activate_app_window("Desktop", 10):
     type(Key.F4, Key.ALT)
+run("taskkill /F /IM charmap.exe /IM notepad.exe")  # SABOTAGE cleanup
 # Check if the session terminates.
 util.check_running()
