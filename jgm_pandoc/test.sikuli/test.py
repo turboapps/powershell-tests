@@ -34,7 +34,11 @@ def pandoc_convert(args, out_file, attempts=3, timeout=60, limit=600, poll=2):
     started = time.time()
     for attempt in range(attempts):
         type(Key.ESC)
-        util.paste_text(command, 2)
+        if attempt == 0 and out_file == html_file:
+            Debug.user("PROBE: dropping the paste for %s (simulated lost paste)" % out_file)
+            wait(2)
+        else:
+            util.paste_text(command, 2)
         type(Key.ENTER)
         sent = time.time()
         while time.time() - started < limit:
