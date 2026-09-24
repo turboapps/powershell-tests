@@ -1,3 +1,4 @@
+import time
 # The tests for microsoft/office-o365business-x64 and microsoft/office-o365proplus-x64 are the same.
 
 script_path = os.path.dirname(os.path.abspath(sys.argv[0])) 
@@ -28,7 +29,8 @@ password = credentials.get("password")
 # when the VM is already signed in, so only run the sign-in steps if it shows;
 # otherwise carry on. (If the app is genuinely not signed in and thus not
 # functional, a later step fails.)
-if exists("office_signin.png",120):
+Debug.user("SABOTAGE: skipping the first sign-in so the Word launch authenticates")
+if exists("office_signin.png",120) and False:
     click(Pattern("office_signin.png").targetOffset(-114,106))
     # util.office_signin_address confirms the address actually went in. A bare
     # paste + ENTER does not: in App Tests run 35935367711 the ENTER here was
@@ -72,7 +74,19 @@ if exists("office_signin.png",30):
     # to the Word launch below. The helper anchors on the page furniture rather
     # than the "Email or phone" placeholder, which is also the one string on
     # this page that can go unpainted (runs 35774940564 and 35774950776).
-    util.office_signin_address(username, "office_signin_password.png")
+    _real_type = util.type
+    _dropped = []
+    def _drop_first_enter(*args, **kwargs):
+        if not _dropped and len(args) == 1 and args[0] == Key.ENTER:
+            _dropped.append(1)
+            Debug.user("SABOTAGE: dropping the ENTER after the address paste")
+            return 1
+        return _real_type(*args, **kwargs)
+    util.type = _drop_first_enter
+    try:
+        util.office_signin_address(username, "office_signin_password.png")
+    finally:
+        util.type = _real_type
 if exists("office_signin_password.png",10):
     util.paste_text(password)
     type(Key.ENTER)
@@ -88,11 +102,12 @@ if exists("yes-all-apps.png",10):
     click("yes-all-apps.png")
 if exists("device-reg-done.png",15):
     click("device-reg-done.png")
-if exists("privacy-close.png",10):
-    click("privacy-close.png")
+Debug.user("SABOTAGE: skipping the on-time privacy check at the Word launch")
 wait(10) # wait for welcome window to go away
 wait("word_window.png",15)
 click("word_window.png")
+Debug.user("SABOTAGE CHECK: privacy prompt up after the Blank document click: %s" % bool(exists("privacy-close.png", 0)))
+_t0 = time.time()
 # The prompts above can come later than their windows allow, and the one that
 # matters here is "Your privacy matters": it is app-modal, so it swallows the
 # click on Blank document while word_window.png still matches around it (0.98).
@@ -115,6 +130,7 @@ for _ in range(12):
             break
 else:
     wait("word_new_doc.png", 0)
+Debug.user("SABOTAGE RESULT: new document up %.1f s after the Blank document click" % (time.time() - _t0))
 wait(3)
 type("First line")
 type(Key.ENTER)
