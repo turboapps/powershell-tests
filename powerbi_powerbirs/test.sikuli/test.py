@@ -72,8 +72,11 @@ click("transform_data.png")
 click("close_apply.png")
 
 # Check "help".
+# Start from no Edge at all, so that any msedge.exe seen after the click is the
+# one the click launched (see below). Anything that refuses to stop even when
+# forced is recorded and ignored.
+edge_before = util.stop_processes("msedge.exe")
 click("menu_help.png")
-edge_before = util.list_processes("msedge.exe")
 click("help_support.png")
 # Help > Support hands the URL to the Edge that the isolate-edge-wc layer brings
 # into the container, so the 20 s budget had to cover a browser cold start, the
@@ -110,7 +113,8 @@ click("help_support.png")
 #   test's problem, so click Help > Support again, up to twice.
 # - a new msedge.exe but no Edge window: the launch happened and the browser
 #   did not come up inside the container. That is a VM failure, and clicking
-#   again would only hide it, so do not retry; fail with a message that says so.
+#   again would only hide it, so do not retry; fail with a message that says so
+#   and leave the processes running for whoever looks at the VM.
 #
 # The first click gets 50 s (the slowest cold start measured was ~30 s), each
 # retry 40 s. Once a click's msedge.exe has appeared it gets 40 s more, i.e. the
@@ -137,18 +141,14 @@ for click_round in range(3):
 edge_window = any("Microsoft" in title and title.endswith("Edge") for title in edge_seen.values())
 if not opened and edge_seen and not edge_window:
     alive = util.list_processes("msedge.exe")
-    running = sorted(p for p in alive if p not in edge_before)
     Debug.user("VM FAILURE: msedge.exe started after Help > Support but never opened a window; "
-               "new pids %s, still running %s" % (sorted(edge_seen), running))
-    # Close the windowless browser so it does not hold the session open past the
-    # test. Only the processes this click started: anything that was running
-    # before it is left alone.
-    for pid in running:
-        run("taskkill /F /T /PID " + pid)
-    Debug.user("powerbi: closed msedge.exe %s; still running %s"
-               % (running, sorted(p for p in util.list_processes("msedge.exe") if p not in edge_before)))
+               "new pids %s, still running %s" % (sorted(edge_seen), sorted(p for p in edge_seen if p in alive)))
     assert False, "VM failure: msedge.exe started (pids %s) but no Edge window came up" % sorted(edge_seen)
 if not opened:
+    if edge_seen:
+        Debug.user("powerbi: Edge window up but help_url.png does not match; msedge.exe %s" % edge_seen)
+    else:
+        Debug.user("powerbi: no msedge.exe started after 3 Help > Support clicks")
     wait("help_url.png", 5)
 Debug.user("powerbi: support page up; new msedge.exe %s"
            % dict((p, t) for p, t in util.list_processes("msedge.exe").items() if p not in edge_before))

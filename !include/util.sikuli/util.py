@@ -927,6 +927,34 @@ def list_processes(executable):
             processes[fields[1]] = fields[-1]
     return processes
 
+# Stop every running instance of an executable, gracefully if it will go.
+#
+# taskkill without /F asks each process's windows to close (WM_CLOSE), which is
+# what closing the app by hand does and lets it save its state. A process that
+# has no window, or ignores the request, is still there after `grace` seconds
+# and is then terminated with /F. Returns list_processes() for whatever is left.
+def stop_processes(executable, grace=20, force_grace=10, poll=2):
+    running = list_processes(executable)
+    if not running:
+        return running
+    Debug.user("stop_processes: stopping %s %s" % (executable, running))
+    run("taskkill /T /IM " + executable)
+    waited = 0
+    while running and waited < grace:
+        wait(poll)
+        waited += poll
+        running = list_processes(executable)
+    if running:
+        Debug.user("stop_processes: %s %s did not close in %d s; terminating" % (executable, sorted(running), grace))
+        run("taskkill /F /T /IM " + executable)
+        waited = 0
+        while running and waited < force_grace:
+            wait(poll)
+            waited += poll
+            running = list_processes(executable)
+    Debug.user("stop_processes: %s left running: %s" % (executable, running or "none"))
+    return running
+
 # focus_and_wait() for a window that another application launches, which also
 # records every instance of the executable that was not in `baseline` (a
 # list_processes() snapshot taken before the launch) into `seen` as it goes.
