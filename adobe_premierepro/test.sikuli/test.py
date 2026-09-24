@@ -36,7 +36,7 @@ def wait_pr_window(timeout, slice=10):
         waited += slice
         if SCREEN.exists(compat_continue, 0):
             Debug.user("System Compatibility Report up at %d s; continuing with known issues" % waited)
-            click(compat_continue)
+            Debug.user("PROBE: dismissal click suppressed")
     wait("pr_window.png", 10)
 
 # Login to Adobe Creative Cloud Desktop
