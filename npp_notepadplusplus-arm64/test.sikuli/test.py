@@ -50,8 +50,8 @@ wait(5)
 # SABOTAGE PROBE (not for merge): two stray foreground windows that each absorb one Alt+F4.
 # Launched through the host shell, not run() - a child of this script would live in the
 # sikulixide container and keep its session (and the job) alive forever.
-run("explorer C:\Windows\System32\charmap.exe")
-run("explorer C:\Windows\System32\notepad.exe")
+run("explorer C:\\Windows\\System32\\charmap.exe")
+run("explorer C:\\Windows\\System32\\notepad.exe")
 wait(5)
 Debug.user("sabotage: stray charmap + notepad opened")
 type(Key.F4, Key.ALT)
