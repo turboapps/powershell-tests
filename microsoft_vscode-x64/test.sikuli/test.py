@@ -99,6 +99,10 @@ if not util.vscode_open_file(os.path.join(script_path, os.pardir, "resources", "
                  "tab_java.png", 240):
     raise FindFailed("hello_world.java never opened")
 click("tab_java.png")
+# SABOTAGE PROBE (do not merge): let the Java extension finish activating
+# before the check, so the CodeLens/inlay-hint layout is guaranteed.
+wait(180)
+Debug.user("SABOTAGE: 180 s activation delay done")
 wait("code_java.png")
 # The Run affordance appears before the Java extension pack has finished
 # activating ("Java: Activating..." / "Run: Importing projects"), and a run
