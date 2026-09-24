@@ -111,7 +111,7 @@ function PullTurboImages {
 function PullTurboImage {
     param (
         [string]$image,
-        [int]$attempts = 3
+        [int]$attempts = 5
     )
 
     # $global: because the CI harness (applab Invoke-AppTest.ps1) assigns
