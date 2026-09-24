@@ -54,12 +54,15 @@ wait("npp_help_url.png")
 # the session Running until check_running gave up at line 53.
 util.close_window("npp_help_url.png")
 # Notepad++ is what keeps the session alive, so wait for its process rather than its
-# window, and give it the foreground first so the keystroke cannot land elsewhere:
+# window, and give it the foreground first so the keystroke cannot land elsewhere.
+# Focus it by its document name (the title is "...\new 1.txt - Notepad++"), which
+# works even when another window covers it; "Notepad++" itself is not used because,
+# read as a pattern, it also matches a plain "Notepad" window. Then, if it is visible,
 # click its document tab (bottom-left of npp_window.png), which selects the tab that
-# is already selected. A title match is avoided on purpose - "Notepad++" read as a
-# pattern also matches a plain "Notepad" window.
+# is already selected.
 for attempt in range(3):
-    if exists("npp_window.png", 10):
+    util.activate_app_window("new 1.txt", 5)
+    if exists("npp_window.png", 5):
         click(Pattern("npp_window.png").targetOffset(-90, 27))
     type(Key.F4, Key.ALT)
     if util.wait_process_gone("notepad++.exe", max_wait=20) >= 0:
