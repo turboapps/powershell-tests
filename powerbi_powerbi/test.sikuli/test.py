@@ -77,9 +77,24 @@ click("close_apply.png")
 # Start from no Edge at all, so that any msedge.exe seen after the click is the
 # one the click launched (see below). Anything that refuses to stop even when
 # forced is recorded and ignored.
+# SABOTAGE PROBE: start a windowless fake msedge.exe (ping.exe copied and started
+# hidden). Passed as -EncodedCommand: a .ps1 written from here lands in the
+# sikulixide sandbox (merge-user isolation) where powershell cannot see it.
+import base64
+probe_script = (r"$d = Join-Path $env:TEMP 'probe-edge'; New-Item -ItemType Directory -Force $d | Out-Null; "
+                r"Copy-Item C:\Windows\System32\PING.EXE (Join-Path $d 'msedge.exe') -Force; "
+                r"Start-Process -FilePath (Join-Path $d 'msedge.exe') -ArgumentList '-n','900','127.0.0.1' -WindowStyle Hidden")
+run("powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand " + base64.b64encode(probe_script.encode("utf-16-le")))
+wait(5)
+probe_fake = util.list_processes("msedge.exe")
+Debug.user("PROBE: fake msedge.exe spawned; msedge.exe now %s" % probe_fake)
+assert probe_fake, "PROBE: fake msedge.exe did not start"
 edge_before = util.stop_processes("msedge.exe")
+Debug.user("PROBE: after stop_processes msedge.exe left %s" % edge_before)
+assert not edge_before, "PROBE: stop_processes left msedge.exe running"
 click("menu_help.png")
-click("help_support.png")
+# SABOTAGE PROBE: hover instead of click, i.e. a lost Support click.
+hover("help_support.png")
 # Help > Support hands the URL to the Edge that the isolate-edge-wc layer brings
 # into the container, so the 20 s budget had to cover a browser cold start, the
 # navigation and a redirect. It did not. Both tests failed here in App Tests run
@@ -133,6 +148,9 @@ for click_round in range(3):
         click("help_support.png")
     opened = util.wait_launched_window("Edge", "help_url.png", "msedge.exe", edge_before, edge_seen,
                                        attempts=5 if click_round == 0 else 4)
+    Debug.user("PROBE: click round %d opened=%s seen=%s" % (click_round, opened, edge_seen))
+    if click_round == 0:
+        assert not opened, "PROBE control: Edge opened without a Support click"
     if not opened and edge_seen:
         opened = util.wait_launched_window("Edge", "help_url.png", "msedge.exe", edge_before, edge_seen, attempts=4)
     if opened or edge_seen:
@@ -152,6 +170,8 @@ if not opened:
     else:
         Debug.user("powerbi: no msedge.exe started after 3 Help > Support clicks")
     wait("help_url.png", 5)
+assert click_round >= 1, "PROBE: retry path never ran"
+Debug.user("PROBE: recovered after %d re-click(s)" % click_round)
 Debug.user("powerbi: support page up; new msedge.exe %s"
            % dict((p, t) for p, t in util.list_processes("msedge.exe").items() if p not in edge_before))
 util.close_app("Edge")
