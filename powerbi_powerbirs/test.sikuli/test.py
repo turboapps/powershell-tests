@@ -95,7 +95,31 @@ click("help_support.png")
 # from this run's lossless -fail.png and scores 1.0 on both failures (0.44 next
 # best elsewhere on the screen, 0.44 on the pre-Edge frame, so it still cannot
 # pass before the page is up).
-if not util.focus_and_wait("Edge", "help_url.png", attempts=9, poll=10):
+#
+# App Tests run 35935367711 failed here a second way, with the whole 90 s spent
+# and Edge never on screen at all: every frame from the click to the FAILED one
+# is the same Power BI window with Support hovered, and the taskbar never shows
+# an Edge window. In a passing run Power BI starts msedge.exe itself about 2.5 s
+# after the click (VM logs of run 36031259455: "msedge.exe --single-argument
+# https://go.microsoft.com/fwlink/?linkid=855944", parent PBIDesktop.exe), so
+# 90 s without a window is not a slow start: the click was lost or the launch
+# it triggers never came up. Waiting longer recovers neither, and repeating
+# Help > Support covers the lost click; a browser that is really hung still
+# fails the step, as it should. Give the first click 50 s (the
+# slowest cold start measured was ~30 s), then click again up to twice. If Edge
+# was only late, the second click opens a second tab in the same window, which
+# close_app closes with the rest.
+opened = util.focus_and_wait("Edge", "help_url.png", attempts=5, poll=10)
+for retry in range(2):
+    if opened:
+        break
+    Debug.user("powerbi: no support page after Help > Support; clicking it again (retry %d of 2)" % (retry + 1))
+    App("Power BI Desktop").focus()
+    if not exists("help_support.png", 5):
+        click("menu_help.png")
+    click("help_support.png")
+    opened = util.focus_and_wait("Edge", "help_url.png", attempts=4, poll=10)
+if not opened:
     wait("help_url.png", 5)
 util.close_app("Edge")
 wait(10)
