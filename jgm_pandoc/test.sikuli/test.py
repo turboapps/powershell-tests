@@ -22,7 +22,7 @@ wait(2)
 type(Key.ENTER)
 assert(util.file_exists(sample_file, 60))
 # Convert text file to HTML
-paste('turbo run pandoc --offline --isolate=merge-user' + util.read_extra() + ' -- -s ' + sample_file + ' -o ' + html_file)
+Debug.user("CONTROL: dropping the manual.html paste (simulated lost paste)")
 wait(2)
 type(Key.ENTER)
 assert(util.file_exists(html_file, 60))
