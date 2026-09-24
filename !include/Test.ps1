@@ -94,9 +94,31 @@ function PullTurboImages {
 
     if (-not [string]::IsNullOrWhiteSpace($using)) {
         $using.Split(",") | ForEach-Object {
-            turbo pull $_.Trim() --format=json
+            InvokeTurboPull $_.Trim()
         }
     }
+}
+
+# SABOTAGE PROBE - do not merge. Replaces the first pull of a vsbuildtools image
+# with one killed 90 s into its download, leaving a .downloadpart the way a
+# dropped hub connection does (App Tests run 35935367711).
+function InvokeTurboPull {
+    param ([string]$image)
+    if (-not $script:pullSabotaged -and $image -like '*vsbuildtools*') {
+        $script:pullSabotaged = $true
+        $out = Join-Path $env:TEMP 'sabotage-pull.out'
+        $p = Start-Process -FilePath turbo.exe -ArgumentList 'pull', $image -NoNewWindow -PassThru `
+            -RedirectStandardOutput $out -RedirectStandardError "$out.err"
+        if ($p.WaitForExit(90000)) {
+            Write-Host "SABOTAGE INVALID: turbo pull $image finished in under 90 s (exit $($p.ExitCode))"
+        } else {
+            taskkill /T /F /PID $p.Id | Out-Null
+            Write-Host "SABOTAGE: killed turbo pull $image 90 s into its download"
+        }
+        cmd /c exit -1
+        return
+    }
+    turbo pull $image --format=json
 }
 
 # Install apps using Turbo Client.
