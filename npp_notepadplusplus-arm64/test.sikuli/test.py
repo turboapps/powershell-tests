@@ -46,6 +46,12 @@ wait("npp_help_url.png")
 # Close the foreground Edge window with Alt+F4. closeApp("Edge") intermittently fails on
 # the win11-arm pool on Edge's first-ever (cold) start (see aspnet-runtime tests).
 type(Key.F4, Key.ALT)
+wait(5)
+# SABOTAGE PROBE (not for merge): two stray foreground windows that each absorb one Alt+F4.
+run('cmd /c start "" charmap.exe')
+run('cmd /c start "" notepad.exe')
+wait(5)
+Debug.user("sabotage: stray charmap + notepad opened")
 type(Key.F4, Key.ALT)
 type(Key.F4, Key.ALT) # Close the explorer window
 wait(20)
