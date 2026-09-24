@@ -133,8 +133,16 @@ for click_round in range(3):
         break
 if not opened and edge_seen and all(title == "N/A" for title in edge_seen.values()):
     alive = util.list_processes("msedge.exe")
+    running = sorted(p for p in alive if p not in edge_before)
     Debug.user("VM FAILURE: msedge.exe started after Help > Support but never opened a window; "
-               "new pids %s, still running %s" % (sorted(edge_seen), sorted(p for p in edge_seen if p in alive)))
+               "new pids %s, still running %s" % (sorted(edge_seen), running))
+    # Close the windowless browser so it does not hold the session open past the
+    # test. Only the processes this click started: anything that was running
+    # before it is left alone.
+    for pid in running:
+        run("taskkill /F /T /PID " + pid)
+    Debug.user("powerbi: closed msedge.exe %s; still running %s"
+               % (running, sorted(p for p in util.list_processes("msedge.exe") if p not in edge_before)))
     assert False, "VM failure: msedge.exe started (pids %s) but no Edge window came up" % sorted(edge_seen)
 if not opened:
     wait("help_url.png", 5)
