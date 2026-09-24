@@ -131,7 +131,11 @@ for click_round in range(3):
         opened = util.wait_launched_window("Edge", "help_url.png", "msedge.exe", edge_before, edge_seen, attempts=4)
     if opened or edge_seen:
         break
-if not opened and edge_seen and all(title == "N/A" for title in edge_seen.values()):
+# "Window" means an Edge browser window, whose title ends "- Microsoft Edge".
+# tasklist also reports the hidden helper windows Edge's other processes own
+# (OleMainThreadWndName, OLEChannelWnd), which say nothing about the browser.
+edge_window = any("Microsoft" in title and title.endswith("Edge") for title in edge_seen.values())
+if not opened and edge_seen and not edge_window:
     alive = util.list_processes("msedge.exe")
     running = sorted(p for p in alive if p not in edge_before)
     Debug.user("VM FAILURE: msedge.exe started after Help > Support but never opened a window; "
