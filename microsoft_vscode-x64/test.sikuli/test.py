@@ -104,6 +104,10 @@ click("tab_java.png")
 # "x:" inlay hint lands inside println(. A crop of the whole five-line file only
 # matched before that (0.63 after it), so the wait passed or failed on whether it
 # beat activation. This line reads the same either side of it.
+# SABOTAGE PROBE (do not merge): let the Java extension finish activating
+# before the check, so the CodeLens/inlay-hint layout is guaranteed.
+wait(180)
+Debug.user("SABOTAGE: 180 s activation delay done")
 wait("code_java_main.png")
 # The Run affordance appears before the Java extension pack has finished
 # activating ("Java: Activating..." / "Run: Importing projects"), and a run
