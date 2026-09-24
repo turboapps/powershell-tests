@@ -114,10 +114,14 @@ function PullTurboImage {
         [int]$attempts = 3
     )
 
+    # $global: because the CI harness (applab Invoke-AppTest.ps1) assigns
+    # $LASTEXITCODE in its own scope before calling the executor, and that copy
+    # shadows the automatic variable here: a bare $LASTEXITCODE reads 0 no matter
+    # what turbo returned.
     for ($attempt = 1; $attempt -le $attempts; $attempt++) {
         turbo pull $image --format=json
-        if ($LASTEXITCODE -eq 0) { return }
-        Write-Host "turbo pull $image failed with exit code $LASTEXITCODE (attempt $attempt of $attempts)"
+        if ($global:LASTEXITCODE -eq 0) { return }
+        Write-Host "turbo pull $image failed with exit code $global:LASTEXITCODE (attempt $attempt of $attempts)"
     }
     Write-Warning "turbo pull $image failed $attempts times; the test's launch will have to download it"
 }
