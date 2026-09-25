@@ -90,13 +90,40 @@ function PullTurboImages {
         [string]$using
     )
 
-    turbo pull $image --format=json
+    PullTurboImage -image $image
 
     if (-not [string]::IsNullOrWhiteSpace($using)) {
         $using.Split(",") | ForEach-Object {
-            turbo pull $_.Trim() --format=json
+            PullTurboImage -image $_.Trim()
         }
     }
+}
+
+# Pull one image, retrying a failed pull.
+#
+# A pull that fails part-way leaves a .downloadpart behind and gives up with
+# "The connection may have timed out" (exit -1). The test's own launch then
+# resumes that download inside the test's first wait, which no budget can cover
+# for a multi-GB image: App Tests run 35935367711 lost the connection twice
+# pulling vsbuildtools-arm64 (4.6 GB), and nodejs-arm64 then failed at
+# focus_console with 2.6 GB still to fetch. Pulling again here resumes the
+# .downloadpart rather than starting over.
+function PullTurboImage {
+    param (
+        [string]$image,
+        [int]$attempts = 5
+    )
+
+    # $global: because the CI harness (applab Invoke-AppTest.ps1) assigns
+    # $LASTEXITCODE in its own scope before calling the executor, and that copy
+    # shadows the automatic variable here: a bare $LASTEXITCODE reads 0 no matter
+    # what turbo returned.
+    for ($attempt = 1; $attempt -le $attempts; $attempt++) {
+        turbo pull $image --format=json
+        if ($global:LASTEXITCODE -eq 0) { return }
+        Write-Host "turbo pull $image failed with exit code $global:LASTEXITCODE (attempt $attempt of $attempts)"
+    }
+    Write-Warning "turbo pull $image failed $attempts times; the test's launch will have to download it"
 }
 
 # Install apps using Turbo Client.
