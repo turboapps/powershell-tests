@@ -41,6 +41,14 @@ wait(20)
 # Launch the app.
 setAutoWaitTimeout(30)
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Photoshop"))
+# SABOTAGE PROBE: hide the Home page for 150 s after the relaunch. Started through
+# ProcessBuilder with output to NUL: Sikuli run() would block on the inherited pipe.
+from java.lang import ProcessBuilder
+from java.io import File
+Debug.user("SABOTAGE: covering the Home page for 150 s")
+_pb = ProcessBuilder(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File",
+    os.path.join(script_path, os.pardir, "resources", "sabotage-cover.ps1"), "-Seconds", "150", "-ShotDir", util._step_dir()])
+_pb.redirectOutput(File("NUL")); _pb.redirectError(File("NUL")); _pb.start()
 # The relaunched Photoshop can take well over 90 s to paint its Home page: the
 # window comes up with grey placeholder bars and the "Welcome to Photoshop"
 # heading lands later. Keep waiting while the Photoshop window is on screen,
