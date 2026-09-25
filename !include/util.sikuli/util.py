@@ -911,6 +911,67 @@ def focus_and_wait(window, image, attempts=30, poll=10):
     Debug.user("focus_and_wait: %s not found on '%s' after %d attempts" % (image, window, attempts))
     return False
 
+# The running instances of an executable, as {pid: window title}.
+#
+# tasklist /V reports each process's main window title, and "N/A" for a process
+# that has none, so the same call answers both "did it start" and "did it put up
+# a window". A test that hands a launch to an application (Power BI's Help >
+# Support starts msedge.exe itself) can tell the two failures apart with it: no
+# new process means the request never reached the launch, while a new process
+# with no window means the launch happened and the application did not come up.
+def list_processes(executable):
+    processes = {}
+    for line in run('tasklist /V /FO CSV /NH /FI "IMAGENAME eq ' + executable + '"').splitlines():
+        fields = re.findall(r'"([^"]*)"', line)
+        if len(fields) >= 9 and fields[0].lower() == executable.lower():
+            processes[fields[1]] = fields[-1]
+    return processes
+
+# Stop every running instance of an executable, gracefully if it will go.
+#
+# taskkill without /F asks each process's windows to close (WM_CLOSE), which is
+# what closing the app by hand does and lets it save its state. A process that
+# has no window, or ignores the request, is still there after `grace` seconds
+# and is then terminated with /F. Returns list_processes() for whatever is left.
+def stop_processes(executable, grace=20, force_grace=10, poll=2):
+    running = list_processes(executable)
+    if not running:
+        return running
+    Debug.user("stop_processes: stopping %s %s" % (executable, running))
+    run("taskkill /T /IM " + executable)
+    waited = 0
+    while running and waited < grace:
+        wait(poll)
+        waited += poll
+        running = list_processes(executable)
+    if running:
+        Debug.user("stop_processes: %s %s did not close in %d s; terminating" % (executable, sorted(running), grace))
+        run("taskkill /F /T /IM " + executable)
+        waited = 0
+        while running and waited < force_grace:
+            wait(poll)
+            waited += poll
+            running = list_processes(executable)
+    Debug.user("stop_processes: %s left running: %s" % (executable, running or "none"))
+    return running
+
+# focus_and_wait() for a window that another application launches, which also
+# records every instance of the executable that was not in `baseline` (a
+# list_processes() snapshot taken before the launch) into `seen` as it goes.
+# A process that starts and dies between two polls can be missed, but a crash
+# of that kind leaves a WER dump that the crash-dump gate reports anyway.
+def wait_launched_window(window, image, executable, baseline, seen, attempts, poll=10):
+    for attempt in range(attempts):
+        App(window).focus()
+        if exists(image, poll):
+            return True
+        for pid, title in list_processes(executable).items():
+            if pid not in baseline:
+                seen[pid] = title
+    Debug.user("wait_launched_window: %s not found on '%s' after %d attempts; new %s: %s"
+               % (image, window, attempts, executable, seen or "none"))
+    return False
+
 # Drive a browser to a URL through its address bar, and prove it got there.
 #
 # Alt+D, the paste and Enter only reach the browser if the browser still holds
