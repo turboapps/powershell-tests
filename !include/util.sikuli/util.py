@@ -196,8 +196,7 @@ def adobe_cc_login(username, password, reload_page=True):
     wait(login,60)
     if reload_page:
         click("cancel-button.png")
-        wait(20)
-        wait(login,10)
+        wait(login,15)
     click(login)
     wait(6)
     paste(username)
