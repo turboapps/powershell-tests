@@ -196,11 +196,12 @@ def adobe_cc_login(username, password, reload_page=True):
     wait(login,60)
     if reload_page:
         click("cancel-button.png")
-        wait(login,15)
+        wait(20)
+        wait(login,10)
     click(login)
     wait(6)
     paste(username)
-    wait(3)
+    wait(5)
     type(Key.ENTER)
     # Wait for the password page itself, not for anything shaped like a text
     # field. The email page and the password page are the same shape - a label
@@ -218,9 +219,11 @@ def adobe_cc_login(username, password, reload_page=True):
     # real wait. Re-capture it if Adobe relabels the page: a stale reference is
     # what forced the 0.40 in the first place. The offset clicks into the field
     # below the label.
-    wait("adobe_login_pass.png",60)
-    wait(1)
-    click(Pattern("adobe_login_pass.png").targetOffset(0,27))
+    if exists("adobe_login_pass.png",15):
+        wait(3)
+        click(Pattern("adobe_login_pass.png").targetOffset(0,27))
+    elif exists("adobe_login_pass_1.png",10):
+        click("adobe_login_pass_1.png")
     wait(3)
     paste(password)
     wait(3)
