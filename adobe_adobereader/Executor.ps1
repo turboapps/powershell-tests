@@ -17,10 +17,11 @@ HidePowerShellWindow
 $vm = if ($extra -match '--vm=(\S+)') { $Matches[1] } else { '' }
 $out = "$localLogsDir\adobe_adobereader-vm-logs"
 # Variant flags for this branch (one line of Repro-SignInBlankHost.ps1 switches); {pdf} = the test's own PDF.
-$variant = (Get-Content "$PSScriptRootepro-args.txt" -ErrorAction SilentlyContinue) -join ' '
-$variant = $variant -replace '\{pdf\}', "$PSScriptRootesources\homeacrordrunified18_2025.pdf"
+$variant = (Get-Content (Join-Path $PSScriptRoot 'repro-args.txt') -ErrorAction SilentlyContinue) -join ' '
+$variant = $variant -replace '\{pdf\}', (Join-Path $PSScriptRoot 'resources\homeacrordrunified18_2025.pdf')
 Write-Host "Repro variant: $variant"
-Invoke-Expression "& `"$PSScriptRoot\Repro-SignInBlankHost.ps1`" -Xvm '$vm' -MaxIterations 3 -OutRoot `"$out`" $variant"
+$script = Join-Path $PSScriptRoot 'Repro-SignInBlankHost.ps1'
+Invoke-Expression "& '$script' -Xvm '$vm' -MaxIterations 3 -OutRoot '$out' $variant"
 $rc = $global:LASTEXITCODE
 
 $log = "$localLogsDir\adobe_adobereader-test.log"
@@ -28,7 +29,7 @@ $lines = @(Get-Content "$out\repro.log" -ErrorAction SilentlyContinue)
 $lines | Where-Object { $_ -match 'clicking|: RdrCEF|missed' } | ForEach-Object { "[info] $_" } | Set-Content $log
 switch ($rc) {
     1 { Add-Content $log "[error] REPRODUCED: RdrCEF.exe exited 0x80000003 after Sign in (see adobe_adobereader-vm-logs)" }
-    0 { Add-Content $log "[info] not reproduced in 3 iterations" }
+    0 { Add-Content $log "[info] not reproduced in 3 iterations ($variant)" }
     default { Add-Content $log "[error] repro script failed (exit $rc): $($lines | Where-Object { $_ -match 'ERROR' } | Select-Object -Last 1)" }
 }
 Write-Host "Repro verdict: exit $rc"
