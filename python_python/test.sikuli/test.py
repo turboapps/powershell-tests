@@ -13,8 +13,13 @@ util.pre_test(no_min=True)
 # Basic operations.
 click("cmd_window.png")
 type(Key.ENTER)
+# SABOTAGE: sitecustomize sleeps 90 s at pip startup (title stays "pip install requests").
+type("mkdir %PUBLIC%\slowpip" + Key.ENTER)
+type("echo import time; time.sleep(90) > %PUBLIC%\slowpip\sitecustomize.py" + Key.ENTER)
+type("set PYTHONPATH=%PUBLIC%\slowpip" + Key.ENTER)
 type("pip install requests" + Key.ENTER)
 wait("install_success.png", 60)
+type("set PYTHONPATH=" + Key.ENTER)
 type("python" + Key.ENTER)
 wait("python_repl.png")
 type('1 + 2' + Key.ENTER)
