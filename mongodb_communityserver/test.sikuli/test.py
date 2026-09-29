@@ -54,7 +54,8 @@ click("file-browser.png")
 paste("%localappdata%\\turbo\\containers\\repo\\repos.json")
 type(Key.ENTER)
 wait("import-confirm.png")
-click("import-confirm.png")
+# SABOTAGE PROBE: cancel the import so the collection stays empty; db-data.png must FindFail.
+type(Key.ESC)
 wait("db-data.png")
 wait(5)
 
