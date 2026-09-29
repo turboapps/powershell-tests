@@ -19,7 +19,10 @@ param(
     [switch]$SkipPrep,
     [string]$OutRoot = $PSScriptRoot,
     [int]$ContainerKeepCount = 5,
-    [int]$WaitSeconds = 60             # how long to watch after the Sign-in click
+    [int]$WaitSeconds = 60,            # how long to watch after the Sign-in click
+    [switch]$ViaShortcut,              # launch like the App Test does: turbo installi + Start menu shortcut
+    [switch]$F1First,                  # press F1 (Reader help opens Edge in the container) before Sign in
+    [string]$OpenPdf = ''              # PDF to open (Ctrl+O) before Sign in, e.g. the test's homeacrordrunified18_2025.pdf
 )
 $ErrorActionPreference = 'Stop'
 $Image = 'adobe/adobereader:26.002.21931'
@@ -28,7 +31,7 @@ $Breakpoint = [uint32]2147483651       # 0x80000003
 New-Item -ItemType Directory -Force $OutRoot | Out-Null
 
 function Log([string]$m) { $l = '[{0:HH:mm:ss}] {1}' -f (Get-Date), $m; Write-Host $l; Add-Content "$OutRoot\repro.log" $l }
-trap { Log "ERROR (line $($_.InvocationInfo.ScriptLineNumber)): $_"; exit 2 }
+trap { Log "ERROR (line $($_.InvocationInfo.ScriptLineNumber)): $_"; try { Snap "$OutRoot\error.png" } catch { }; exit 2 }
 
 # Start-Process + file redirection, never a pipe: turbo run's detached child inherits handles
 # and would hold a pipe open for the container's lifetime.
@@ -71,16 +74,22 @@ if (-not $SkipPrep) {
 
 $vmFlag = if ($Xvm) { " --vm=$Xvm" } else { '' }
 $diagFlag = if ($Diagnostic) { ' --diagnostic' } else { '' }
-$launch = "run $Image --name=$Name --enable=disablefontpreload,usedllinjection,cachefileinfo --network=$Name " +
-          "--disable-proxy-resolve-via-proxy --using=turbobuild/isolate-edge-wc --isolate=merge-user -d$vmFlag$diagFlag"
+$flags = "--enable=disablefontpreload,usedllinjection,cachefileinfo --network=$Name --disable-proxy-resolve-via-proxy " +
+         "--using=turbobuild/isolate-edge-wc --isolate=merge-user$vmFlag$diagFlag"
+$launch = "run $Image --name=$Name $flags -d"
+$shortcut = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Acrobat Reader.lnk"
+if ($ViaShortcut) { Log (Turbo "installi $Image --offline $flags" 600) }
+# --isolate=merge-user shows the container only the user profile, so the PDF is copied to the Desktop.
+$pdf = "$env:USERPROFILE\Desktop\signin-repro.pdf"
+if ($OpenPdf) { Copy-Item $OpenPdf $pdf -Force }
 
 for ($i = 1; $MaxIterations -eq 0 -or $i -le $MaxIterations; $i++) {
-    Log "iteration $i : turbo $launch"
     foreach ($s in 'start', 'stop') {
         Unregister-Event "rdrcef-$s" -ErrorAction SilentlyContinue
         Register-CimIndicationEvent -SourceIdentifier "rdrcef-$s" -Query "SELECT * FROM Win32_Process$($s)Trace WHERE ProcessName='RdrCEF.exe'"
     }
-    Log (Turbo $launch 300)
+    if ($ViaShortcut) { Log "iteration $i : explorer $shortcut"; Start-Process explorer.exe "`"$shortcut`"" }
+    else { Log "iteration $i : turbo $launch"; Log (Turbo $launch 300) }
 
     # Reader's main window and its top-right command cluster (help, bell, apps, Sign in). The
     # cluster is built once Home has loaded, so poll for both.
@@ -100,6 +109,22 @@ for ($i = 1; $MaxIterations -eq 0 -or $i -le $MaxIterations; $i++) {
         ForEach-Object { [W.U]::ShowWindow([IntPtr]$_.Current.NativeWindowHandle, 6) | Out-Null }   # SW_MINIMIZE
     [W.U]::SetForegroundWindow([IntPtr]$win.Current.NativeWindowHandle) | Out-Null
     Start-Sleep 1
+    if ($OpenPdf) {
+        Log "opening $pdf (Ctrl+O)"
+        [System.Windows.Forms.SendKeys]::SendWait('^o'); Start-Sleep 5
+        [System.Windows.Forms.SendKeys]::SendWait($pdf); Start-Sleep 1
+        [System.Windows.Forms.SendKeys]::SendWait('{ENTER}'); Start-Sleep 15
+        Snap "$OutRoot\iteration-$i-pdf.png"
+        [W.U]::SetForegroundWindow([IntPtr]$win.Current.NativeWindowHandle) | Out-Null; Start-Sleep 1
+    }
+    if ($F1First) {
+        Log 'pressing F1 (help opens in Edge)'
+        [System.Windows.Forms.SendKeys]::SendWait('{F1}')
+        Start-Sleep 30
+        Snap "$OutRoot\iteration-$i-f1.png"
+        [W.U]::SetForegroundWindow([IntPtr]$win.Current.NativeWindowHandle) | Out-Null
+        Start-Sleep 2
+    }
     $r = $cluster.Current.BoundingRectangle
     $x = [int]($r.Right - 38); $y = [int]($r.Y + $r.Height / 2)   # "Sign in" is the cluster's right-most item
     Get-Event -ErrorAction SilentlyContinue | Where-Object SourceIdentifier -like 'rdrcef-*' | Remove-Event
@@ -115,7 +140,9 @@ for ($i = 1; $MaxIterations -eq 0 -or $i -le $MaxIterations; $i++) {
     Log ("iteration $i : RdrCEF started after click=$starts, exited=$($stops.Count), exited 0x80000003=$($bp.Count) " +
          "(pids $(($bp | ForEach-Object { $_.ProcessID }) -join ','))")
 
-    $id = (Sessions | Where-Object { $_.name -eq $Name } | Select-Object -First 1).id
+    # The shortcut's session gets a generated name, so take the newest Reader session.
+    $id = (Sessions | Where-Object { $_.runState -eq 'Running' -and ($_ | ConvertTo-Json -Depth 5) -match 'adobereader' } |
+        Sort-Object { [datetime]$_.created } | Select-Object -Last 1).id
     if ($bp.Count -gt 0) {
         Log "REPRODUCED on iteration $i : $($bp.Count) RdrCEF process(es) exited with 0x80000003 after Sign in. Container $id left running."
         if ($Diagnostic -and $id) {
@@ -127,7 +154,7 @@ for ($i = 1; $MaxIterations -eq 0 -or $i -le $MaxIterations; $i++) {
         exit 1
     }
     if ($starts -eq 0) { Log "iteration $i : no RdrCEF started after the click - the click missed Sign in; see $shot" }
-    Log (Turbo "stop $Name" 120); Log (Turbo "rm $Name" 120)
+    if ($id) { Log (Turbo "stop $id" 120); Log (Turbo "rm $id" 120) }
     # Backstop for stale sessions from earlier runs.
     Sessions | Where-Object { $_.runState -ne 'Running' } |
         Sort-Object { [datetime]$_.created } -Descending | Select-Object -Skip $ContainerKeepCount |

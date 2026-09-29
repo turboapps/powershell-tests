@@ -16,7 +16,11 @@ HidePowerShellWindow
 
 $vm = if ($extra -match '--vm=(\S+)') { $Matches[1] } else { '' }
 $out = "$localLogsDir\adobe_adobereader-vm-logs"
-& "$PSScriptRoot\Repro-SignInBlankHost.ps1" -Xvm $vm -MaxIterations 3 -OutRoot $out
+# Variant flags for this branch (one line of Repro-SignInBlankHost.ps1 switches); {pdf} = the test's own PDF.
+$variant = (Get-Content "$PSScriptRootepro-args.txt" -ErrorAction SilentlyContinue) -join ' '
+$variant = $variant -replace '\{pdf\}', "$PSScriptRootesources\homeacrordrunified18_2025.pdf"
+Write-Host "Repro variant: $variant"
+Invoke-Expression "& `"$PSScriptRoot\Repro-SignInBlankHost.ps1`" -Xvm '$vm' -MaxIterations 3 -OutRoot `"$out`" $variant"
 $rc = $global:LASTEXITCODE
 
 $log = "$localLogsDir\adobe_adobereader-test.log"
