@@ -564,7 +564,9 @@ public class SikuliConsole {
         # The sikulix launch should use java.exe instead of javaw.exe as we found that javaw takes focus when running the sikulix test scripts so key passes didn't get sent to the application.
         $command = "turbo run sikulixide --using=oracle/jre-x64 --offline --disable=spawnvm --isolate=merge-user --startup-file=javaw -- -jar @SYSDRIVE@\SikulixIDE\sikulixide-2.0.5.jar -r $($PSScriptRoot)\..\$name\test.sikuli -f $($localLogsDir)\$name-test.log"
         Invoke-Expression $command | Out-Host
-        $exitCode = $LASTEXITCODE
+        # $global: for the reason given in PullTurboImages: on CI a bare
+        # $LASTEXITCODE reads Invoke-AppTest.ps1's own copy, which is always 0.
+        $exitCode = $global:LASTEXITCODE
     } finally {
         $stopFlag.Stop = $true
         try { $null = $minimizer.EndInvoke($asyncResult) } catch { }
@@ -581,6 +583,10 @@ public class SikuliConsole {
         Write-Host "VM logs: collection failed: $_"
     }
 
+    # Written here rather than by StandardTest so that the executors which call
+    # StartTest directly get a marker too.
+    Write-TestDoneMarker -image $image -exitCode $exitCode -logFile "$localLogsDir\$name-test.log"
+
     return $exitCode
 
 }
@@ -589,15 +595,36 @@ public class SikuliConsole {
 # test runs with console windows minimized, so the marker is the visible
 # signal for a person watching the desktop that the run has finished.
 # PrepareTest removes stale markers at the start of each run.
+#
+# The verdict is the one Invoke-AppTest.ps1 reaches from the same evidence: a
+# missing test log, a non-zero sikulix exit code, or any line of the test log
+# containing "error" (SikuliX's "[error] script [ test ] stopped with error")
+# is a failure. What the marker cannot see is the CI harness's own crash-dump
+# gate, which runs after the executor returns and can still fail a run whose
+# script passed.
 function Write-TestDoneMarker {
     param (
         [string]$image,
-        [int]$testResult
+        [int]$exitCode,
+        [string]$logFile
     )
-    if ($testResult -eq 0) {
-        "$image Pass at $(Get-Date -Format 'o')" | Set-Content "$env:USERPROFILE\Desktop\TEST-DONE-PASS"
+    $reason = $null
+    if (-not (Test-Path $logFile)) {
+        $reason = "no test log at $logFile"
+    } elseif ($exitCode -ne 0) {
+        $reason = "sikulix exit $exitCode"
     } else {
-        "$image Fail (exit $testResult) at $(Get-Date -Format 'o')" | Set-Content "$env:USERPROFILE\Desktop\TEST-DONE-FAIL"
+        $errorLine = Select-String -Path $logFile -Pattern "error" -SimpleMatch | Select-Object -First 1
+        if ($errorLine) {
+            $reason = "test log: $($errorLine.Line.Trim())"
+        }
+    }
+    if ($reason) {
+        "$image Fail ($reason) at $(Get-Date -Format 'o')" | Set-Content "$env:USERPROFILE\Desktop\TEST-DONE-FAIL"
+        Write-Host "Test done marker: TEST-DONE-FAIL ($reason)"
+    } else {
+        "$image Pass at $(Get-Date -Format 'o')" | Set-Content "$env:USERPROFILE\Desktop\TEST-DONE-PASS"
+        Write-Host "Test done marker: TEST-DONE-PASS (sikulix exit 0, no error in the test log)"
     }
 }
 
@@ -643,7 +670,6 @@ function StandardTest {
     }
     HidePowerShellWindow
     $TestResult = StartTest -image $image -localLogsDir $localLogsDir
-    Write-TestDoneMarker -image $image -testResult $TestResult
 
     return $TestResult
 }
