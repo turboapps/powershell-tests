@@ -38,6 +38,21 @@ type(Key.ENTER)
 wait(5)
 click("file-menu.png")
 click("exit.png")
+# If a background task is still running, NetBeans puts up a modal "Exit IDE"
+# prompt ("Exiting the IDE will terminate the following processes") and
+# stays open until it is answered or the task ends. The task is the
+# spellchecker's first-use "Building dictionary" (~1.6M tiny cache writes,
+# redone in every fresh sandbox), which is still running at this point in
+# passing runs too: it finished 4 s after the prompt came up on the pool VM
+# and outlived the 80 s below on a slower one. Confirm it, like a user would.
+prompt = exists("exit-ide-prompt.png", 10)
+if prompt:
+    button = prompt.below(200).exists("exit-ide-button.png", 0)
+    if button:
+        Debug.user("Exit IDE prompt up, confirming it")
+        click(button)
+    else:
+        Debug.user("Exit IDE prompt closed by itself")
 wait(20)
 
 # Check if the session terminates.
