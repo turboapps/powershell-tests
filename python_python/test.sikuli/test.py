@@ -13,6 +13,10 @@ util.pre_test(no_min=True)
 # Basic operations.
 click("cmd_window.png")
 type(Key.ENTER)
+# SABOTAGE: sitecustomize sleeps 90 s at pip startup (title stays "pip install requests").
+type("mkdir %PUBLIC%\slowpip" + Key.ENTER)
+type("echo import time; time.sleep(90) > %PUBLIC%\slowpip\sitecustomize.py" + Key.ENTER)
+type("set PYTHONPATH=%PUBLIC%\slowpip" + Key.ENTER)
 type("pip install requests" + Key.ENTER)
 # pip needs ~25-50 s here on an idle pool and ran past a fixed 60 s under a
 # busy one (App Tests 36477444986 / 36500116648, both finishing seconds after
@@ -20,6 +24,7 @@ type("pip install requests" + Key.ENTER)
 # keep waiting for as long as that title is up; grace=60 is the old budget, the
 # 600 s timeout only bounds a pip that is stuck.
 util.wait_while_busy("install_success.png", "pip_running.png", timeout=600, grace=60)
+type("set PYTHONPATH=" + Key.ENTER)
 type("python" + Key.ENTER)
 wait("python_repl.png")
 type('1 + 2' + Key.ENTER)
