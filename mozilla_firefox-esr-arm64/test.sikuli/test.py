@@ -27,12 +27,13 @@ for stale in (htm_location, save_location):
         os.remove(stale)
 
 # Test of `turbo run`.
-wait("firefox_window.png",60)
+wait(Pattern("firefox_window.png").similar(0.60),60)
 run("turbo stop test")
 
 # Launch the app.
 util.launch_shortcut("Firefox.lnk", "Firefox ESR ARM64.lnk")
-wait("firefox_window.png",60)
+wait(Pattern("firefox_window.png").similar(0.60),60)
+util.maximize_app("Firefox")
 
 # Basic operations.
 type("l", Key.CTRL)

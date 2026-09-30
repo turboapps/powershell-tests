@@ -57,6 +57,39 @@ def _step_dir():
         _step_state["dir"] = folder
     return _step_state["dir"]
 
+# Minimize a window
+def minimize_app(appName):
+    appToMin = App().focus(appName)
+    if (appToMin.isValid(),10):
+        type(Key.DOWN, Key.WIN)
+
+# Maximize a window
+def maximize_app(appName, timeout=10):
+    app = App.focus(appName)
+    if not app.isValid():
+        print("maximize_app: could not find/focus '%s'" % appName)
+        return False
+
+    # Wait for the focused window to be available
+    win = None
+    end = time.time() + timeout
+    while time.time() < end:
+        win = App.focusedWindow()
+        if win is not None and win.w > 0:
+            break
+        wait(0.5)
+    if win is None:
+        print("maximize_app: no focused window for '%s'" % appName)
+        return False
+
+    scr = SCREEN
+    # A maximized window is about the size of the screen, minus the taskbar
+    # only maximize a window that is not already maximized
+    if win.w < scr.w - 20 or win.h < scr.h - 80:
+        type(Key.UP, Key.WIN)
+        wait(0.5)
+    return True
+
 # Name fragment for an action's target: reference image base name for a string
 # or Pattern, the class name for a Region/Location/Match, None for text/keys.
 def _step_label(target):
