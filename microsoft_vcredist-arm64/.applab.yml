@@ -1,0 +1,3 @@
+# The build pushes a version tag and a year alias (eg 14.51.36247 and 2022);
+# publish both to the public hub, not just the tag the test pulled.
+publish_all_tags: true
