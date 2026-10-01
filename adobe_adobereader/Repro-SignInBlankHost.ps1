@@ -22,7 +22,13 @@ param(
     [int]$WaitSeconds = 60,            # how long to watch after the Sign-in click
     [switch]$ViaShortcut,              # launch like the App Test does: turbo installi + Start menu shortcut
     [switch]$F1First,                  # press F1 (Reader help opens Edge in the container) before Sign in
-    [string]$OpenPdf = ''              # PDF to open (Ctrl+O) before Sign in, e.g. the test's homeacrordrunified18_2025.pdf
+    [string]$OpenPdf = '',             # PDF to open (Ctrl+O) before Sign in, e.g. the test's homeacrordrunified18_2025.pdf
+    [switch]$StopHostEdge,             # stop the host's msedge first: with merge-user, a running host Edge takes over
+                                       # the container's Edge launch, so Edge never runs inside the container
+    [switch]$TouchFonts                # before Sign in, from a second process in the same container, open every
+                                       # C:\WINDOWS\Fonts file and duplicate its handle into Reader - what in-container
+                                       # Edge does when it hands fonts to its renderers, and what makes the VM fault the
+                                       # file into the sandbox
 )
 $ErrorActionPreference = 'Stop'
 $Image = 'adobe/adobereader:26.002.21931'
@@ -88,6 +94,11 @@ for ($i = 1; $MaxIterations -eq 0 -or $i -le $MaxIterations; $i++) {
         Unregister-Event "rdrcef-$s" -ErrorAction SilentlyContinue
         Register-CimIndicationEvent -SourceIdentifier "rdrcef-$s" -Query "SELECT * FROM Win32_Process$($s)Trace WHERE ProcessName='RdrCEF.exe'"
     }
+    if ($StopHostEdge) {
+        $n = @(Get-Process msedge -ErrorAction SilentlyContinue).Count
+        Get-Process msedge -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep 3
+        Log "stopped $n host msedge process(es); $(@(Get-Process msedge -ErrorAction SilentlyContinue).Count) left"
+    }
     if ($ViaShortcut) { Log "iteration $i : explorer $shortcut"; Start-Process explorer.exe "`"$shortcut`"" }
     else { Log "iteration $i : turbo $launch"; Log (Turbo $launch 300) }
 
@@ -117,11 +128,36 @@ for ($i = 1; $MaxIterations -eq 0 -or $i -le $MaxIterations; $i++) {
         Snap "$OutRoot\iteration-$i-pdf.png"
         [W.U]::SetForegroundWindow([IntPtr]$win.Current.NativeWindowHandle) | Out-Null; Start-Sleep 1
     }
+    if ($TouchFonts) {
+        # A second turbo run against the running container starts the process inside it.
+        $cmd = @'
+Add-Type -Namespace K -Name D -MemberDefinition '[DllImport("kernel32.dll")] public static extern System.IntPtr OpenProcess(uint a, bool i, int p);
+[DllImport("kernel32.dll")] public static extern bool DuplicateHandle(System.IntPtr sp, System.IntPtr sh, System.IntPtr tp, out System.IntPtr th, uint a, bool i, uint o);'
+$reader = Get-Process AcroRd32 | Where-Object MainWindowHandle -ne 0 | Select-Object -First 1
+$tp = [K.D]::OpenProcess(0x40, $false, $reader.Id)
+$self = [Diagnostics.Process]::GetCurrentProcess().Handle
+$n = 0
+Get-ChildItem $env:windir\Fonts -File | ForEach-Object {
+    try {
+        $fs = [IO.File]::OpenRead($_.FullName); $out = [IntPtr]::Zero
+        if ([K.D]::DuplicateHandle($self, $fs.SafeFileHandle.DangerousGetHandle(), $tp, [ref]$out, 0, $false, 2)) { $n++ }
+        $fs.Close()
+    } catch { }
+}
+"duplicated $n font handles into AcroRd32 $($reader.Id)"
+'@
+        $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($cmd))
+        Log 'opening every font file from a process inside the container'
+        Log (Turbo "run $Image --name=$Name $flags --startup-file=powershell.exe -- -NoProfile -EncodedCommand $enc" 300)
+        Start-Sleep 5
+        [W.U]::SetForegroundWindow([IntPtr]$win.Current.NativeWindowHandle) | Out-Null; Start-Sleep 1
+    }
     if ($F1First) {
         Log 'pressing F1 (help opens in Edge)'
         [System.Windows.Forms.SendKeys]::SendWait('{F1}')
         Start-Sleep 30
         Snap "$OutRoot\iteration-$i-f1.png"
+        Log "after F1: $(@(Get-Process msedge -ErrorAction SilentlyContinue).Count) msedge process(es) running"
         [W.U]::SetForegroundWindow([IntPtr]$win.Current.NativeWindowHandle) | Out-Null
         Start-Sleep 2
     }
@@ -154,6 +190,20 @@ for ($i = 1; $MaxIterations -eq 0 -or $i -le $MaxIterations; $i++) {
         exit 1
     }
     if ($starts -eq 0) { Log "iteration $i : no RdrCEF started after the click - the click missed Sign in; see $shot" }
+    if ($Diagnostic -and $id) {   # what ran inside the container, from its xclogs, before they are removed
+        $cfg = (Turbo 'config --format=json' 60 | ConvertFrom-Json)[0].result.configuration.containerStoragePath
+        $root = if ($cfg -match 'sandboxes\\?$') { $cfg } else { Join-Path $cfg 'sandboxes' }
+        $heads = Get-ChildItem "$root\$id\logs" -Filter 'xclog_*' -ErrorAction SilentlyContinue | ForEach-Object {
+            [pscustomobject]@{ Head = (Get-Content $_.FullName -TotalCount 1); File = $_.FullName } }
+        $edge = @($heads | Where-Object { $_.Head -match 'msedge\.exe|\\setup\.exe|powershell\.exe' }).Count
+        $denied = @($heads | Where-Object { $_.Head -match 'RdrCEF\.exe.*--type=renderer' } |
+            Where-Object { Select-String -Path $_.File -Pattern 'status:0xC0000022.*\\FONTS\\' -Quiet }).Count
+        Log "iteration $i : in-container msedge/setup/powershell processes=$edge, RdrCEF renderers denied C:\WINDOWS\FONTS=$denied"
+        if ($denied -gt 0) {   # a near miss is evidence too; keep its logs
+            Copy-Item "$root\$id\logs" "$OutRoot\nearmiss-$i-xclogs" -Recurse -ErrorAction SilentlyContinue
+            Log "iteration $i : xclogs kept in $OutRoot\nearmiss-$i-xclogs"
+        }
+    }
     if ($id) { Log (Turbo "stop $id" 120); Log (Turbo "rm $id" 120) }
     # Backstop for stale sessions from earlier runs.
     Sessions | Where-Object { $_.runState -ne 'Running' } |
