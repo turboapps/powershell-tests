@@ -1,5 +1,8 @@
 ﻿$NewLine = [System.Environment]::NewLine
 
+# Turbo Server sign-in (Connect-TurboServer).
+. "$PSScriptRoot\HubAuth.ps1"
+
 # Clean the environment for tests, pull test related images and login to a Turbo Server.
 # Note: this funtion will remove all the Turbo sessions, unregister all the apps installed by Turbo and reset Turbo Client configurations.
 function PrepareTest {
@@ -67,31 +70,29 @@ function PrepareTest {
     turbo pull base --format=json
 
     # Point to the specified Turbo Server and log in.
-    if (-not [string]::IsNullOrWhiteSpace($domain)) {
-        turbo config --domain $domain
-    } else {
+    if ([string]::IsNullOrWhiteSpace($domain)) {
         Write-Host "Domain not found in secrets.txt"
         Exit 1
     }
 
-    # A credential is required except for https://turbo.net.
-    # Clients from 26.10 on no longer accept `turbo login --api-key`: an unattended job signs in to a
-    # 2.0 Turbo Server (one with an OAuth authority) as a registered client, with the client id and
-    # secret an administrator creates on the server. The API key remains for older clients and servers.
+    # A credential is required except for https://turbo.net: an APIKey (a server before 2.0), or a
+    # registered OAuth client of a 2.0 server, as ClientId/ClientSecret entries or an APIKey of the
+    # form client:<id>:<secret>. Connect-TurboServer (HubAuth.ps1) signs in whichever client this is.
+    $credential = $apiKey
     if (-not [string]::IsNullOrWhiteSpace($clientId) -and -not [string]::IsNullOrWhiteSpace($clientSecret)) {
-        turbo login --client-id $clientId --client-secret $clientSecret
-        # $global: for the reason given in PullTurboImage.
+        $credential = "client:${clientId}:$clientSecret"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($credential)) {
         # Fatal: the client would otherwise go on pulling from whatever server it is still pointed at
         # (turbo.net when `turbo config --domain` could not reach $domain) and a pass would be for
         # images that never came from $domain.
-        if ($global:LASTEXITCODE -ne 0) {
-            Write-Host "turbo login as client $clientId failed with exit code $global:LASTEXITCODE; is $domain reachable from this machine?"
+        if (-not (Connect-TurboServer -Server $domain -Credential $credential)) {
+            Write-Host "Could not sign in to $domain; is it reachable from this machine?"
             Exit 1
         }
-    } elseif (-not [string]::IsNullOrWhiteSpace($apiKey)) {
-        turbo login --api-key $apiKey
     } else {
-        Write-Host "Neither ClientId/ClientSecret nor APIKey found in secrets.txt"
+        turbo config --domain $domain
+        Write-Host "No APIKey or ClientId/ClientSecret in secrets.txt; not signing in"
     }
 
     # Pull test related images. There won't be test under full isolation, so no need to pull clean.
