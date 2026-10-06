@@ -148,7 +148,7 @@ wait("open-file.png",60)
 click("open-file.png")
 paste(os.path.join(script_path, os.pardir, "resources", "homeacrordrunified18_2025.pdf"))
 wait(2)
-type(Key.ENTER)
+Debug.user("CONTROL: Open-dialog Enter dropped")
 assert wait_reader_window(), "Reader did not open the document"
 wait(3)
 dismiss_ai_assistant()
