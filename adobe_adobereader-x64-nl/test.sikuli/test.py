@@ -426,6 +426,19 @@ PASSKEY_SKIP = "passkey_skip.png" if os.path.exists(
 # that region.
 PASSKEY_PRIMARY = "passkey_primary_left.png"
 
+# A target worked out from an offset can fall off the screen when the anchor
+# behind it is a stray match, and SikuliX then logs "[error] Location: outside
+# any screen" - which fails the run even though nothing was clicked. In App
+# Tests 37525933279 (-de) that happened while the sign-in host was fading out
+# after a good password, and the run signed in and passed every step but was
+# reported as a script error. Treat such a target as "button not found".
+def click_on_screen(target):
+    if not SCREEN.contains(target):
+        Debug.user("passkey: not clicking (%d,%d), it is off the screen" % (target.x, target.y))
+        return False
+    click(target)
+    return True
+
 def click_passkey_skip(anchor):
     """Click Skip using the blue primary button as the anchor. True if clicked."""
     left = max(0, anchor.x - 60)
@@ -435,8 +448,7 @@ def click_passkey_skip(anchor):
     m = card.exists(Pattern(PASSKEY_PRIMARY).similar(0.80), 1)
     if not m:
         return False
-    click(m.getTarget().offset(-38, 0))
-    return True
+    return click_on_screen(m.getTarget().offset(-38, 0))
 
 # Last-resort offsets from the wand, for a card whose primary button cannot be
 # found either. They only ever step left and down - "Set up passkey" is
@@ -636,7 +648,7 @@ def wait_signed_in(timeout=240):
                 wait(2)
                 continue
             if tried < len(PASSKEY_SKIP_OFFSETS):
-                click(anchor.offset(*PASSKEY_SKIP_OFFSETS[tried]))
+                click_on_screen(anchor.offset(*PASSKEY_SKIP_OFFSETS[tried]))
                 tried += 1
                 wait(3)
                 continue
