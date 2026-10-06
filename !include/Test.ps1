@@ -47,6 +47,8 @@ function PrepareTest {
     $secrets = Get-Content $secretsFile | ConvertFrom-Csv -Header "Key", "Value"
     $domain = $secrets | Where-Object { $_.Key -eq "Domain" } | Select-Object -ExpandProperty Value
     $apiKey = $secrets | Where-Object { $_.Key -eq "APIKey" } | Select-Object -ExpandProperty Value
+    $clientId = $secrets | Where-Object { $_.Key -eq "ClientId" } | Select-Object -ExpandProperty Value
+    $clientSecret = $secrets | Where-Object { $_.Key -eq "ClientSecret" } | Select-Object -ExpandProperty Value
 
     # Stop all Turbo sessions.
     turbo stop -a
@@ -72,10 +74,20 @@ function PrepareTest {
         Exit 1
     }
 
-    if (-not [string]::IsNullOrWhiteSpace($apiKey)) { # API key is required except for https://turbo.net.
+    # A credential is required except for https://turbo.net.
+    # Clients from 26.10 on no longer accept `turbo login --api-key`: an unattended job signs in to a
+    # 2.0 Turbo Server (one with an OAuth authority) as a registered client, with the client id and
+    # secret an administrator creates on the server. The API key remains for older clients and servers.
+    if (-not [string]::IsNullOrWhiteSpace($clientId) -and -not [string]::IsNullOrWhiteSpace($clientSecret)) {
+        turbo login --client-id $clientId --client-secret $clientSecret
+        # $global: for the reason given in PullTurboImage.
+        if ($global:LASTEXITCODE -ne 0) {
+            Write-Host "turbo login as client $clientId failed with exit code $global:LASTEXITCODE; pulls from $domain will be refused"
+        }
+    } elseif (-not [string]::IsNullOrWhiteSpace($apiKey)) {
         turbo login --api-key $apiKey
     } else {
-        Write-Host "API key not found in secrets.txt"
+        Write-Host "Neither ClientId/ClientSecret nor APIKey found in secrets.txt"
     }
 
     # Pull test related images. There won't be test under full isolation, so no need to pull clean.
