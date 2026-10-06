@@ -302,6 +302,26 @@ if not save_dialog:
 wait(3)
 paste(save_location)
 type(Key.ENTER)
+# Check the outcome rather than trusting the paste. On os-test3 (2026-10-06) the
+# paste replaced the suggested name with nothing - the clipboard came up empty -
+# and Enter on an empty File name box does nothing, so the dialog stayed up and
+# the test died a step later at print_window.png. If test.pdf has not landed and
+# a File name box is still on screen, put the path in again. open-file.png (the
+# Open dialog's "File name:" label and empty box) scores 0.69 on the Save As
+# dialog's empty box and at most 0.47 elsewhere on that screen, hence 0.60.
+for _ in range(2):
+    if util.file_exists(save_location, 2):
+        break
+    field = exists(Pattern("open-file.png").similar(0.60), 2)
+    if not field:
+        break
+    Debug.user("Save As: %s not written - entering the path again" % save_location)
+    click(field)
+    wait(1)
+    type("a", Key.CTRL)
+    paste(save_location)
+    wait(2)
+    type(Key.ENTER)
 dismiss_upsell()
 dismiss_upgrade_prompt()
 dismiss_ai_assistant()
