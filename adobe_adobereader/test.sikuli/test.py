@@ -311,6 +311,10 @@ wait("print_window.png",60)
 type(Key.ESC)
 type(Key.F4, Key.ALT)
 wait(15)
+# Closing Reader can bring up "Update to the 64-bit version of Acrobat?"
+# instead of closing it (os-test3, 2026-10-06). Left up, the prompt sits over
+# the Desktop and the Open with flow below fails at choose-another-app.png.
+dismiss_upgrade_prompt()
 run("explorer " + util.desktop)
 # The saved file shows Reader's icon once the app owns the .pdf association,
 # but the stock Edge PDF icon when it does not yet (seen on x64 locales);
@@ -461,24 +465,25 @@ LOGIN_PASSWORD = Pattern("login-password.png").similar(0.70)
 #
 # The capture is the glyph alone. It used to take in the box's grey border,
 # and Adobe now opens the page with the password box focused, which draws that
-# border blue: the old capture scored 0.82-0.89 on the real password page, under
-# its 0.90 bar, and the test never typed the password (the -x64 line-590
-# failures in App Tests 37392258876..37392589723). The glyph alone scores 0.95-
-# 1.00 on the password page focused or not, and below 0.70 everywhere else in
-# all ~4,800 step frames of those 30 runs.
+# border blue: the old capture stayed under its 0.90 bar on 238 of the 259
+# password-page step frames of App Tests 37392258876..37392589723 (mostly 0.85-
+# 0.90), and the test never typed the password - the -x64 line-590 failures.
+# The glyph alone scores 0.85-1.00 on the password page whenever the eye is not
+# covered, focused or not, and at most 0.64 anywhere else in the 4,316 frames.
 LOGIN_PASSWORD_EYE = Pattern("login_password_eye.png").similar(0.85)
 
 # The email box is found from the Google "G" on the "Continue with Google"
 # button below it. The box itself cannot be matched: it is an empty rounded
-# rectangle, and the old capture of it (login-email.png) scored 0.82-0.89 on
-# the real box when it was unfocused, nothing usable when Adobe opens the page
-# with it focused, and 0.705-0.711 on the Windows taskbar Search box on every
-# CI frame. So enter_email() clicked the taskbar and typed the account email
-# into Windows Search, which opened it in a Bing tab, in every run of App Tests
-# 37392258876..37392589723. The G is the same in every language and layout, and
-# the box is 183 px above its centre in the wide 32-bit layout, the compact
-# localized one and the x64 one alike; the G's x always falls inside the box. It
-# scores 0.90-1.00 on the email page and below 0.60 on every other frame.
+# rectangle, and the old capture of it (login-email.png) matched the real box
+# only while it was unfocused - Adobe now opens the page with it focused - but
+# scored 0.70-0.75 on the Windows taskbar Search box on all 3,789 step frames
+# that show it. So enter_email() clicked the taskbar and typed the account email
+# into Windows Search, which opened it in a Bing tab, in every one of the 30
+# runs of App Tests 37392258876..37392589723. The G is the same in every
+# language and layout, and the box is 183 px above its centre in the wide 32-bit
+# layout, the compact localized one and the x64 one alike; the G's x always
+# falls inside the box. It scores 0.90-1.00 on the email page (159 frames) and
+# at most 0.72 on any other of the 4,316 frames.
 LOGIN_GOOGLE = Pattern("login_google_g.png").similar(0.85)
 EMAIL_ABOVE_GOOGLE = 183
 
@@ -495,7 +500,7 @@ def find_email_box():
 # of the Bing page the mis-typed email had opened, and every one of the 11 runs
 # that "passed" in App Tests 37392258876..37392589723 passed on such a match
 # without ever signing in. In the top 110 px it scores 1.00 on the real icon and
-# below 0.60 on everything else.
+# at most 0.59 on anything else in the 4,316 frames.
 SIGNED_IN_ICON = Pattern("account_icon.png").similar(0.85)
 
 def account_icon(timeout):
