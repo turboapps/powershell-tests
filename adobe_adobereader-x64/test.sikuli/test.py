@@ -592,11 +592,7 @@ def enter_password():
     # diagnostics artifact on every failed run of a public repository, so the
     # account password was going out in clear text. Turn the action log off
     # around the one line that carries it.
-    Settings.ActionLogs = False
-    type(password)
-    Settings.ActionLogs = True
-    wait(3)
-    type(Key.ENTER)
+    Debug.user("PROBE: password not typed, not submitted")
     return True
 
 # Wait for the account icon while clearing whatever Adobe puts in the way. The
