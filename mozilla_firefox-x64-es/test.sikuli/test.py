@@ -43,9 +43,9 @@ type(Key.ENTER)
 wait(Pattern("webpage.png").similar(0.60))
 wait(3)
 util.save_page_as_html("save.png", "save_type.png", os.path.join(util.desktop, "name with space"), htm_location)
-type("h", Key.ALT)
+type("u", Key.ALT)  # Alt+U opens the "Ayuda" menu
 wait(2)
-type("h")
+type("o")  # O opens "Obtener ayuda"
 wait("help_page.png",15)
 wait(3)
 type("q", Key.CTRL + Key.SHIFT)
