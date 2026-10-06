@@ -43,17 +43,11 @@ type(Key.ENTER)
 wait(Pattern("webpage.png").similar(0.60))
 wait(3)
 util.save_page_as_html("save.png", "save_type.png", os.path.join(util.desktop, "name with space"), htm_location)
-type("l", Key.CTRL)
+type("h", Key.ALT)
 wait(2)
-paste("about:preferences")
-type(Key.ENTER)
-wait("help-link.png")
-
-# Check "help". The click has to go through util.click_settled: the
-# about:preferences sidebar drops its "Firefox Labs" category a moment after the
-# page paints, shifting the help row up out from under an already-located click
-# (see click_settled).
-util.click_settled("help-link.png", "help_page.png")
+type("h")
+wait("help_page.png",15)
+wait(3)
 type("q", Key.CTRL + Key.SHIFT)
 util.wait_app_quiet("firefox.exe")
 
