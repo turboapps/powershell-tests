@@ -105,17 +105,32 @@ def wait_reader_window(timeout=120):
 def help_browser():
     return exists("help_url_prefix.png", 1)
 
+# On a localized help page Edge opens a "Translate page from ...?" bubble that
+# takes the keyboard focus, and then Alt+F4 and Ctrl+Shift+W only close the
+# bubble: App Tests 37392493739 (-es) left the help window over Reader, Sign in
+# was never found behind it, and the test failed at the sign-in assert. Escape
+# clears such a bubble (and is a no-op in the address bar), and the window is
+# looked for again after every attempt instead of being assumed closed.
 def close_help_browser():
-    bar = exists("help_url_prefix.png", 10)
-    if not bar:
+    if not exists("help_url_prefix.png", 10):
         return
-    click(bar)
-    wait(1)
-    type(Key.F4, Key.ALT)
-    wait(2)
-    if exists("help_url_prefix.png", 3):
+    for _ in range(3):
+        bar = exists("help_url_prefix.png", 2)
+        if not bar:
+            return
+        click(bar)
+        wait(1)
+        type(Key.ESC)
+        wait(1)
+        type(Key.F4, Key.ALT)
+        wait(3)
+        if not exists("help_url_prefix.png", 2):
+            return
+        type(Key.ESC)
         type("w", Key.CTRL + Key.SHIFT)
-        wait(2)
+        wait(3)
+    if exists("help_url_prefix.png", 2):
+        Debug.user("close_help_browser: the help window is still open after 3 attempts")
 
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resources", "secrets.txt"))
@@ -134,10 +149,33 @@ wait("pdf_example.png",90)
 type("o", Key.CTRL)
 wait("open-file.png",60)
 click("open-file.png")
-paste(os.path.join(script_path, os.pardir, "resources", "homeacrordrunified18_2025.pdf"))
+document = os.path.join(script_path, os.pardir, "resources", "homeacrordrunified18_2025.pdf")
+paste(document)
 wait(2)
 type(Key.ENTER)
-assert wait_reader_window(), "Reader did not open the document"
+# The Open dialog can be "Not Responding" for a moment right after it appears,
+# and then it drops what it is sent: App Tests 37392538932 (-x64) lost the Enter
+# with the path already in the box, 37392506243 (-x64-de) lost the paste too,
+# and both sat on the dialog until the 120 s window wait gave up. If the dialog
+# is still up once Reader has had time to open the file, put the path in again
+# and confirm it. open-file.png is the "File name:" label and the empty box
+# beside it; with a path typed in it scores 0.68 (next best 0.47), hence 0.60.
+opened = wait_reader_window(60)
+for _ in range(2):
+    if opened:
+        break
+    field = exists(Pattern("open-file.png").similar(0.60), 2)
+    if not field:
+        break
+    Debug.user("Open dialog still up after Enter - entering the path again")
+    click(field)
+    wait(1)
+    type("a", Key.CTRL)
+    paste(document)
+    wait(2)
+    type(Key.ENTER)
+    opened = wait_reader_window(60)
+assert opened, "Reader did not open the document"
 wait(3)
 dismiss_ai_assistant()
 doubleClick("welcome-orig.png")
@@ -251,6 +289,26 @@ if not save_dialog:
 wait(3)
 paste(save_location)
 type(Key.ENTER)
+# Check the outcome rather than trusting the paste. On os-test3 (2026-10-06) the
+# paste replaced the suggested name with nothing - the clipboard came up empty -
+# and Enter on an empty File name box does nothing, so the dialog stayed up and
+# the test died a step later at print_window.png. If test.pdf has not landed and
+# a File name box is still on screen, put the path in again. open-file.png (the
+# Open dialog's "File name:" label and empty box) scores 0.69 on the Save As
+# dialog's empty box and at most 0.47 elsewhere on that screen, hence 0.60.
+for _ in range(2):
+    if util.file_exists(save_location, 2):
+        break
+    field = exists(Pattern("open-file.png").similar(0.60), 2)
+    if not field:
+        break
+    Debug.user("Save As: %s not written - entering the path again" % save_location)
+    click(field)
+    wait(1)
+    type("a", Key.CTRL)
+    paste(save_location)
+    wait(2)
+    type(Key.ENTER)
 dismiss_upsell()
 dismiss_ai_assistant()
 focus_reader()
@@ -368,6 +426,19 @@ PASSKEY_SKIP = "passkey_skip.png" if os.path.exists(
 # that region.
 PASSKEY_PRIMARY = "passkey_primary_left.png"
 
+# A target worked out from an offset can fall off the screen when the anchor
+# behind it is a stray match, and SikuliX then logs "[error] Location: outside
+# any screen" - which fails the run even though nothing was clicked. In App
+# Tests 37525933279 (-de) that happened while the sign-in host was fading out
+# after a good password, and the run signed in and passed every step but was
+# reported as a script error. Treat such a target as "button not found".
+def click_on_screen(target):
+    if not SCREEN.contains(target):
+        Debug.user("passkey: not clicking (%d,%d), it is off the screen" % (target.x, target.y))
+        return False
+    click(target)
+    return True
+
 def click_passkey_skip(anchor):
     """Click Skip using the blue primary button as the anchor. True if clicked."""
     left = max(0, anchor.x - 60)
@@ -377,8 +448,7 @@ def click_passkey_skip(anchor):
     m = card.exists(Pattern(PASSKEY_PRIMARY).similar(0.80), 1)
     if not m:
         return False
-    click(m.getTarget().offset(-38, 0))
-    return True
+    return click_on_screen(m.getTarget().offset(-38, 0))
 
 # Last-resort offsets from the wand, for a card whose primary button cannot be
 # found either. They only ever step left and down - "Set up passkey" is
@@ -397,17 +467,60 @@ PASSKEY_SKIP_OFFSETS = ((149, 354), (131, 400), (131, 446), (105, 400))
 # password into the email box and then appended the username on the retry. It
 # is kept only as one of the "is the sign-in host up at all" anchors, where a
 # hit on the email page is a true positive anyway; it decides nothing else.
-LOGIN_EMAIL = Pattern("login-email.png").similar(0.70)
 LOGIN_PASSWORD = Pattern("login-password.png").similar(0.70)
 
 # The label above the password box is localized, and the show/hide eye at the
-# right end of the box is not - it is the same glyph in every language. On the
-# 2026-09-07 step frames it scores 0.978-0.996 on the password page (en and es
-# 32-bit, de x64) and 0.613-0.616 everywhere else, the email page included, so
-# at 0.90 it has a margin of about 0.35 on both sides. It is therefore the one
-# thing that decides whether the password step is on screen, and the only anchor
-# for clicking into the box, whose centre is 178 px to its left.
-LOGIN_PASSWORD_EYE = Pattern("login_password_eye.png").similar(0.90)
+# right end of the box is not - it is the same glyph in every language. It is
+# therefore the one thing that decides whether the password step is on screen,
+# and the only anchor for clicking into the box, whose centre is 178 px to its
+# left.
+#
+# The capture is the glyph alone. It used to take in the box's grey border,
+# and Adobe now opens the page with the password box focused, which draws that
+# border blue: the old capture stayed under its 0.90 bar on 238 of the 259
+# password-page step frames of App Tests 37392258876..37392589723 (mostly 0.85-
+# 0.90), and the test never typed the password - the -x64 line-590 failures.
+# The glyph alone scores 0.85-1.00 on the password page whenever the eye is not
+# covered, focused or not, and at most 0.64 anywhere else in the 4,316 frames.
+LOGIN_PASSWORD_EYE = Pattern("login_password_eye.png").similar(0.85)
+
+# The email box is found from the Google "G" on the "Continue with Google"
+# button below it. The box itself cannot be matched: it is an empty rounded
+# rectangle, and the old capture of it (login-email.png) matched the real box
+# only while it was unfocused - Adobe now opens the page with it focused - but
+# scored 0.70-0.75 on the Windows taskbar Search box on all 3,789 step frames
+# that show it. So enter_email() clicked the taskbar and typed the account email
+# into Windows Search, which opened it in a Bing tab, in every one of the 30
+# runs of App Tests 37392258876..37392589723. The G is the same in every
+# language and layout, and the box is 183 px above its centre in the wide 32-bit
+# layout, the compact localized one and the x64 one alike; the G's x always
+# falls inside the box. It scores 0.90-1.00 on the email page (159 frames) and
+# at most 0.72 on any other of the 4,316 frames.
+LOGIN_GOOGLE = Pattern("login_google_g.png").similar(0.85)
+EMAIL_ABOVE_GOOGLE = 183
+
+def find_email_box():
+    """Where to click to put the caret in the email field, or None."""
+    g = exists(LOGIN_GOOGLE, 0)
+    if g:
+        return g.getTarget().offset(0, -EMAIL_ABOVE_GOOGLE)
+    return None
+
+# Signed in = Reader's account icon in the strip along the top of the screen,
+# where the Sign in button was. Looked for anywhere on screen, the capture also
+# scored 0.709 on a taskbar icon (os-test3) and 0.72-0.82 on the Microsoft logos
+# of the Bing page the mis-typed email had opened, and every one of the 11 runs
+# that "passed" in App Tests 37392258876..37392589723 passed on such a match
+# without ever signing in. In the top 110 px it scores 1.00 on the real icon and
+# at most 0.59 on anything else in the 4,316 frames.
+SIGNED_IN_ICON = Pattern("account_icon.png").similar(0.85)
+
+def account_icon(timeout):
+    band = Region(0, 0, SCREEN.getW(), 110)
+    icon = band.exists(SIGNED_IN_ICON, timeout)
+    if icon:
+        Debug.user("signed in: account icon %.2f at (%d,%d)" % (icon.getScore(), icon.getTarget().x, icon.getTarget().y))
+    return icon
 
 def find_password_box():
     """Where to click to put the caret in the password field, or None."""
@@ -416,17 +529,15 @@ def find_password_box():
         return eye.getTarget().offset(-178, 0)
     return None
 
-# Anchors that only ever appear on the sign-in host. The email field is not one
-# of them - it is an empty rounded box that Reader's own search field can match
-# - so it counts only once the host has been asked for, which is the only way
-# the English layout (no Adobe wordmark, no password box yet) can be seen at
-# all.
+# Anchors that only ever appear on the sign-in host. The Google G is the one the
+# English layout (no Adobe wordmark, no password box yet) has.
 def signin_anchored():
-    return (exists("adobe_signin_logo.png", 0) or exists(LOGIN_PASSWORD, 0)
-            or exists(LOGIN_PASSWORD_EYE, 0) or exists("passkey_prompt.png", 0))
+    return (exists(LOGIN_GOOGLE, 0) or exists("adobe_signin_logo.png", 0)
+            or exists(LOGIN_PASSWORD, 0) or exists(LOGIN_PASSWORD_EYE, 0)
+            or exists("passkey_prompt.png", 0))
 
 def signin_visible():
-    return signin_anchored() or exists(LOGIN_EMAIL, 0)
+    return signin_anchored()
 
 # Bring the sign-in host up (or back): Reader reuses the existing window, on the
 # page it was left on, when its Sign in button is clicked again. The host takes
@@ -447,30 +558,21 @@ def open_signin(timeout=60):
     return False
 
 def enter_email():
-    # Two layouts: a wide one with a marketing panel beside the form (the
-    # English apps) and a compact one headed by the red Adobe wordmark (the
-    # localized apps). login-email.png matches the field itself, the wordmark
-    # only the compact layout - so wait for whichever shows up. The dialog
-    # keeps rendering after the anchor first appears and shifts as it settles,
-    # so let it settle and locate the anchor again before clicking.
-    field = None
-    logo = None
+    # The dialog keeps rendering after the anchor first appears and shifts as
+    # it settles, so let it settle and locate the anchor again before clicking.
+    # Without the G there is no email page to type into: say so rather than
+    # clicking somewhere else on the screen.
+    target = None
     for _ in range(30):
-        field = exists(LOGIN_EMAIL, 1)
-        if field:
+        target = find_email_box()
+        if target:
             break
-        logo = exists("adobe_signin_logo.png", 1)
-        if logo:
-            break
+        wait(1)
+    if not target:
+        return False
     wait(5)
-    field = exists(LOGIN_EMAIL, 3)
-    if field:
-        click(field)
-    else:
-        logo = exists("adobe_signin_logo.png", 5) or logo
-        if not logo:
-            return False
-        click(logo.getTarget().offset(159, 173))
+    target = find_email_box() or target
+    click(target)
     wait(2)
     # Select whatever is already in the box first. A retry lands in a field
     # that still holds the previous attempt's text, and typing would append.
@@ -519,7 +621,7 @@ def wait_signed_in(timeout=240):
     tried = 0
     scrolled = 0
     while time.time() < deadline:
-        if exists("account_icon.png", 2):
+        if account_icon(2):
             return True
         # Look for the Skip button before the wand: once the card has been
         # scrolled the wand can be off the top while the buttons are finally in
@@ -546,7 +648,7 @@ def wait_signed_in(timeout=240):
                 wait(2)
                 continue
             if tried < len(PASSKEY_SKIP_OFFSETS):
-                click(anchor.offset(*PASSKEY_SKIP_OFFSETS[tried]))
+                click_on_screen(anchor.offset(*PASSKEY_SKIP_OFFSETS[tried]))
                 tried += 1
                 wait(3)
                 continue
@@ -564,13 +666,13 @@ def wait_signed_in(timeout=240):
         wait(2)
     # Signing in has been seen to take over 150 s on a loaded pool VM; give the
     # icon one last look before reporting failure.
-    return exists("account_icon.png", 10) is not None
+    return account_icon(10) is not None
 
 signed_in = False
 for attempt in range(2):
     dismiss_upsell()
     dismiss_ai_assistant()
-    if exists("account_icon.png", 1):
+    if account_icon(1):
         signed_in = True
         break
     if not open_signin():
@@ -586,7 +688,7 @@ for attempt in range(2):
         signed_in = True
         break
 if not signed_in:
-    signed_in = exists("account_icon.png", 30) is not None
+    signed_in = account_icon(30) is not None
 assert signed_in, "Adobe sign-in did not complete: the account icon never appeared"
 
 # Quit the application. After sign-in a hidden helper window (the sign-in
