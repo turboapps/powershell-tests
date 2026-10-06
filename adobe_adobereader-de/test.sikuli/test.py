@@ -124,25 +124,16 @@ def help_browser():
 # clears such a bubble (and is a no-op in the address bar), and the window is
 # looked for again after every attempt instead of being assumed closed.
 def close_help_browser():
-    if not exists("help_url_prefix.png", 10):
+    bar = exists("help_url_prefix.png", 10)
+    if not bar:
         return
-    for _ in range(3):
-        bar = exists("help_url_prefix.png", 2)
-        if not bar:
-            return
-        click(bar)
-        wait(1)
-        type(Key.ESC)
-        wait(1)
-        type(Key.F4, Key.ALT)
-        wait(3)
-        if not exists("help_url_prefix.png", 2):
-            return
-        type(Key.ESC)
-        type("w", Key.CTRL + Key.SHIFT)
-        wait(3)
-    if exists("help_url_prefix.png", 2):
-        Debug.user("close_help_browser: the help window is still open after 3 attempts")
+    click(bar)
+    wait(1)
+    Debug.user("CONTROL: old close_help_browser, Alt+F4 dropped")
+    wait(2)
+    if exists("help_url_prefix.png", 3):
+        Debug.user("CONTROL: old close_help_browser, Ctrl+Shift+W dropped")
+        wait(2)
 
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resources", "secrets.txt"))
