@@ -114,10 +114,17 @@ def help_browser():
 def close_help_browser():
     if not exists("help_url_prefix.png", 10):
         return
+    skip = [1]
     for _ in range(3):
         bar = exists("help_url_prefix.png", 2)
         if not bar:
             return
+        if skip[0]:
+            skip[0] = 0
+            Debug.user("PROBE: first help-close attempt dropped")
+            click(bar)
+            wait(3)
+            continue
         click(bar)
         wait(1)
         type(Key.ESC)
@@ -152,7 +159,7 @@ click("open-file.png")
 document = os.path.join(script_path, os.pardir, "resources", "homeacrordrunified18_2025.pdf")
 paste(document)
 wait(2)
-type(Key.ENTER)
+Debug.user("PROBE: first Open-dialog Enter dropped")
 # The Open dialog can be "Not Responding" for a moment right after it appears,
 # and then it drops what it is sent: App Tests 37392538932 (-x64) lost the Enter
 # with the path already in the box, 37392506243 (-x64-de) lost the paste too,
@@ -287,7 +294,9 @@ for _ in range(3):
 if not save_dialog:
     wait("save_location.png", 5)
 wait(3)
-paste(save_location)
+Debug.user("PROBE: Save As paste comes up empty")
+type("a", Key.CTRL)
+type(Key.DELETE)
 type(Key.ENTER)
 # Check the outcome rather than trusting the paste. On os-test3 (2026-10-06) the
 # paste replaced the suggested name with nothing - the clipboard came up empty -
