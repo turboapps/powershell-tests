@@ -81,8 +81,12 @@ function PrepareTest {
     if (-not [string]::IsNullOrWhiteSpace($clientId) -and -not [string]::IsNullOrWhiteSpace($clientSecret)) {
         turbo login --client-id $clientId --client-secret $clientSecret
         # $global: for the reason given in PullTurboImage.
+        # Fatal: the client would otherwise go on pulling from whatever server it is still pointed at
+        # (turbo.net when `turbo config --domain` could not reach $domain) and a pass would be for
+        # images that never came from $domain.
         if ($global:LASTEXITCODE -ne 0) {
-            Write-Host "turbo login as client $clientId failed with exit code $global:LASTEXITCODE; pulls from $domain will be refused"
+            Write-Host "turbo login as client $clientId failed with exit code $global:LASTEXITCODE; is $domain reachable from this machine?"
+            Exit 1
         }
     } elseif (-not [string]::IsNullOrWhiteSpace($apiKey)) {
         turbo login --api-key $apiKey
