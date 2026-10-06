@@ -249,7 +249,9 @@ for _ in range(3):
 if not save_dialog:
     wait("save_location.png", 5)
 wait(3)
-paste(save_location)
+Debug.user("CONTROL: Save As paste comes up empty")
+type("a", Key.CTRL)
+type(Key.DELETE)
 type(Key.ENTER)
 dismiss_upsell()
 dismiss_ai_assistant()
