@@ -199,29 +199,25 @@ def get_credentials(path):
 
     return credentials
 
-# Sign in the Command Prompt that has the keyboard the way PrepareTest signed in
-# the harness, after the test has pasted `turbo config --domain=...` into it.
+# Sign in the Command Prompt that has the keyboard, after the test has pasted
+# `turbo config --domain=...` into it. A console started as another user
+# (runas) does not share the harness's login.
 #
-# A console started as another user (runas) inherits neither the harness's
-# login nor its TURBO_ACCESS_TOKEN, so it needs its own: a registered client
-# signs in with --client-id; an API key the harness exchanged for a ticket
-# (Turbo Client 26.10+ has no --api-key) is handed over as AccessToken; an API
-# key alone is a client before 26.10, which still takes --api-key.
+# Only a client before 26.10 needs this: each user has an image repository of
+# their own, so the console signs in and pulls for itself. Turbo Client 26.10
+# shares one repository across the machine that only an administrator may
+# download into (the console gets "Downloading images requires administrator
+# rights"), so the executor pulls every image the console uses beforehand and
+# the console never signs in - nor does it need --client-id (26.10+ only) or the
+# harness's API key ticket, which would land in the step screenshots. Without
+# a ClientId the client may be either generation; on 26.10 the --api-key line
+# just prints an error.
 def console_sign_in(credentials):
-    client_id = credentials.get("ClientId")
-    client_secret = credentials.get("ClientSecret")
-    access_token = credentials.get("AccessToken")
     api_key = credentials.get("APIKey")
-    if client_id and client_secret:
-        command = "turbo login --client-id=" + client_id + " --client-secret=" + client_secret
-    elif access_token:
-        command = "set TURBO_ACCESS_TOKEN=" + access_token
-    elif api_key:
-        command = "turbo login --api-key=" + api_key
-    else:
+    if credentials.get("ClientId") or not api_key:
         return
     wait(2)
-    paste(command)
+    paste("turbo login --api-key=" + api_key)
     wait(2)
     type(Key.ENTER)
 
