@@ -95,6 +95,13 @@ function PrepareTest {
         Write-Host "No APIKey or ClientId/ClientSecret in secrets.txt; not signing in"
     }
 
+    # A console a test opens as another user (runas) inherits neither this login nor
+    # TURBO_ACCESS_TOKEN: record the ticket, if this client needed one, for util.console_sign_in.
+    # A ticket from an earlier run is dropped either way.
+    $secretLines = @(Get-Content $secretsFile | Where-Object { $_ -and $_ -notlike 'AccessToken,*' })
+    if ($env:TURBO_ACCESS_TOKEN) { $secretLines += "AccessToken,$env:TURBO_ACCESS_TOKEN" }
+    Set-Content -Path $secretsFile -Value $secretLines
+
     # Pull test related images. There won't be test under full isolation, so no need to pull clean.
     turbo pull sikulix/sikulixide --format=json
     turbo pull oracle/jre-x64 --format=json

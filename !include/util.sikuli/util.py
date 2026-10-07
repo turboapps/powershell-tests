@@ -191,10 +191,39 @@ def get_credentials(path):
     with open(path, "r") as file:
         lines = file.readlines()
         for line in lines:
-            key, value = line.strip().split(",")
+            line = line.strip()
+            if not line:
+                continue
+            key, value = line.split(",", 1)
             credentials[key] = value
 
     return credentials
+
+# Sign in the Command Prompt that has the keyboard the way PrepareTest signed in
+# the harness, after the test has pasted `turbo config --domain=...` into it.
+#
+# A console started as another user (runas) inherits neither the harness's
+# login nor its TURBO_ACCESS_TOKEN, so it needs its own: a registered client
+# signs in with --client-id; an API key the harness exchanged for a ticket
+# (Turbo Client 26.10+ has no --api-key) is handed over as AccessToken; an API
+# key alone is a client before 26.10, which still takes --api-key.
+def console_sign_in(credentials):
+    client_id = credentials.get("ClientId")
+    client_secret = credentials.get("ClientSecret")
+    access_token = credentials.get("AccessToken")
+    api_key = credentials.get("APIKey")
+    if client_id and client_secret:
+        command = "turbo login --client-id=" + client_id + " --client-secret=" + client_secret
+    elif access_token:
+        command = "set TURBO_ACCESS_TOKEN=" + access_token
+    elif api_key:
+        command = "turbo login --api-key=" + api_key
+    else:
+        return
+    wait(2)
+    paste(command)
+    wait(2)
+    type(Key.ENTER)
 
 # Launch Adobe Creative Cloud
 def launch_adobe_cc(username, password):
