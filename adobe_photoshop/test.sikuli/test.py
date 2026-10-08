@@ -41,7 +41,11 @@ wait(20)
 # Launch the app.
 setAutoWaitTimeout(30)
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Photoshop"))
-wait("Welcome.png",90)
+# The relaunched Photoshop can take well over 90 s to paint its Home page: the
+# window comes up with grey placeholder bars and the "Welcome to Photoshop"
+# heading lands later. Keep waiting while the Photoshop window is on screen,
+# and give up only if it goes away or Home never paints.
+util.wait_while_busy("Welcome.png", "photoshop-menu-bar.png", timeout=300, grace=180)
 wait("photoshop-menu-bar.png")
 if exists("grafx-warning.png",20):
     click(Pattern("grafx-warning.png").targetOffset(255,11))

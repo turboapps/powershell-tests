@@ -13,9 +13,15 @@ util.pre_test(no_min=True)
 
 # Test.
 # The image's default startup file is httpd.exe itself (no cmd wrapper), and `httpd -X` with a
-# clean config prints nothing, so the console stays blank. Verify the server started by its
-# console window title (Apache icon + C:\Apache24\bin\httpd.exe) rather than a prompt.
-wait("httpd-window.png")
+# clean config prints nothing, so the console stays blank. Its title is not stable either: XVM
+# 26.9.x shows C:\Apache24\bin\httpd.exe, 26.3.18 shows C:\WINDOWS\system32\conhost.exe. Wait
+# for the httpd.exe process instead; the "It works!" page below checks that it is serving.
+for attempt in range(30):
+    if "httpd.exe" in run('tasklist /NH /FI "IMAGENAME eq httpd.exe"'):
+        break
+    wait(2)
+else:
+    assert False, "httpd.exe did not start within 60 s"
 run('explorer "http://localhost:8080"')
 # Maximize the browser so the page text is on screen regardless of the window's saved placement.
 wait(5)

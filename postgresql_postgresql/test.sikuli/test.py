@@ -12,7 +12,6 @@ util.pre_test()
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(include_path, os.pardir, "secrets.txt"))
 domain = credentials.get("Domain")
-api_key = credentials.get("APIKey")
 
 # Read extra parameters from the extra.txt.
 with open(os.path.join(script_path, os.pardir, "extra.txt"), "r") as file:
@@ -44,11 +43,7 @@ util.focus_console("runas_ready.png")
 paste("turbo config --domain=" + domain)
 wait(2)
 type(Key.ENTER)
-if api_key:
-    wait(2)
-    paste("turbo login --api-key=" + api_key)
-    wait(2)
-    type(Key.ENTER)
+util.console_sign_in(credentials)
 wait(5)
 paste("turbo pull xvm")
 wait(2)

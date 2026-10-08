@@ -1,5 +1,8 @@
 ﻿$NewLine = [System.Environment]::NewLine
 
+# Turbo Server sign-in (Connect-TurboServer).
+. "$PSScriptRoot\HubAuth.ps1"
+
 # Clean the environment for tests, pull test related images and login to a Turbo Server.
 # Note: this funtion will remove all the Turbo sessions, unregister all the apps installed by Turbo and reset Turbo Client configurations.
 function PrepareTest {
@@ -47,6 +50,8 @@ function PrepareTest {
     $secrets = Get-Content $secretsFile | ConvertFrom-Csv -Header "Key", "Value"
     $domain = $secrets | Where-Object { $_.Key -eq "Domain" } | Select-Object -ExpandProperty Value
     $apiKey = $secrets | Where-Object { $_.Key -eq "APIKey" } | Select-Object -ExpandProperty Value
+    $clientId = $secrets | Where-Object { $_.Key -eq "ClientId" } | Select-Object -ExpandProperty Value
+    $clientSecret = $secrets | Where-Object { $_.Key -eq "ClientSecret" } | Select-Object -ExpandProperty Value
 
     # Stop all Turbo sessions.
     turbo stop -a
@@ -65,17 +70,29 @@ function PrepareTest {
     turbo pull base --format=json
 
     # Point to the specified Turbo Server and log in.
-    if (-not [string]::IsNullOrWhiteSpace($domain)) {
-        turbo config --domain $domain
-    } else {
+    if ([string]::IsNullOrWhiteSpace($domain)) {
         Write-Host "Domain not found in secrets.txt"
         Exit 1
     }
 
-    if (-not [string]::IsNullOrWhiteSpace($apiKey)) { # API key is required except for https://turbo.net.
-        turbo login --api-key $apiKey
+    # A credential is required except for https://turbo.net: an APIKey (a server before 2.0), or a
+    # registered OAuth client of a 2.0 server, as ClientId/ClientSecret entries or an APIKey of the
+    # form client:<id>:<secret>. Connect-TurboServer (HubAuth.ps1) signs in whichever client this is.
+    $credential = $apiKey
+    if (-not [string]::IsNullOrWhiteSpace($clientId) -and -not [string]::IsNullOrWhiteSpace($clientSecret)) {
+        $credential = "client:${clientId}:$clientSecret"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($credential)) {
+        # Fatal: the client would otherwise go on pulling from whatever server it is still pointed at
+        # (turbo.net when `turbo config --domain` could not reach $domain) and a pass would be for
+        # images that never came from $domain.
+        if (-not (Connect-TurboServer -Server $domain -Credential $credential)) {
+            Write-Host "Could not sign in to $domain; is it reachable from this machine?"
+            Exit 1
+        }
     } else {
-        Write-Host "API key not found in secrets.txt"
+        turbo config --domain $domain
+        Write-Host "No APIKey or ClientId/ClientSecret in secrets.txt; not signing in"
     }
 
     # Pull test related images. There won't be test under full isolation, so no need to pull clean.
@@ -90,13 +107,40 @@ function PullTurboImages {
         [string]$using
     )
 
-    turbo pull $image --format=json
+    PullTurboImage -image $image
 
     if (-not [string]::IsNullOrWhiteSpace($using)) {
         $using.Split(",") | ForEach-Object {
-            turbo pull $_.Trim() --format=json
+            PullTurboImage -image $_.Trim()
         }
     }
+}
+
+# Pull one image, retrying a failed pull.
+#
+# A pull that fails part-way leaves a .downloadpart behind and gives up with
+# "The connection may have timed out" (exit -1). The test's own launch then
+# resumes that download inside the test's first wait, which no budget can cover
+# for a multi-GB image: App Tests run 35935367711 lost the connection twice
+# pulling vsbuildtools-arm64 (4.6 GB), and nodejs-arm64 then failed at
+# focus_console with 2.6 GB still to fetch. Pulling again here resumes the
+# .downloadpart rather than starting over.
+function PullTurboImage {
+    param (
+        [string]$image,
+        [int]$attempts = 5
+    )
+
+    # $global: because the CI harness (applab Invoke-AppTest.ps1) assigns
+    # $LASTEXITCODE in its own scope before calling the executor, and that copy
+    # shadows the automatic variable here: a bare $LASTEXITCODE reads 0 no matter
+    # what turbo returned.
+    for ($attempt = 1; $attempt -le $attempts; $attempt++) {
+        turbo pull $image --format=json
+        if ($global:LASTEXITCODE -eq 0) { return }
+        Write-Host "turbo pull $image failed with exit code $global:LASTEXITCODE (attempt $attempt of $attempts)"
+    }
+    Write-Warning "turbo pull $image failed $attempts times; the test's launch will have to download it"
 }
 
 # Install apps using Turbo Client.
@@ -537,7 +581,9 @@ public class SikuliConsole {
         # The sikulix launch should use java.exe instead of javaw.exe as we found that javaw takes focus when running the sikulix test scripts so key passes didn't get sent to the application.
         $command = "turbo run sikulixide --using=oracle/jre-x64 --offline --disable=spawnvm --isolate=merge-user --startup-file=javaw -- -jar @SYSDRIVE@\SikulixIDE\sikulixide-2.0.5.jar -r $($PSScriptRoot)\..\$name\test.sikuli -f $($localLogsDir)\$name-test.log"
         Invoke-Expression $command | Out-Host
-        $exitCode = $LASTEXITCODE
+        # $global: for the reason given in PullTurboImages: on CI a bare
+        # $LASTEXITCODE reads Invoke-AppTest.ps1's own copy, which is always 0.
+        $exitCode = $global:LASTEXITCODE
     } finally {
         $stopFlag.Stop = $true
         try { $null = $minimizer.EndInvoke($asyncResult) } catch { }
@@ -554,6 +600,10 @@ public class SikuliConsole {
         Write-Host "VM logs: collection failed: $_"
     }
 
+    # Written here rather than by StandardTest so that the executors which call
+    # StartTest directly get a marker too.
+    Write-TestDoneMarker -image $image -exitCode $exitCode -logFile "$localLogsDir\$name-test.log"
+
     return $exitCode
 
 }
@@ -562,15 +612,36 @@ public class SikuliConsole {
 # test runs with console windows minimized, so the marker is the visible
 # signal for a person watching the desktop that the run has finished.
 # PrepareTest removes stale markers at the start of each run.
+#
+# The verdict is the one Invoke-AppTest.ps1 reaches from the same evidence: a
+# missing test log, a non-zero sikulix exit code, or any line of the test log
+# containing "error" (SikuliX's "[error] script [ test ] stopped with error")
+# is a failure. What the marker cannot see is the CI harness's own crash-dump
+# gate, which runs after the executor returns and can still fail a run whose
+# script passed.
 function Write-TestDoneMarker {
     param (
         [string]$image,
-        [int]$testResult
+        [int]$exitCode,
+        [string]$logFile
     )
-    if ($testResult -eq 0) {
-        "$image Pass at $(Get-Date -Format 'o')" | Set-Content "$env:USERPROFILE\Desktop\TEST-DONE-PASS"
+    $reason = $null
+    if (-not (Test-Path $logFile)) {
+        $reason = "no test log at $logFile"
+    } elseif ($exitCode -ne 0) {
+        $reason = "sikulix exit $exitCode"
     } else {
-        "$image Fail (exit $testResult) at $(Get-Date -Format 'o')" | Set-Content "$env:USERPROFILE\Desktop\TEST-DONE-FAIL"
+        $errorLine = Select-String -Path $logFile -Pattern "error" -SimpleMatch | Select-Object -First 1
+        if ($errorLine) {
+            $reason = "test log: $($errorLine.Line.Trim())"
+        }
+    }
+    if ($reason) {
+        "$image Fail ($reason) at $(Get-Date -Format 'o')" | Set-Content "$env:USERPROFILE\Desktop\TEST-DONE-FAIL"
+        Write-Host "Test done marker: TEST-DONE-FAIL ($reason)"
+    } else {
+        "$image Pass at $(Get-Date -Format 'o')" | Set-Content "$env:USERPROFILE\Desktop\TEST-DONE-PASS"
+        Write-Host "Test done marker: TEST-DONE-PASS (sikulix exit 0, no error in the test log)"
     }
 }
 
@@ -616,7 +687,6 @@ function StandardTest {
     }
     HidePowerShellWindow
     $TestResult = StartTest -image $image -localLogsDir $localLogsDir
-    Write-TestDoneMarker -image $image -testResult $TestResult
 
     return $TestResult
 }

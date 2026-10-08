@@ -80,7 +80,7 @@ type(Key.ENTER)
 wait("import_done.png",20)
 type("d")
 wait(2) # Wait for Edit panel to load.
-click(Pattern("develop_mode.png").targetOffset(181,-96),15)
+click(Pattern("develop_mode.png").targetOffset(181,-96))
 type("r")
 wait(2)
 type("x")

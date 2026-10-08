@@ -27,8 +27,8 @@ type(Key.ENTER)
 # Minimize the command prompt
 App().focus("Command Prompt")
 type(Key.DOWN, Key.WIN)
-if exists("ram-warning.png",180):
-    click("ram-warning.png")
+if exists(Pattern("ram-warning.png").similar(0.50),180):
+    click(Pattern("ram-warning.png").similar(0.50))
 if exists("adobe_login_signout_others.png",60):
     click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
     click(Pattern("adobe_login_continue.png").similar(0.80))
@@ -43,8 +43,8 @@ run("turbo stop test")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe After Effects"))
-if exists("ram-warning.png",180):
-    click("ram-warning.png")
+if exists(Pattern("ram-warning.png").similar(0.50),180):
+    click(Pattern("ram-warning.png").similar(0.50))
 if exists("warning.png",60):
     click("warning.png")
     wait(2)
@@ -53,15 +53,14 @@ if exists("warning.png",60):
 # Basic operations.
 wait("new-file-button.png",20)
 type("i",Key.CTRL)
-wait(5)
+wait("import-file-box.png",90)
+wait(3)
+type("n",Key.ALT)
+wait(3)
 paste(os.path.join(script_path, os.pardir, "resources", "sample.mp4"))
-wait(2)
+wait(3)
 type(Key.ENTER)
-# Import, not just find: After Effects puts up an "Importing selected items..."
-# progress dialog and only then adds the footage to the Project panel. On a
-# loaded pool VM that dialog was still at 0% when a 20 s budget expired (run
-# 34542100509), so the wait was timing the import rather than the app.
-wait("sample-mp4.png",120)
+wait("sample-mp4.png",90)
 doubleClick(Pattern("sample-mp4.png").targetOffset(-6,7))
 
 # Check "Help".

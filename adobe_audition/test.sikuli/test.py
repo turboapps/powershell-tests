@@ -70,6 +70,8 @@ if exists("export-warning.png"):
 wait(10)
 assert(util.file_exists(os.path.join(os.environ['USERPROFILE'], "Documents\\sample_01.mp3"), 5))
 type("q",Key.CTRL)
+wait(5)
+os.system('cmd /c taskkill /f /im "audition.exe" /t')  # adobe bug prevents process from ending
 
 # Check if the session terminates.
 wait(30)

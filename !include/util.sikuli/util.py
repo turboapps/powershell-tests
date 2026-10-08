@@ -57,6 +57,39 @@ def _step_dir():
         _step_state["dir"] = folder
     return _step_state["dir"]
 
+# Minimize a window
+def minimize_app(appName):
+    appToMin = App().focus(appName)
+    if (appToMin.isValid(),10):
+        type(Key.DOWN, Key.WIN)
+
+# Maximize a window
+def maximize_app(appName, timeout=10):
+    app = App.focus(appName)
+    if not app.isValid():
+        print("maximize_app: could not find/focus '%s'" % appName)
+        return False
+
+    # Wait for the focused window to be available
+    win = None
+    end = time.time() + timeout
+    while time.time() < end:
+        win = App.focusedWindow()
+        if win is not None and win.w > 0:
+            break
+        wait(0.5)
+    if win is None:
+        print("maximize_app: no focused window for '%s'" % appName)
+        return False
+
+    scr = SCREEN
+    # A maximized window is about the size of the screen, minus the taskbar
+    # only maximize a window that is not already maximized
+    if win.w < scr.w - 20 or win.h < scr.h - 80:
+        type(Key.UP, Key.WIN)
+        wait(0.5)
+    return True
+
 # Name fragment for an action's target: reference image base name for a string
 # or Pattern, the class name for a Region/Location/Match, None for text/keys.
 def _step_label(target):
@@ -158,10 +191,35 @@ def get_credentials(path):
     with open(path, "r") as file:
         lines = file.readlines()
         for line in lines:
-            key, value = line.strip().split(",")
+            line = line.strip()
+            if not line:
+                continue
+            key, value = line.split(",", 1)
             credentials[key] = value
 
     return credentials
+
+# Sign in the Command Prompt that has the keyboard, after the test has pasted
+# `turbo config --domain=...` into it. A console started as another user
+# (runas) does not share the harness's login.
+#
+# Only a client before 26.10 needs this: each user has an image repository of
+# their own, so the console signs in and pulls for itself. Turbo Client 26.10
+# shares one repository across the machine that only an administrator may
+# download into (the console gets "Downloading images requires administrator
+# rights"), so the executor pulls every image the console uses beforehand and
+# the console never signs in - nor does it need --client-id (26.10+ only) or the
+# harness's API key ticket, which would land in the step screenshots. Without
+# a ClientId the client may be either generation; on 26.10 the --api-key line
+# just prints an error.
+def console_sign_in(credentials):
+    api_key = credentials.get("APIKey")
+    if credentials.get("ClientId") or not api_key:
+        return
+    wait(2)
+    paste("turbo login --api-key=" + api_key)
+    wait(2)
+    type(Key.ENTER)
 
 # Launch Adobe Creative Cloud
 def launch_adobe_cc(username, password):
@@ -201,7 +259,7 @@ def adobe_cc_login(username, password, reload_page=True):
     click(login)
     wait(6)
     paste(username)
-    wait(3)
+    wait(5)
     type(Key.ENTER)
     # Wait for the password page itself, not for anything shaped like a text
     # field. The email page and the password page are the same shape - a label
@@ -219,9 +277,11 @@ def adobe_cc_login(username, password, reload_page=True):
     # real wait. Re-capture it if Adobe relabels the page: a stale reference is
     # what forced the 0.40 in the first place. The offset clicks into the field
     # below the label.
-    wait("adobe_login_pass.png",60)
-    wait(1)
-    click(Pattern("adobe_login_pass.png").targetOffset(0,27))
+    if exists("adobe_login_pass.png",15):
+        wait(3)
+        click(Pattern("adobe_login_pass.png").targetOffset(0,27))
+    elif exists("adobe_login_pass_1.png",10):
+        click("adobe_login_pass_1.png")
     wait(3)
     paste(password)
     wait(3)
@@ -909,6 +969,67 @@ def focus_and_wait(window, image, attempts=30, poll=10):
         if exists(image, poll):
             return True
     Debug.user("focus_and_wait: %s not found on '%s' after %d attempts" % (image, window, attempts))
+    return False
+
+# The running instances of an executable, as {pid: window title}.
+#
+# tasklist /V reports each process's main window title, and "N/A" for a process
+# that has none, so the same call answers both "did it start" and "did it put up
+# a window". A test that hands a launch to an application (Power BI's Help >
+# Support starts msedge.exe itself) can tell the two failures apart with it: no
+# new process means the request never reached the launch, while a new process
+# with no window means the launch happened and the application did not come up.
+def list_processes(executable):
+    processes = {}
+    for line in run('tasklist /V /FO CSV /NH /FI "IMAGENAME eq ' + executable + '"').splitlines():
+        fields = re.findall(r'"([^"]*)"', line)
+        if len(fields) >= 9 and fields[0].lower() == executable.lower():
+            processes[fields[1]] = fields[-1]
+    return processes
+
+# Stop every running instance of an executable, gracefully if it will go.
+#
+# taskkill without /F asks each process's windows to close (WM_CLOSE), which is
+# what closing the app by hand does and lets it save its state. A process that
+# has no window, or ignores the request, is still there after `grace` seconds
+# and is then terminated with /F. Returns list_processes() for whatever is left.
+def stop_processes(executable, grace=20, force_grace=10, poll=2):
+    running = list_processes(executable)
+    if not running:
+        return running
+    Debug.user("stop_processes: stopping %s %s" % (executable, running))
+    run("taskkill /T /IM " + executable)
+    waited = 0
+    while running and waited < grace:
+        wait(poll)
+        waited += poll
+        running = list_processes(executable)
+    if running:
+        Debug.user("stop_processes: %s %s did not close in %d s; terminating" % (executable, sorted(running), grace))
+        run("taskkill /F /T /IM " + executable)
+        waited = 0
+        while running and waited < force_grace:
+            wait(poll)
+            waited += poll
+            running = list_processes(executable)
+    Debug.user("stop_processes: %s left running: %s" % (executable, running or "none"))
+    return running
+
+# focus_and_wait() for a window that another application launches, which also
+# records every instance of the executable that was not in `baseline` (a
+# list_processes() snapshot taken before the launch) into `seen` as it goes.
+# A process that starts and dies between two polls can be missed, but a crash
+# of that kind leaves a WER dump that the crash-dump gate reports anyway.
+def wait_launched_window(window, image, executable, baseline, seen, attempts, poll=10):
+    for attempt in range(attempts):
+        App(window).focus()
+        if exists(image, poll):
+            return True
+        for pid, title in list_processes(executable).items():
+            if pid not in baseline:
+                seen[pid] = title
+    Debug.user("wait_launched_window: %s not found on '%s' after %d attempts; new %s: %s"
+               % (image, window, attempts, executable, seen or "none"))
     return False
 
 # Drive a browser to a URL through its address bar, and prove it got there.

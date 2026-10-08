@@ -74,6 +74,10 @@ click("transform_data.png")
 click("close_apply.png")
 
 # Check "help".
+# Start from no Edge at all, so that any msedge.exe seen after the click is the
+# one the click launched (see below). Anything that refuses to stop even when
+# forced is recorded and ignored.
+edge_before = util.stop_processes("msedge.exe")
 click("menu_help.png")
 click("help_support.png")
 # Help > Support hands the URL to the Edge that the isolate-edge-wc layer brings
@@ -97,8 +101,59 @@ click("help_support.png")
 # from this run's lossless -fail.png and scores 1.0 on both failures (0.44 next
 # best elsewhere on the screen, 0.44 on the pre-Edge frame, so it still cannot
 # pass before the page is up).
-if not util.focus_and_wait("Edge", "help_url.png", attempts=9, poll=10):
+#
+# App Tests run 35935367711 failed here a second way, with the whole 90 s spent
+# and Edge never on screen at all: every frame from the click to the FAILED one
+# is the same Power BI window with Support hovered, and the taskbar never shows
+# an Edge window. In a passing run Power BI starts msedge.exe itself about 2.5 s
+# after the click (VM logs of run 36031259455: "msedge.exe --single-argument
+# https://go.microsoft.com/fwlink/?linkid=855944", parent PBIDesktop.exe), so
+# 90 s without a window is not a slow start, and which of two things went wrong
+# decides what to do about it:
+#
+# - no new msedge.exe at all: the click never reached the launch. That is the
+#   test's problem, so click Help > Support again, up to twice.
+# - a new msedge.exe but no Edge window: the launch happened and the browser
+#   did not come up inside the container. That is a VM failure, and clicking
+#   again would only hide it, so do not retry; fail with a message that says so
+#   and leave the processes running for whoever looks at the VM.
+#
+# The first click gets 50 s (the slowest cold start measured was ~30 s), each
+# retry 40 s. Once a click's msedge.exe has appeared it gets 40 s more, i.e. the
+# full 90 s #234 allowed a started browser, before its missing window counts.
+# A window that is up with the page still not matching is neither case and
+# fails at the wait() below, as before.
+edge_seen = {}
+for click_round in range(3):
+    if click_round:
+        Debug.user("powerbi: no msedge.exe started after Help > Support; clicking it again (retry %d of 2)" % click_round)
+        App("Power BI Desktop").focus()
+        if not exists("help_support.png", 5):
+            click("menu_help.png")
+        click("help_support.png")
+    opened = util.wait_launched_window("Edge", "help_url.png", "msedge.exe", edge_before, edge_seen,
+                                       attempts=5 if click_round == 0 else 4)
+    if not opened and edge_seen:
+        opened = util.wait_launched_window("Edge", "help_url.png", "msedge.exe", edge_before, edge_seen, attempts=4)
+    if opened or edge_seen:
+        break
+# "Window" means an Edge browser window, whose title ends "- Microsoft Edge".
+# tasklist also reports the hidden helper windows Edge's other processes own
+# (OleMainThreadWndName, OLEChannelWnd), which say nothing about the browser.
+edge_window = any("Microsoft" in title and title.endswith("Edge") for title in edge_seen.values())
+if not opened and edge_seen and not edge_window:
+    alive = util.list_processes("msedge.exe")
+    Debug.user("VM FAILURE: msedge.exe started after Help > Support but never opened a window; "
+               "new pids %s, still running %s" % (sorted(edge_seen), sorted(p for p in edge_seen if p in alive)))
+    assert False, "VM failure: msedge.exe started (pids %s) but no Edge window came up" % sorted(edge_seen)
+if not opened:
+    if edge_seen:
+        Debug.user("powerbi: Edge window up but help_url.png does not match; msedge.exe %s" % edge_seen)
+    else:
+        Debug.user("powerbi: no msedge.exe started after 3 Help > Support clicks")
     wait("help_url.png", 5)
+Debug.user("powerbi: support page up; new msedge.exe %s"
+           % dict((p, t) for p, t in util.list_processes("msedge.exe").items() if p not in edge_before))
 util.close_app("Edge")
 wait(10)
 type(Key.F4, Key.ALT)
