@@ -18,6 +18,9 @@ if (!$LocalLogsDir) {
         $LocalLogsDir = New-Item -Path "$AppLogsDir" -Name $FormattedDate -ItemType directory
     }
 
+# Turbo Server sign-in (Connect-TurboServer).
+. "$PSScriptRoot\!include\HubAuth.ps1"
+
 # Set variables
 $NewLine = "`r`n"  #  Adds a blank line to the Log file
 $LogFile = "$LocalLogsDir\!Publish.log"  # Set path of log file
@@ -158,10 +161,13 @@ param (
 Function TurboPublish($App,$Version,$ApiKey,$ServerURL) {
     $Repo = $App -replace '_','/'
     $Turbo = "C:\Program Files (x86)\Turbo\Cmd\turbo.exe"
-    $ProcessExitCode = RunProcess $Turbo "config --domain=$ServerURL" $True
-    CheckForError "Checking process exit code:" 0 $ProcessExitCode $True # Fail on turbo config failure
-    $ProcessExitCode = RunProcess $Turbo "login --api-key $ApiKey" $True
-    CheckForError "Checking process exit code:" 0 $ProcessExitCode $True # Fail on turbo login failure
+    # $ApiKey is an API key or client:<id>:<secret> (see HubAuth.ps1). Not through RunProcess,
+    # which writes the command line - and the credential - to the console.
+    if (-not (Connect-TurboServer -Server $ServerURL -Credential $ApiKey -Turbo $Turbo)) {
+        Write-Host "Error: could not sign in to $ServerURL"
+        WriteLog "Published=Fail"
+        Exit 1
+    }
     # If no version parameter was passed just push without a version
     # If this script was launched by the HTA, this should not be possible
     if ([string]::IsNullOrWhiteSpace($Version)) {

@@ -18,7 +18,7 @@ The repository also contains an HTA tool that makes it easy to run indivdual tes
 
 1. Launch the `TurboImageTester.hta`.
 
-2. Input your Turbo Server URL and API key (no API key needed if using Turbo.net Hub). The test script will pull the supporting images from Turbo.net Hub and the images to be tested from your Turbo Server. This information will be saved to `.\!include\secrets.txt`.
+2. Input your Turbo Server URL and API key (no API key needed if using Turbo.net Hub). For a Turbo Server 2.0, which has no API keys, enter the registered OAuth client created under **Admin > Identity > Clients** as `client:<client id>:<client secret>`; signing in that way needs Turbo Client 26.10 or later. The test script will pull the supporting images from Turbo.net Hub and the images to be tested from your Turbo Server. This information will be saved to `.\!include\secrets.txt`.
 
 3. Choose an image that you wish to test from the dropdown box.
 

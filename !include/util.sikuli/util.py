@@ -191,10 +191,35 @@ def get_credentials(path):
     with open(path, "r") as file:
         lines = file.readlines()
         for line in lines:
-            key, value = line.strip().split(",")
+            line = line.strip()
+            if not line:
+                continue
+            key, value = line.split(",", 1)
             credentials[key] = value
 
     return credentials
+
+# Sign in the Command Prompt that has the keyboard, after the test has pasted
+# `turbo config --domain=...` into it. A console started as another user
+# (runas) does not share the harness's login.
+#
+# Only a client before 26.10 needs this: each user has an image repository of
+# their own, so the console signs in and pulls for itself. Turbo Client 26.10
+# shares one repository across the machine that only an administrator may
+# download into (the console gets "Downloading images requires administrator
+# rights"), so the executor pulls every image the console uses beforehand and
+# the console never signs in - nor does it need --client-id (26.10+ only) or the
+# harness's API key ticket, which would land in the step screenshots. Without
+# a ClientId the client may be either generation; on 26.10 the --api-key line
+# just prints an error.
+def console_sign_in(credentials):
+    api_key = credentials.get("APIKey")
+    if credentials.get("ClientId") or not api_key:
+        return
+    wait(2)
+    paste("turbo login --api-key=" + api_key)
+    wait(2)
+    type(Key.ENTER)
 
 # Launch Adobe Creative Cloud
 def launch_adobe_cc(username, password):
