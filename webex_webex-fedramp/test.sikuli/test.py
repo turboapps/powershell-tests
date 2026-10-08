@@ -41,7 +41,9 @@ if exists("new-webex.png",10):
 # first, then dismiss the modal: if the modal is still up, the Alt+F4 below
 # closes it instead of the meeting window and the login window never returns.
 wait("room.png",60)
-if exists(Pattern("mic-ok.png").similar(0.90),10):
+# PROBE: leave the audio modal up so the first Alt+F4 lands on it
+wait(Pattern("mic-ok.png").similar(0.90),30)
+if False:
     util.click_until_gone(Pattern("mic-ok.png").similar(0.90))
 click("room.png")
 wait(3)
