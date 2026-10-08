@@ -33,7 +33,7 @@ Debug.user("SABOTAGE: relaunch delayed 20 s")
 # The relaunch from the shortcut paints the welcome screen 17-24 s after launch on
 # passing runs, so the default 30 s has little slack - run 37826953706 missed it by
 # a second or two (the FindFailed itself saw welcome.png at 0.98).
-wait("welcome.png", 60)
+wait("welcome.png")
 wait(10)
 click(Pattern("welcome.png").targetOffset(-90,0))
 click(Pattern("login_email.png").targetOffset(-184,50))
