@@ -36,13 +36,27 @@ util.close_app("Edge")
 if exists("new-webex.png",10):
     click("new-webex.png")
     click("always.png")
-if exists(Pattern("mic-ok.png").similar(0.90),20):
-    click(Pattern("mic-ok.png").similar(0.90))
-wait("room.png",20)
+# The meeting window takes 10-30 s to paint, and the "Can't use computer for
+# audio" modal (CI has no audio devices) arrives with it. Wait for the window
+# first, then dismiss the modal: if the modal is still up, the Alt+F4 below
+# closes it instead of the meeting window and the login window never returns.
+wait("room.png",60)
+if exists(Pattern("mic-ok.png").similar(0.90),10):
+    util.click_until_gone(Pattern("mic-ok.png").similar(0.90))
 click("room.png")
 wait(3)
-type(Key.F4, Key.ALT)
-wait("welcome.png",20)
+# A modal that arrived after the check above eats the Alt+F4; the meeting
+# window then stays up. Dismiss it and close the window again.
+for attempt in range(3):
+    type(Key.F4, Key.ALT)
+    if exists("welcome.png",20):
+        break
+    Debug.user("meeting window still open after Alt+F4 (attempt %d)" % (attempt + 1))
+    if exists(Pattern("mic-ok.png").similar(0.90),0):
+        util.click_until_gone(Pattern("mic-ok.png").similar(0.90))
+    click("room.png")
+    wait(3)
+wait("welcome.png",1)
 type(Key.F4, Key.ALT)
 os.system('cmd /c taskkill /f /im "webexhost.exe" /t')
 wait(20)
