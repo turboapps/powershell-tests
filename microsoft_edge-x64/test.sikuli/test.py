@@ -10,6 +10,23 @@ util.pre_test()
 
 save_location = os.path.join(util.desktop, "print.pdf")
 
+# google.com serves two homepages at random: the classic one with a "Google
+# Search" button (webpage.png) and a newer one with "Create images / Ask about
+# files / Brainstorm" chips and no such button. The header strip (Gmail,
+# Images, apps, Sign in) is on both. 0.85 because Edge's own new-tab page,
+# which has a Sign in button too, scores 0.70 against it.
+google_anchors = [Pattern("google_header.png").similar(0.85), Pattern("webpage.png").similar(0.60)]
+
+def wait_google(timeout=30):
+    end = time.time() + timeout
+    while time.time() < end:
+        for anchor in google_anchors:
+            match = exists(anchor, 0)
+            if match:
+                return match
+        wait(1)
+    return wait(google_anchors[0], 0)  # FindFailed names the header anchor
+
 # Test of `turbo run`.
 wait("new-tab.png")
 run("turbo stop test")
@@ -30,7 +47,7 @@ click(Pattern("address-bar.png").targetOffset(16,1))
 if exists("about-blank.png",5):
     click("about-blank.png")
 type("https://google.com/" + Key.ENTER)
-wait(Pattern("webpage.png").similar(0.60))
+wait_google()
 wait(3)
 type("s", Key.CTRL)
 wait("save_type.png")
@@ -56,12 +73,12 @@ wait(2)
 click(Pattern("windows_setting_default_edge.png").similar(0.95))
 type(Key.F4, Key.ALT)
 run("explorer " + os.path.join(util.desktop, "name with space.html"))
-wait(Pattern("webpage.png").similar(0.60))
+wait_google()
 if App("Edge").isRunning(10):
     util.close_app("Edge")
 run('explorer "https://google.com/"')
-wait(Pattern("webpage.png").similar(0.60))
-click(Pattern("webpage.png").similar(0.60)) # To gain focus.
+# To gain focus: blank page below the anchor, never the header links.
+click(wait_google().getTarget().offset(0, 200))
 wait(5)
 type("p", Key.CTRL)
 wait("print_window.png")
