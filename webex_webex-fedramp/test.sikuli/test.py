@@ -36,7 +36,8 @@ util.close_app("Edge")
 if exists("new-webex.png",10):
     click("new-webex.png")
     click("always.png")
-if exists(Pattern("mic-ok.png").similar(0.90),20):
+# CONTROL: the modal check misses (window later than the budget)
+if exists(Pattern("mic-ok.png").similar(0.90),0):
     click(Pattern("mic-ok.png").similar(0.90))
 wait("room.png",20)
 click("room.png")
