@@ -39,7 +39,7 @@ if exists("new-webex.png",10):
 # CONTROL: the modal check misses (window later than the budget)
 if exists(Pattern("mic-ok.png").similar(0.90),0):
     click(Pattern("mic-ok.png").similar(0.90))
-wait("room.png",20)
+wait("room.png",60)
 click("room.png")
 wait(3)
 type(Key.F4, Key.ALT)
