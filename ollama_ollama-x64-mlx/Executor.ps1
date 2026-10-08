@@ -63,7 +63,24 @@ try {
         messages = @(@{ role = "user"; content = "Reply with the word hello." })
         stream = $False
     } | ConvertTo-Json -Depth 5
-    $chatResult = Invoke-RestMethod -Uri "$OllamaUrl/api/chat" -Method Post -Body $chatBody -ContentType "application/json" -TimeoutSec 600
+    # DIAG: run the chat in a job and sample the ollama process tree while it waits.
+    $diag = { param($tag)
+        $os = Get-CimInstance Win32_OperatingSystem
+        Write-Host ("DIAG {0} {1:HH:mm:ss} freeMB={2}" -f $tag, (Get-Date), [int]($os.FreePhysicalMemory/1KB))
+        Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'ollama|llama' } | ForEach-Object {
+            $p = Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue
+            Write-Host ("DIAG   pid={0} ppid={1} cpu={2:N0}s ws={3:N0}MB cmd={4}" -f $_.ProcessId, $_.ParentProcessId, $p.CPU, ($p.WorkingSet64/1MB), $_.CommandLine)
+        }
+    }
+    & $diag "pre-chat"
+    try { Write-Host ("DIAG ps=" + ((Invoke-RestMethod -Uri "$OllamaUrl/api/ps" -TimeoutSec 10) | ConvertTo-Json -Depth 5 -Compress)) } catch { Write-Host "DIAG ps failed: $($_.Exception.Message)" }
+    $chatStart = Get-Date
+    $job = Start-Job -ScriptBlock { param($u, $b) Invoke-RestMethod -Uri "$u/api/chat" -Method Post -Body $b -ContentType "application/json" -TimeoutSec 600 } -ArgumentList $OllamaUrl, $chatBody
+    while (-not (Wait-Job $job -Timeout 15)) { & $diag ("t+{0:N0}s" -f ((Get-Date) - $chatStart).TotalSeconds) }
+    Write-Host ("DIAG chat finished after {0:N0}s state={1}" -f ((Get-Date) - $chatStart).TotalSeconds, $job.State)
+    try { Write-Host ("DIAG ps=" + ((Invoke-RestMethod -Uri "$OllamaUrl/api/ps" -TimeoutSec 10) | ConvertTo-Json -Depth 5 -Compress)) } catch { Write-Host "DIAG ps failed: $($_.Exception.Message)" }
+    $chatResult = Receive-Job $job -ErrorAction Stop
+    Write-Host ("DIAG chat stats: " + ($chatResult | Select-Object total_duration, load_duration, prompt_eval_count, eval_count, eval_duration | ConvertTo-Json -Compress))
     if ([string]::IsNullOrWhiteSpace($chatResult.message.content)) {
         throw "Chat completion returned an empty response."
     }
