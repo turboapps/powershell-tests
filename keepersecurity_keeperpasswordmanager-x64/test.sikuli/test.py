@@ -22,12 +22,12 @@ if exists("quit.png"):
     click(Pattern("quit.png").targetOffset(8,49))
 
 # Launch the app.
-# SABOTAGE PROBE: start the relaunch 20 s late so the welcome screen lands ~37-44 s out.
+# SABOTAGE PROBE: start the relaunch 10 s late so the welcome screen lands ~37-44 s out.
 import java.lang.ProcessBuilder as _PB
-_pb = _PB(["cmd", "/c", "ping -n 21 127.0.0.1 >nul & explorer \"" + os.path.join(util.start_menu, "Keeper Password Manager.lnk") + "\""])
+_pb = _PB(["cmd", "/c", "ping -n 11 127.0.0.1 >nul & explorer \"" + os.path.join(util.start_menu, "Keeper Password Manager.lnk") + "\""])
 import java.io.File as _F; _pb.redirectOutput(_F("NUL")); _pb.redirectError(_F("NUL"))
 _pb.start()
-Debug.user("SABOTAGE: relaunch delayed 20 s")
+Debug.user("SABOTAGE: relaunch delayed 10 s")
 
 # Basic operations.
 # The relaunch from the shortcut paints the welcome screen 17-24 s after launch on
