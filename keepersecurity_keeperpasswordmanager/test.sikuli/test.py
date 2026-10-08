@@ -25,6 +25,10 @@ if exists("quit.png"):
 run('explorer "' + os.path.join(util.start_menu, "Keeper Security, Inc", "Keeper Password Manager.lnk") + '"') # Need to wrap the path for comma.
 
 # Basic operations.
+# The relaunch from the shortcut paints the welcome screen 17-24 s after launch on
+# passing runs, so the default 30 s has little slack - run 37826953706 missed it by
+# a second or two (the FindFailed itself saw welcome.png at 0.98).
+wait("welcome.png", 60)
 click(Pattern("welcome.png").targetOffset(-90,0))
 click(Pattern("login_email.png").targetOffset(-184,50))
 paste(username)
