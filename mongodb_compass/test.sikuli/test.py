@@ -7,6 +7,10 @@ import util
 reload(util)
 addImagePath(include_path)
 
+# The test used to import the Turbo client's repos.json, which clients from 26.10
+# no longer write (repo metadata moved to turbo.db), so it ships its own copy.
+import_path = os.path.abspath(os.path.join(script_path, os.pardir, "resources", "import.json"))
+
 setAutoWaitTimeout(30)
 util.pre_test(no_min=True)
 
@@ -51,7 +55,7 @@ wait("import-button.png")
 click("import-button.png")
 wait("file-browser.png")
 click("file-browser.png")
-paste("%localappdata%\\turbo\\containers\\repo\\repos.json")
+paste(import_path)
 type(Key.ENTER)
 wait("import-confirm.png")
 click("import-confirm.png")
