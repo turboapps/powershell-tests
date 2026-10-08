@@ -25,6 +25,11 @@ if exists("quit.png"):
 run('explorer "' + os.path.join(util.start_menu, "Keeper Security, Inc", "Keeper Password Manager.lnk") + '"') # Need to wrap the path for comma.
 
 # Basic operations.
+# The relaunch from the shortcut paints the welcome screen anywhere from 17 to 45 s
+# after launch (CI, 2026-10), so the default 30 s misses about 4 runs in 10 -
+# run 37826953706. (Its "seen at ... 0.98" is the cached match from line 19, not
+# a live one.) 90 s keeps about 2x headroom over the slowest paint seen.
+wait("welcome.png", 90)
 click(Pattern("welcome.png").targetOffset(-90,0))
 click(Pattern("login_email.png").targetOffset(-184,50))
 paste(username)
