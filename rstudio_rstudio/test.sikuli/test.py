@@ -97,7 +97,7 @@ click("project_run.png")
 # wait below then spends its 180 s on a console that is never going to finish
 # (App Tests runs 37868755768 and 37868758654, both apps, both builds). The
 # tidyverse install above answers that box with No, which is this same choice.
-type("install.packages(\"roxygen2\", type = \"binary\")")
+type("install.packages(\"roxygen2\")")
 type(Key.ENTER)
 # Wait for roxygen2 to be installed rather than guessing at how long it takes.
 # A blind wait(10) stood here, and Ctrl+Shift+B sent into a console still
