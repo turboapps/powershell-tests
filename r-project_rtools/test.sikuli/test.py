@@ -90,7 +90,14 @@ wait("project_template.png", 120)
 type("r", Key.ALT + Key.CTRL)
 wait("project_run.png")
 click("project_run.png")
-type("install.packages(\"roxygen2\")")
+# type = "binary" keeps R from asking anything. When CRAN has a newer roxygen2
+# source than its Windows binary (8.1.1 vs 8.1.0 on 2026-10-08), a plain
+# install.packages() raises RStudio's "Do you want to install from sources the
+# package which needs compilation?" Question box and waits on it forever; the
+# wait below then spends its 180 s on a console that is never going to finish
+# (App Tests runs 37868755768 and 37868758654, both apps, both builds). The
+# tidyverse install above answers that box with No, which is this same choice.
+type("install.packages(\"roxygen2\", type = \"binary\")")
 type(Key.ENTER)
 # Wait for roxygen2 to be installed rather than guessing at how long it takes.
 # A blind wait(10) stood here, and Ctrl+Shift+B sent into a console still
