@@ -50,7 +50,30 @@ click(Pattern("sync_settings.png").targetOffset(-12,59)) # To gain the focus.
 click(Pattern("sync_settings.png").targetOffset(-12,59))
 wait("dw_window.png",20)
 wait(3)
-type("n", Key.CTRL)
+# PROBE: log what holds the foreground when Ctrl+N does not open New Document,
+# then re-activate Dreamweaver through its caption and retry.
+def dw_state(tag):
+    try:
+        Debug.user("dw-probe %s: foreground window %s" % (tag, App.focusedWindow()))
+    except:
+        Debug.user("dw-probe %s: foreground window unreadable: %s" % (tag, sys.exc_info()[1]))
+    try:
+        Debug.user("dw-probe %s: Dreamweaver.exe %s" % (tag, util.list_processes("Dreamweaver.exe")))
+    except:
+        Debug.user("dw-probe %s: tasklist failed: %s" % (tag, sys.exc_info()[1]))
+new_doc = None
+for attempt in range(1, 4):
+    dw_state("before ctrl+n #%d" % attempt)
+    type("n", Key.CTRL)
+    new_doc = exists("new.png", 20)
+    if new_doc:
+        Debug.user("dw-probe: New Document opened on attempt %d" % attempt)
+        break
+    dw_state("no New Document after ctrl+n #%d" % attempt)
+    click(Location(1000, 13))
+    wait(2)
+if not new_doc:
+    new_doc = find("new.png")
 click(Pattern("new.png").targetOffset(0,4))
 wait("new_template.png",20)
 wait(3)
