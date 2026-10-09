@@ -67,6 +67,7 @@ wait("fox-output.png")
 util.close_app("Edge")
 
 # Check "help".
+wait(10)
 type(Key.F1)
 if exists("help-sign-in.png",15):
     click("help-sign-in.png")

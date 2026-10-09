@@ -53,9 +53,10 @@ paste(save_path)
 type(Key.ENTER)
 assert(util.file_exists(save_path, 5))
 run("explorer " + os.path.join(script_path, os.pardir, "resources", "Save.indd"))
-wait("missing_fonts.png",120)
-click(Pattern("missing_fonts.png").targetOffset(205,155))
-wait("open-doc.png")
+click(wait(Pattern("hyphenation-warning.png").targetOffset(188,54),120))
+click(wait(Pattern("missing_fonts.png").targetOffset(205,155),20))
+wait("open-doc.png",20)
+wait(5)
 
 # Check "help".
 type(Key.F1)
