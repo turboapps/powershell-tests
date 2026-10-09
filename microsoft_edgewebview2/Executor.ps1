@@ -8,7 +8,7 @@ $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 
 $image = "microsoft/edgewebview2"
 $app = "powerbi/powerbi"
-$using = "turbobuild/isolate-edge-wc,microsoft/edgewebview2"
+$using = "turbobuild/isolate-edge-wc,microsoft/edgewebview2:155.0.4283.45"
 $isolate = "merge-user"
 
 PrepareTest -image $image -localLogsDir $localLogsDir
