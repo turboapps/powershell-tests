@@ -99,7 +99,12 @@ if not util.vscode_open_file(os.path.join(script_path, os.pardir, "resources", "
                  "tab_java.png", 240):
     raise FindFailed("hello_world.java never opened")
 click("tab_java.png")
-wait("code_java.png")
+# Anchor on the main() line alone. Once the Java extension finishes activating
+# it redraws the editor: a "Run | Debug" CodeLens row pushes main() down and an
+# "x:" inlay hint lands inside println(. A crop of the whole five-line file only
+# matched before that (0.63 after it), so the wait passed or failed on whether it
+# beat activation. This line reads the same either side of it.
+wait("code_java_main.png")
 # The Run affordance appears before the Java extension pack has finished
 # activating ("Java: Activating..." / "Run: Importing projects"), and a run
 # started then produces no output at all. Give the first run a window, then
