@@ -93,6 +93,8 @@ try {
 } finally {
     # Stop the detached session started by TryTurboApp.
     turbo stop test
+    # DIAG: headless executors never reach StartTest, so collect the VM logs here.
+    try { CollectVmLogs -image $image } catch { Write-Host "VM logs: collection failed: $_" }
     Set-Content -Path $testLog -Value $logLines
 }
 
