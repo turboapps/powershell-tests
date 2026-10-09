@@ -361,6 +361,15 @@ if exists("notebooks-cancel.png",30):
 wait_notebooks_loaded()
 wait("new-section.png",20)
 wait(10)
+# PROBE: collapse My Notebook first, to put the run in the state of run 37868758654.
+_row = exists(MY_NOTEBOOK, 30)
+_chev = _row and Region(0, _row.y - 6, 28, _row.h + 12).exists(NOTEBOOK_EXPANDED, 0)
+if _chev:
+    click(_chev)
+    wait(3)
+    Debug.user("PROBE: collapsed My Notebook; expanded now = %s" % notebook_expanded(exists(MY_NOTEBOOK, 5)))
+else:
+    Debug.user("PROBE: My Notebook was not expanded to begin with")
 open_my_notebook()
 
 # Remove default-named sections left behind by an earlier run on this VM. The
