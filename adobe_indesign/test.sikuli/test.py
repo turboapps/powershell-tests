@@ -112,9 +112,7 @@ run("explorer " + os.path.join(script_path, os.pardir, "resources", "Save.indd")
 # Poll for both, so a run where the warning does not come up costs nothing.
 opened = time.time()
 while time.time() - opened < 120 and not exists("missing_fonts.png", 5):
-    if SCREEN.exists("hyphenation_warning.png", 0) is not None:
-        Debug.user("Save.indd: hyphenation warning up %d s after the open" % (time.time() - opened))
-        click(Pattern("hyphenation_warning.png").targetOffset(201,62))
+    pass  # PROBE: hyphenation warning deliberately not acknowledged
 wait("missing_fonts.png",30)
 click(Pattern("missing_fonts.png").targetOffset(205,155))
 wait("open-doc.png")
