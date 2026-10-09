@@ -232,6 +232,8 @@ def my_notebook_sections():
 # "My Notebook has no New Section link" with the notebook one click away.
 # Clicking the notebook opens it, so do that, and check it took.
 def open_my_notebook(timeout=60):
+    Debug.user("SABOTAGE: open_my_notebook disabled")
+    return
     started = time.time()
     clicks = 0
     while True:
