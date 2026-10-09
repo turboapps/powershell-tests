@@ -47,18 +47,16 @@ click(Pattern("lacy_puppet.png").targetOffset(-3,-3))
 # during it is silently ignored - the export panel never opens. scene_ready.png
 # is a static piece of the rendered background (the tree stump), which is only
 # on screen once the scene has been drawn.
-wait(Pattern("scene_ready.png").similar(0.95), 180)
-wait(3)
+# SABOTAGE PROBE: the scene-ready wait is removed; click quick-export at once,
+# as main effectively did. Must FAIL at wait(export,30) (FindFailed), not pass.
+wait(1)
 # export.png is the blue "Export" pill of the quick-export panel. At the default
 # 0.7 it also matches the blue "Record face and voice" pill under the stage
 # (0.73), so a panel that had not opened turned into a click on Record and the
 # test failed a minute later at the mp4 assert. 0.9 separates the two.
 export = Pattern("export.png").similar(0.9)
 click(Pattern("quick-export-button.png").targetOffset(1,1))
-if not exists(export, 30):
-    Debug.user("characteranimator: export panel did not open, clicking quick-export again")
-    click(Pattern("quick-export-button.png").targetOffset(1,1))
-    wait(export, 30)
+wait(export, 30)
 click(export)
 wait(10)
 assert(util.file_exists(os.path.join(os.environ['USERPROFILE'], "Documents\\Adobe\\Character Animator\\Scene - Lacy Starter.mp4"), 5))
