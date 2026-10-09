@@ -310,6 +310,10 @@ def adobe_cc_login(username, password, reload_page=True):
     # come up, fail here, at the cause.
     page = None
     for attempt in range(1, 4):
+        if True:
+            Debug.user("SABOTAGE: stealing focus before email ENTER %d" % attempt)
+            click(Location(170,700))
+            wait(1)
         type(Key.ENTER)
         page = _cc_password_page(25)
         if page:
