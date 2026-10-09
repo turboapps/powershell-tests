@@ -40,10 +40,26 @@ wait("title-bar.png")
 setAutoWaitTimeout(20)
 wait("lacy_puppet.png")
 click(Pattern("lacy_puppet.png").targetOffset(-3,-3))
-wait(10)
+# Wait for the scene to finish loading before asking for an export. Opening the
+# puppet shows a black stage with a 'Preparing "Lacy Starter"' and then a
+# 'Preparing scene' toast; on the CI VMs (software rendering) that takes longer
+# than the fixed 10 s this used to wait, and a click on the quick-export button
+# during it is silently ignored - the export panel never opens. scene_ready.png
+# is a static piece of the rendered background (the tree stump), which is only
+# on screen once the scene has been drawn.
+wait(Pattern("scene_ready.png").similar(0.95), 180)
+wait(3)
+# export.png is the blue "Export" pill of the quick-export panel. At the default
+# 0.7 it also matches the blue "Record face and voice" pill under the stage
+# (0.73), so a panel that had not opened turned into a click on Record and the
+# test failed a minute later at the mp4 assert. 0.9 separates the two.
+export = Pattern("export.png").similar(0.9)
 click(Pattern("quick-export-button.png").targetOffset(1,1))
-wait("export.png")
-click("export.png")
+if not exists(export, 30):
+    Debug.user("characteranimator: export panel did not open, clicking quick-export again")
+    click(Pattern("quick-export-button.png").targetOffset(1,1))
+    wait(export, 30)
+click(export)
 wait(10)
 assert(util.file_exists(os.path.join(os.environ['USERPROFILE'], "Documents\\Adobe\\Character Animator\\Scene - Lacy Starter.mp4"), 5))
 type("q",Key.CTRL)
