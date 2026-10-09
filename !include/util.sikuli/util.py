@@ -232,6 +232,19 @@ def launch_adobe_cc(username, password):
     wait(5)
     closeApp("Creative Cloud Desktop")
 
+# The password page comes in two layouts: one labels its field "Continue with
+# password" (adobe_login_pass.png, click 27 px below the label), the other
+# "Password" (adobe_login_pass_1.png, click the label itself). Wait up to
+# `timeout` seconds for either and return (pattern to click, pattern that
+# identifies the page), or None if the page never came up.
+def _cc_password_page(timeout):
+    if exists("adobe_login_pass.png", timeout * 3 // 5):
+        wait(3)
+        return Pattern("adobe_login_pass.png").targetOffset(0,27), "adobe_login_pass.png"
+    if exists("adobe_login_pass_1.png", timeout * 2 // 5):
+        return "adobe_login_pass_1.png", "adobe_login_pass_1.png"
+    return None
+
 # Log in for Adobe Creative Cloud.
 #
 # `reload_page` is the Creative Cloud Desktop dance and only that. There, the
@@ -256,11 +269,14 @@ def adobe_cc_login(username, password, reload_page=True):
         click("cancel-button.png")
         wait(20)
         wait(login,10)
-    click(login)
+    # Keep the box this run matched: a retry clicks the box that was found,
+    # rather than running the loose 0.40 pattern again on a page that may
+    # have moved on under it.
+    email_box = find(login).getTarget()
+    click(email_box)
     wait(6)
     paste(username)
     wait(5)
-    type(Key.ENTER)
     # Wait for the password page itself, not for anything shaped like a text
     # field. The email page and the password page are the same shape - a label
     # over a rounded input box - so the old reference (a "Password" crop matched
@@ -275,20 +291,49 @@ def adobe_cc_login(username, password, reload_page=True):
     # label of the current page, which scores 0.98-1.00 there and 0.47-0.55 on
     # the email page, so the default similarity separates the two and this is a
     # real wait. Re-capture it if Adobe relabels the page: a stale reference is
-    # what forced the 0.40 in the first place. The offset clicks into the field
-    # below the label.
-    if exists("adobe_login_pass.png",15):
-        wait(3)
-        click(Pattern("adobe_login_pass.png").targetOffset(0,27))
-    elif exists("adobe_login_pass_1.png",10):
-        click("adobe_login_pass_1.png")
+    # what forced the 0.40 in the first place.
+    #
+    # The ENTER that submits the email address can be lost. applab run
+    # 37868755768 (adobe_acrobatpro): the Creative Cloud window was active and
+    # the email box focused before the ENTER, yet the page never submitted -
+    # Continue stayed enabled, the address still sat in the box 25 s later, and
+    # neither password reference appeared. This helper used to paste the
+    # password regardless, straight into the email box ("Please enter an email
+    # address", password in cleartext in the step frames), and the check below
+    # passed vacuously because the password page had never been up. Creative
+    # Cloud stayed signed out and the test died 3 minutes later at pdf_window.png
+    # behind Acrobat's own "Sign in" window.
+    #
+    # So submit again if the page has not moved - re-activate the window, click
+    # the email box (the address is still in it) and press ENTER - and never
+    # type the password anywhere but the password page: if that page does not
+    # come up, fail here, at the cause.
+    page = None
+    for attempt in range(1, 4):
+        type(Key.ENTER)
+        page = _cc_password_page(25)
+        if page:
+            break
+        Debug.user("adobe_cc_login: the email page did not submit on attempt %d of 3" % attempt)
+        if attempt < 3:
+            activate_app_window("Creative Cloud Desktop", 30)
+            wait(1)
+            click(email_box)
+            wait(2)
+    if not page:
+        _step_capture("FAILED-adobe_cc_login-no-password-page")
+        raise FindFailed("adobe_cc_login: the password page never came up after 3 email submits - not typing the password")
+    target, page_image = page
+    click(target)
     wait(3)
     paste(password)
     wait(3)
     type(Key.ENTER)
     # Fail at the cause, not 30 steps downstream: a sign-in that worked leaves
     # the password page, a sign-in that did not keeps it up (with an error).
-    if not waitVanish("adobe_login_pass.png",60):
+    # Watch the layout that actually came up - waiting for the other one to
+    # vanish passes without checking anything.
+    if not waitVanish(page_image,60):
         raise FindFailed("adobe_cc_login: sign-in did not complete, the password page is still up")
     if exists("adobe_login_signout_others.png",15):
         click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
