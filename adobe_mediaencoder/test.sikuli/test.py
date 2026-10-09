@@ -60,7 +60,7 @@ wait(3)
 click("me_window.png") # To gain focus.
 type("i", Key.CTRL)
 wait("source_location.png",10)
-paste(os.path.join(project_dir, "create-project-import-media-step1.prproj"))
+paste(os.path.join(project_src, "create-project-import-media-step1.prproj"))  # SABOTAGE: encode from the repo checkout again
 type(Key.ENTER)
 wait("loaded.png",10)
 type(Key.ENTER)
