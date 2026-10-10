@@ -31,7 +31,11 @@ App("Question").focus()
 if exists("install_from_sources.png"):
     click(Pattern("install_from_sources.png").targetOffset(44,31))
  
-wait("rstudio_package_installed.png", 120)
+# tidyverse is ~90 packages downloaded from CRAN and unpacked; this wait has
+# measured 33-79 s on a quiet pool and ran past 120 s (still unpacking) when
+# the pool was busy (App Tests runs 37979218240, 37979257316). The image needs
+# the prompt back, so a long budget costs nothing when the install is quick.
+wait("rstudio_package_installed.png", 300)
 click("rstudio_package_installed.png")
 type("library(tidyverse)" + Key.ENTER)
 wait("rstudio_package_imported.png",60)
