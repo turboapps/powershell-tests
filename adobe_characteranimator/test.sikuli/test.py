@@ -87,11 +87,20 @@ assert(util.file_exists(os.path.join(os.environ['USERPROFILE'], "Documents\\Adob
 # Character Animator never quit (check_running: still Running after 60 s).
 # Bring the app back first. Its title is "Adobe Character Animator 2026"; the
 # Explorer window is just "Character Animator", so the prefix tells them apart.
+# Explorer can open late (run 38093026114: it was still painting a blank frame
+# when Ctrl+Q went out and took the foreground straight back), so a single
+# refocus is not enough: re-focus and re-send Ctrl+Q until the app's window is
+# gone. A Ctrl+Q that reaches an app that is already closing is harmless.
 wait(5)
 assert(util.activate_app_window("Adobe Character Animator", 10))
-wait(2)
-type("q",Key.CTRL)
+for attempt in range(4):
+    if not App().focus("Adobe Character Animator").isValid():
+        break
+    if attempt:
+        Debug.user("characteranimator: still open after Ctrl+Q, refocusing and sending it again (attempt %d)" % (attempt + 1))
+    wait(2)
+    type("q",Key.CTRL)
+    wait(15)
 
 # Check if the session terminates.
-wait(10)
 util.check_running()
