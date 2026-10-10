@@ -1,3 +1,4 @@
+import shutil
 script_path = os.path.dirname(os.path.abspath(sys.argv[0])) 
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
@@ -7,6 +8,17 @@ addImagePath(include_path)
 
 setAutoWaitTimeout(90)
 save_path = include_path = os.path.join(util.desktop, "test", "test")
+
+# Media Encoder writes "Master Sequence.mp4" next to the source project. The
+# container is isolate=merge-user, so only writes under the user profile reach
+# the host: a project left in the repo checkout (C:\actions-runner\...) encodes
+# into the session sandbox and the host never sees the file. Work on a copy in
+# a user-profile folder so the output is visible to the assert below.
+project_src = os.path.join(script_path, os.pardir, "resources", "create-project-import-media")
+project_dir = os.path.join(util.desktop, "create-project-import-media")
+if os.path.exists(project_dir):
+    shutil.rmtree(project_dir)
+shutil.copytree(project_src, project_dir)
 
 util.pre_test()
 
@@ -48,13 +60,13 @@ wait(3)
 click("me_window.png") # To gain focus.
 type("i", Key.CTRL)
 wait("source_location.png",10)
-paste(os.path.join(script_path, os.pardir, "resources", "create-project-import-media", "create-project-import-media-step1.prproj"))
+paste(os.path.join(project_dir, "create-project-import-media-step1.prproj"))
 type(Key.ENTER)
 wait("loaded.png",10)
 type(Key.ENTER)
 wait("done.png",10)
 wait(10)
-assert(util.file_exists(os.path.join(script_path, os.pardir, "resources", "create-project-import-media", "Master Sequence.mp4"), 5))
+assert(util.file_exists(os.path.join(project_dir, "Master Sequence.mp4"), 5))
 
 # Check "help".
 type(Key.F1)
