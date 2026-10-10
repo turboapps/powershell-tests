@@ -114,7 +114,12 @@ wait(5)
 
 # Check "help".
 type(Key.F1)
-wait("help_url.png")
+# help_url.png was a crop of "https://helpx.adobe.com/support/lightroom-", so it
+# only matched the help page by its "https://helpx.adobe.com/" prefix, near the
+# 0.7 line: runs 38011711528 and 38011714636 FindFailed with the InDesign help
+# page (helpx.adobe.com/indesign/desktop.html) fully loaded. Re-cropped to the
+# domain alone from that page: 1.00 on it, <0.50 on every other step frame.
+wait("help_url.png", 60)
 util.close_app("Edge")
 wait(10)
 type(Key.F4, Key.ALT)
