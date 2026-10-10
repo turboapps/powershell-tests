@@ -230,7 +230,13 @@ def my_notebook_sections():
 # up with the cloud notebook expanded and My Notebook listed under it collapsed -
 # no sections, no "+ New Section" link - and stayed that way; the run died at
 # "My Notebook has no New Section link" with the notebook one click away.
-# Clicking the notebook opens it, so do that, and check it took.
+#
+# The click has to land on the expand arrow, not the name. Probe run
+# 37979794940 collapsed My Notebook and then clicked its name three times: each
+# click only selected the notebook (row highlighted, a ">" drawn at x=16, an
+# "Expand" tooltip on hover) and it never opened. The arrow sits at x=16 on the
+# row's centre line whether or not it is drawn yet - a collapsed row that is not
+# hovered or selected shows nothing there at all.
 def open_my_notebook(timeout=60):
     Debug.user("SABOTAGE: open_my_notebook disabled")
     return
@@ -247,8 +253,8 @@ def open_my_notebook(timeout=60):
         if time.time() - started >= timeout:
             raise FindFailed("My Notebook did not expand after %d click(s)" % clicks)
         if clicks < 3:
-            Debug.user("open_my_notebook: collapsed, clicking it (%d)" % (clicks + 1))
-            click(row)
+            Debug.user("open_my_notebook: collapsed, clicking its expand arrow (%d)" % (clicks + 1))
+            click(Location(16, row.getTarget().y))
             clicks += 1
         wait(5)
 
