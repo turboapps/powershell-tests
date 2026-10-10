@@ -171,10 +171,29 @@ def topmost(region, image):
         return None
     return min(matches, key=lambda match: match.y)
 
+# my-notebook.png is the words "My Notebook" alone, and the "Copilot Notebooks"
+# header OneNote now puts at the top of the pane matches it at 0.76 against the
+# default 0.7 - so when My Notebook itself was missing, App Tests run
+# 37868755768 took that header for it, searched the whole pane below it, and
+# made and deleted its sections in the shared cloud notebook. It "passed". The
+# real row scores 0.98-1.00, so ask for 0.9.
+MY_NOTEBOOK = Pattern("my-notebook.png").similar(0.9)
+
+# The "v" OneNote draws left of a notebook whose sections are showing. A notebook
+# that is listed but not expanded has nothing there - 1.00 against 0.00 at the
+# same spot - and then none of its rows, its "+ New Section" link included, are
+# on screen at all.
+NOTEBOOK_EXPANDED = Pattern("notebook-expanded.png").similar(0.9)
+
+def notebook_expanded(row):
+    return Region(0, row.y - 6, 28, row.h + 12).exists(NOTEBOOK_EXPANDED, 0) is not None
+
 def my_notebook_region():
-    """Every sidebar row from My Notebook's own row down."""
-    row = exists("my-notebook.png", 30)
-    if row is None:
+    """Every sidebar row from My Notebook's own row down, or None unless My
+    Notebook is expanded - collapsed, the rows below it belong to whatever
+    notebook comes next."""
+    row = exists(MY_NOTEBOOK, 30)
+    if row is None or not notebook_expanded(row):
         return None
     top = row.getTarget().y + 12
     return Region(0, top, 200, SCREEN.getH() - top)
@@ -206,6 +225,36 @@ def my_notebook_sections():
     if height < 36:
         return None
     return Region(region.x, region.y, region.w, height)
+
+# OneNote does not always show My Notebook open. App Tests run 37868758654 came
+# up with the cloud notebook expanded and My Notebook listed under it collapsed -
+# no sections, no "+ New Section" link - and stayed that way; the run died at
+# "My Notebook has no New Section link" with the notebook one click away.
+#
+# The click has to land on the expand arrow, not the name. Probe run
+# 37979794940 collapsed My Notebook and then clicked its name three times: each
+# click only selected the notebook (row highlighted, a ">" drawn at x=16, an
+# "Expand" tooltip on hover) and it never opened. The arrow sits at x=16 on the
+# row's centre line whether or not it is drawn yet - a collapsed row that is not
+# hovered or selected shows nothing there at all.
+def open_my_notebook(timeout=60):
+    started = time.time()
+    clicks = 0
+    while True:
+        row = exists(MY_NOTEBOOK, 10)
+        if row is None:
+            raise FindFailed("My Notebook is not in the notebook list")
+        if notebook_expanded(row):
+            if clicks:
+                Debug.user("open_my_notebook: expanded after %d click(s), %d s" % (clicks, time.time() - started))
+            return
+        if time.time() - started >= timeout:
+            raise FindFailed("My Notebook did not expand after %d click(s)" % clicks)
+        if clicks < 3:
+            Debug.user("open_my_notebook: collapsed, clicking its expand arrow (%d)" % (clicks + 1))
+            click(Location(16, row.getTarget().y))
+            clicks += 1
+        wait(5)
 
 def delete_section(row):
     """Right-click a section row and delete it, backing out if the menu that
@@ -318,6 +367,7 @@ if exists("notebooks-cancel.png",30):
 wait_notebooks_loaded()
 wait("new-section.png",20)
 wait(10)
+open_my_notebook()
 
 # Remove default-named sections left behind by an earlier run on this VM. The
 # test creates a section and then renames it to "Test"; a run that dies between
