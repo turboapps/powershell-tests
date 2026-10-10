@@ -51,7 +51,7 @@ run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Dream
 # caption (the empty strip between the menus and the workspace switcher),
 # checked for its effect, and retried, logging the foreground window on a miss.
 def dw_activate():
-    click(Location(1000, 13))
+    click(Location(1500, 1056))  # SABOTAGE: empty taskbar, never activates Dreamweaver
     wait(1)
 
 def dw_log_miss(what, attempt):
