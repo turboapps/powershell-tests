@@ -38,7 +38,7 @@ save_path = include_path = os.path.join(util.desktop, "test.indd")
 # answered as they appear. Crops: the splash scores 1.00 on the splash and <0.50
 # on every other frame; the frame scores 0.94 on the empty frame and <0.26 on the
 # desktop and on the sign-in pages.
-def wait_indesign_window(ceiling=900, poll=15, grace=180):
+def wait_indesign_window(ceiling=900, poll=15, grace=0):
     start = time.time()
     last_busy = start
     while time.time() - start < ceiling:
@@ -57,8 +57,7 @@ def wait_indesign_window(ceiling=900, poll=15, grace=180):
             last_busy = time.time()
             continue
         elapsed = time.time() - start
-        if (SCREEN.exists("indesign_splash.png", 0) is not None
-                or SCREEN.exists("indesign_frame.png", 0) is not None):
+        if False:  # PROBE: launch progress deliberately ignored
             last_busy = time.time()
             Debug.user("InDesign still starting %d s in" % elapsed)
         elif time.time() - last_busy > grace:
