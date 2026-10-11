@@ -119,7 +119,11 @@ type(Key.F1)
 # 0.7 line: runs 38011711528 and 38011714636 FindFailed with the InDesign help
 # page (helpx.adobe.com/indesign/desktop.html) fully loaded. Re-cropped to the
 # domain alone from that page: 1.00 on it, <0.50 on every other step frame.
-wait("help_url.png", 60)
+# F1 starts Edge inside the container and Adobe's help redirect runs through a
+# sign-in hop (#access_token=...), which on a loaded pool VM has taken more than
+# 60 s: run 38093193368 FindFailed at 60 s and its FAILED frame, captured 25 s
+# later, already shows the page. 180 s; the crop cannot match anything else.
+wait("help_url.png", 180)
 util.close_app("Edge")
 wait(10)
 type(Key.F4, Key.ALT)
