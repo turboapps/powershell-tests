@@ -275,7 +275,8 @@ click("outlook_send.png")
 # failing the wait after ESC (App Tests run 38432578750, business, line 269).
 # Wait for the item counter to move, then select the newest mail (Home = first
 # row of the date-sorted list) before printing and deleting it.
-if not util.wait_region_change(items_counter, items_before, 120, nudge=Key.F9,
+Debug.user("PROBE: skipping the delivery wait (old timing)")
+if False and not util.wait_region_change(items_counter, items_before, 120, nudge=Key.F9,
                                label="Outlook 'Items:' counter"):
     raise FindFailed("Outlook: the sent mail never reached the Inbox ('Items:' unchanged for 120 s)")
 click("outlook_new_email_1.png")
@@ -283,6 +284,8 @@ type(Key.HOME)
 wait("outlook_new_email_2.png")
 type("p", Key.CTRL)
 wait("outlook_print.png")
+Debug.user("PROBE: holding the print backstage 45 s so delivery lands inside it")
+wait(45)
 type(Key.ESC)
 # The business and proplus tests share one mailbox and run side by side, so the
 # OTHER test's mail can still land while this one is in the print backstage,
