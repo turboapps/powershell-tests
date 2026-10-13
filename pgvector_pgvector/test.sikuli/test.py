@@ -23,8 +23,16 @@ wait(2)
 paste("password")
 wait(2)
 type(Key.ENTER)
-wait("runas_ready.png")
-wait(2)
+# Take the keyboard from the console runas just opened, do not assume it.
+#
+# runas_ready.png is the child window's own "C:\Windows\System32>" prompt, so
+# matching it proves the window is painted, not that it owns the keyboard. In
+# App Tests run 38432578750 (job 115418620172, xvm 26.3.18.1206) the runas
+# console came up unfocused: from step frame 006 on no taskbar button carries
+# the blue active underline, all four pastes below were discarded, and the
+# FAILED frame still shows a bare prompt with nothing echoed. postgresql_postgresql
+# hit the same race and got this fix in powershell-tests PR #225; this is its twin.
+util.focus_console("runas_ready.png")
 paste("turbo config --domain=" + domain)
 wait(2)
 type(Key.ENTER)
