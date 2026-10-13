@@ -70,7 +70,7 @@ if exists("export-warning.png"):
     type(Key.ENTER)
 wait(10)
 assert(util.file_exists(os.path.join(os.environ['USERPROFILE'], "Documents\\sample_01.mp3"), 5))
-type("q",Key.CTRL)
+Debug.user("PROBE: Ctrl+Q skipped, Audition left running")
 
 # Ctrl+Q takes Audition's window down, but on some runs the process stays
 # behind with no window and keeps the session Running (App Tests 38432578750:
