@@ -211,6 +211,21 @@ type(Key.F1)
 if not util.focus_and_wait("Edge", "help_url.png", attempts=9, poll=10):
     wait("help_url.png", 5)
 util.close_app("Edge")
+# closeApp only asks Edge to close and returns before its window is gone, and
+# Edge is the foreground window until it is. In App Tests run 38432578750 the
+# step frame taken right before the Alt+F4 below still shows the help page in
+# front, so the Alt+F4 closed Edge instead of Acrobat, Acrobat stayed up with the
+# document open, and the run failed 90 s later in check_running ("still Running
+# after 60 s") with nothing pointing at the cause. Wait for the help page to be
+# gone - force it if Edge ignored the request - and give Acrobat the foreground
+# back before closing it.
+if not waitVanish("help_url.png", 20):
+    Debug.user("help page still up 20 s after closeApp('Edge'); killing msedge.exe")
+    run("taskkill /F /IM msedge.exe")
+    if not waitVanish("help_url.png", 20):
+        raise FindFailed("Edge help page still in front after closeApp and taskkill")
+App("Acrobat").focus()
+wait(2)
 type(Key.F4, Key.ALT)
 wait(30)
 
