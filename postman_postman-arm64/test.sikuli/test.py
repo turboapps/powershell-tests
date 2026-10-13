@@ -25,7 +25,10 @@ util.launch_shortcut(["Postman", "Postman.lnk"], "Postman API Client ARM64.lnk")
 #    click("continue-without-account.png")
 wait("open-api-client.png")
 click("open-api-client.png")
-wait("get-url.png")
+# The Lightweight API Client can take ~30-40 s to replace the "Unlock Postman"
+# page after the click (CI: 1 s on some runs, 28 s on a pass, >30 s on three
+# FindFailed runs that show the client fully painted moments later).
+wait("get-url.png", 90)
 click("get-url.png")
 type("https://jsonplaceholder.typicode.com/todos/1")
 type(Key.ENTER)
