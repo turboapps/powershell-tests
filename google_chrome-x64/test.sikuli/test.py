@@ -130,7 +130,7 @@ loading_preview = Pattern("loading_preview.png").similar(0.85)
 loading = exists(loading_preview, 0)
 if loading:
     Debug.user("print preview loading (score %.2f), waiting for it" % loading.getScore())
-if not waitVanish(loading_preview, 60):
+if not waitVanish("print_window.png", 20):  # PROBE: must raise
     raise Exception("print preview still 'Loading preview' after 60 s")
 click(Pattern("print_print.png").targetOffset(-28,8))
 wait("print_location.png")
