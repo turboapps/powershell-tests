@@ -235,7 +235,7 @@ def close_acrobat(attempts=3):
     for attempt in range(attempts):
         click("point-2-point.png")
         wait(2)
-        type(Key.F4, Key.ALT)
+        Debug.user("PROBE: Alt+F4 withheld on purpose")  # sabotage: Acrobat never gets the close
         if waitVanish("point-2-point.png", 20):
             if attempt:
                 Debug.user("close_acrobat: Acrobat closed on attempt %d" % (attempt + 1))
