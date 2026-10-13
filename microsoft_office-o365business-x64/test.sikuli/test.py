@@ -286,10 +286,12 @@ wait("outlook_print.png")
 type(Key.ESC)
 # The business and proplus tests share one mailbox and run side by side, so the
 # OTHER test's mail can still land while this one is in the print backstage,
-# which leaves the reading pane cleared the same way. Reselect the mail once.
+# which leaves the reading pane cleared the same way. Reselect the newest mail
+# once (with nothing selected, the click alone lands on an arbitrary old row).
 if not exists("outlook_new_email_2.png", 10):
     Debug.user("outlook: reading pane empty after the print backstage, reselecting the mail")
     click("outlook_new_email_1.png")
+    type(Key.HOME)
 wait("outlook_new_email_2.png")
 type(Key.DELETE)
 wait(15)
