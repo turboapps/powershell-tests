@@ -283,6 +283,8 @@ type(Key.HOME)
 wait("outlook_new_email_2.png")
 type("p", Key.CTRL)
 wait("outlook_print.png")
+Debug.user("PROBE: holding the print backstage 45 s so delivery lands inside it")
+wait(45)
 type(Key.ESC)
 # The business and proplus tests share one mailbox and run side by side, so the
 # OTHER test's mail can still land while this one is in the print backstage,
