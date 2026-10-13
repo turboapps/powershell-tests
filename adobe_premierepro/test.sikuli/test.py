@@ -92,7 +92,7 @@ wait("timeline.png")
 # old crop came from a Lightroom help URL ("/support/lightroom-"). It matched
 # only on the shared "https://helpx.adobe.com/" prefix, close to the 0.7
 # threshold, so it could miss a page that had loaded.
-type(Key.F1)
+Debug.user("PROBE: F1 not sent")
 wait(Pattern("help_url.png").similar(0.80), 180)
 util.close_app("Edge")
 wait(10)
