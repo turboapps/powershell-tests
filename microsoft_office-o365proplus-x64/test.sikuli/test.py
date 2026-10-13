@@ -246,6 +246,12 @@ if exists("outlook_got_it.png",15):
     click("outlook_got_it.png")
 if exists("outlook_got_it.png",15):
     click("outlook_got_it.png")
+# The mail sent below is in the Inbox only once the status bar's "Items: N"
+# counter moves. Snapshot it now, while nothing is in flight, so the wait after
+# Send can tell "delivered" from "still on its way" (see the comment there).
+items_label = wait(Pattern("outlook_items.png").similar(0.9), 10)
+items_counter = Region(items_label.getX() - 2, items_label.getY() - 2, 64, items_label.getH() + 4)
+items_before = util.region_pixels(items_counter)
 click("outlook_new_email.png")
 if exists("outlook_got_it.png",15):
     click("outlook_got_it.png")
@@ -261,11 +267,29 @@ wait(1)
 util.paste_text("content")
 click("outlook_send.png")
 
+# Open the mail just sent, not whatever the list had selected. The click below
+# used to come ~1 s after Send, long before Exchange delivers the mail back, so
+# it always opened an OLDER "subject" mail left by an earlier run; the real one
+# then landed while the Ctrl+P print backstage was open, and Outlook came back
+# from the backstage with the reading pane cleared ("Select an item to read"),
+# failing the wait after ESC (App Tests run 38432578750, business, line 269).
+# Wait for the item counter to move, then select the newest mail (Home = first
+# row of the date-sorted list) before printing and deleting it.
+if not util.wait_region_change(items_counter, items_before, 120, nudge=Key.F9,
+                               label="Outlook 'Items:' counter"):
+    raise FindFailed("Outlook: the sent mail never reached the Inbox ('Items:' unchanged for 120 s)")
 click("outlook_new_email_1.png")
+type(Key.HOME)
 wait("outlook_new_email_2.png")
 type("p", Key.CTRL)
 wait("outlook_print.png")
 type(Key.ESC)
+# The business and proplus tests share one mailbox and run side by side, so the
+# OTHER test's mail can still land while this one is in the print backstage,
+# which leaves the reading pane cleared the same way. Reselect the mail once.
+if not exists("outlook_new_email_2.png", 10):
+    Debug.user("outlook: reading pane empty after the print backstage, reselecting the mail")
+    click("outlook_new_email_1.png")
 wait("outlook_new_email_2.png")
 type(Key.DELETE)
 wait(15)

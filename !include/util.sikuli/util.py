@@ -1375,6 +1375,41 @@ def click_until_gone(target, attempts=3, grace=15, poll=2):
                    "(attempt %d of %d)" % (target, grace, attempt + 1, attempts))
     return False
 
+# Raw pixels of a screen region, for comparing the same region at two moments.
+# A reference image cannot express "this counter has moved on from whatever it
+# read before": the value is not known when the test is written. A snapshot taken
+# at run time can.
+def region_pixels(region):
+    img = SCREEN.capture(region).getImage()
+    w, h = img.getWidth(), img.getHeight()
+    return list(img.getRGB(0, 0, w, h, None, 0, w))
+
+# Wait for a region to differ from an earlier region_pixels() snapshot of it.
+#
+# Written for Outlook's "Items: N" status-bar counter: a mail the test sends to
+# itself is only in the Inbox once N moves, and until then the top of the list
+# is somebody else's mail (see the o365 tests). `nudge` is a key sent once after
+# `nudge_after` seconds (F9 = Send/Receive All) in case delivery needs a poll.
+#
+# Returns True once the region changed, False when the budget ran out.
+def wait_region_change(region, before, timeout=120, poll=2, nudge=None, nudge_after=30,
+                       label="region"):
+    start = time.time()
+    nudged = False
+    while True:
+        elapsed = time.time() - start
+        if region_pixels(region) != before:
+            Debug.user("wait_region_change: %s changed after %d s" % (label, elapsed))
+            return True
+        if elapsed >= timeout:
+            Debug.user("wait_region_change: %s unchanged after %d s" % (label, elapsed))
+            return False
+        if nudge and not nudged and elapsed >= nudge_after:
+            Debug.user("wait_region_change: %s unchanged after %d s, nudging" % (label, elapsed))
+            type(nudge)
+            nudged = True
+        wait(poll)
+
 # ---------------------------------------------------------------------------
 # VS Code
 # ---------------------------------------------------------------------------
