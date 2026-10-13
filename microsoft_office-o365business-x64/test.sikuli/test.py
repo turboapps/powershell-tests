@@ -284,6 +284,10 @@ wait("outlook_new_email_2.png")
 type("p", Key.CTRL)
 wait("outlook_print.png")
 type(Key.ESC)
+wait(3)
+Debug.user("SABOTAGE: clicking the Today group header to clear the reading pane")
+click(Location(338, 248))
+wait(2)
 # The business and proplus tests share one mailbox and run side by side, so the
 # OTHER test's mail can still land while this one is in the print backstage,
 # which leaves the reading pane cleared the same way. Reselect the newest mail
