@@ -83,8 +83,17 @@ if exists("panel_rename.png"):
 wait("timeline.png")
 
 # Check "help".
+#
+# F1 opens Edge on an adobeid .../ims/jump/... URL that redirects to
+# https://helpx.adobe.com/premiere/desktop.html?...#access_token=...
+# On a pool VM the redirect can take 30 s or more, during which the tab is a
+# blank "Untitled" page, so allow it time.
+# help_url.png is "https://helpx.adobe.com/premiere" from the address bar. The
+# old crop came from a Lightroom help URL ("/support/lightroom-"). It matched
+# only on the shared "https://helpx.adobe.com/" prefix, close to the 0.7
+# threshold, so it could miss a page that had loaded.
 type(Key.F1)
-wait("help_url.png")
+wait(Pattern("help_url.png").similar(0.80), 180)
 util.close_app("Edge")
 wait(10)
 click("timeline.png") # Gain focus.
