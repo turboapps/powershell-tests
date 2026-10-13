@@ -210,7 +210,7 @@ type(Key.F1)
 # the front, which the close_app below then acts on.
 if not util.focus_and_wait("Edge", "help_url.png", attempts=9, poll=10):
     wait("help_url.png", 5)
-util.close_app("Edge")
+Debug.user("PROBE: close_app(Edge) skipped on purpose")  # sabotage: leave Edge in front
 type(Key.F4, Key.ALT)
 wait(30)
 
