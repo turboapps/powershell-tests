@@ -24,7 +24,8 @@ if exists("light-client.png",20):
 if exists("continue-without-account.png",20):
     click("continue-without-account.png")
 wait("open-api-client.png")
-click("open-api-client.png")
+# SABOTAGE PROBE: open-api-client click removed, get-url.png must never appear
+wait(1)
 # The Lightweight API Client can take ~30-40 s to replace the "Unlock Postman"
 # page after the click (CI: 1 s on some runs, 28 s on a pass, >30 s on three
 # FindFailed runs that show the client fully painted moments later).
