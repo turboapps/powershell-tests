@@ -1,6 +1,7 @@
 script_path = os.path.dirname(os.path.abspath(sys.argv[0])) 
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
+import re
 import util
 reload(util)
 addImagePath(include_path)
@@ -70,9 +71,26 @@ if exists("export-warning.png"):
 wait(10)
 assert(util.file_exists(os.path.join(os.environ['USERPROFILE'], "Documents\\sample_01.mp3"), 5))
 type("q",Key.CTRL)
-wait(5)
-os.system('cmd /c taskkill /f /im "audition.exe" /t')  # adobe bug prevents process from ending
+
+# Ctrl+Q takes Audition's window down, but on some runs the process stays
+# behind with no window and keeps the session Running (App Tests 38432578750:
+# bare desktop, session still Running 95 s after Ctrl+Q). The taskkill added
+# for that named "audition.exe", which matches no process - the executable is
+# "Adobe Audition.exe" - so it never fired. Give the app the time a clean quit
+# takes, then stop it by its real name, and log which Adobe processes are
+# still alive so a session that outlives that is attributable from the log.
+def log_adobe_processes(label):
+    rows = []
+    for line in run("tasklist /FO CSV /NH").splitlines():
+        fields = re.findall(r'"([^"]*)"', line)
+        if len(fields) >= 2 and re.search(r"(?i)adobe|audition|cep|ccx|coresync|node\.exe|creative|dynamiclink", fields[0]):
+            rows.append("%s(%s)" % (fields[0], fields[1]))
+    Debug.user("audition %s: %s" % (label, ", ".join(rows) or "no Adobe processes"))
+
+if util.wait_process_gone("Adobe Audition.exe", 60) < 0:
+    util.stop_processes("Adobe Audition.exe")
+log_adobe_processes("after quit")
 
 # Check if the session terminates.
-wait(30)
+wait(10)
 util.check_running()
