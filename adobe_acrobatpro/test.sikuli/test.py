@@ -217,16 +217,33 @@ util.close_app("Edge")
 # front, so the Alt+F4 closed Edge instead of Acrobat, Acrobat stayed up with the
 # document open, and the run failed 90 s later in check_running ("still Running
 # after 60 s") with nothing pointing at the cause. Wait for the help page to be
-# gone - force it if Edge ignored the request - and give Acrobat the foreground
-# back before closing it.
+# gone - force it if Edge ignored the request.
 if not waitVanish("help_url.png", 20):
     Debug.user("help page still up 20 s after closeApp('Edge'); killing msedge.exe")
     run("taskkill /F /IM msedge.exe")
     if not waitVanish("help_url.png", 20):
         raise FindFailed("Edge help page still in front after closeApp and taskkill")
-App("Acrobat").focus()
-wait(2)
-type(Key.F4, Key.ALT)
+
+# With Edge gone, Acrobat's document is on top but the keyboard does not
+# necessarily go back to its main window: validation run 38442347572 had the help
+# page gone and only Acrobat on screen in the frame before the Alt+F4 (after an
+# App("Acrobat").focus(), which can pick another of Acrobat's top-level windows),
+# and Acrobat still ignored the keystroke. Click the page to activate the main
+# window, then check the document actually went away, so a lost close fails here
+# instead of 90 s later in check_running.
+def close_acrobat(attempts=3):
+    for attempt in range(attempts):
+        click("point-2-point.png")
+        wait(2)
+        type(Key.F4, Key.ALT)
+        if waitVanish("point-2-point.png", 20):
+            if attempt:
+                Debug.user("close_acrobat: Acrobat closed on attempt %d" % (attempt + 1))
+            return
+        Debug.user("close_acrobat: document still up 20 s after Alt+F4 (attempt %d)" % (attempt + 1))
+    raise FindFailed("close_acrobat: Acrobat ignored Alt+F4 %d times" % attempts)
+
+close_acrobat()
 wait(30)
 
 # Check if the session terminates after closing the app.
