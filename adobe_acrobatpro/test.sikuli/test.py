@@ -157,7 +157,13 @@ run("explorer " + os.path.join(util.start_menu, "Adobe Acrobat Pro.lnk"))
 # 120 s was tried at the first launch and at both reopens too and changed nothing
 # there, because those failures are not slow launches (see runs 34420994008 and
 # 34421003089).
-click("pdf_window.png",120)
+# SikuliX's click() has no timeout argument: click(img, 120) passes 120 as the
+# key-modifier mask and searches with the 30 s ambient timeout, so this launch
+# never had 120 s. Runs 38442358723 and 38478061227 gave up ~30 s after the
+# Start-menu launch with Acrobat's Home screen up in the FAILED frame ("seen at
+# (6, 4) with 0.97"). Wait first, then click.
+wait("pdf_window.png", 120)
+click("pdf_window.png")
 wait(5)
 type(" ", Key.ALT)   # open system menu
 wait(2)
