@@ -95,7 +95,9 @@ run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Premi
 wait_pr_window(180)
 click("pr_window.png") # To gain focus.
 type("o", Key.CTRL)
-wait("location.png")
+# The Open Project dialog can take more than 30 s to appear right after Home is
+# first drawn on a pool VM (run 38486871583: not up at 30 s, up a few seconds later).
+wait("location.png", 90)
 paste(os.path.join(script_path, os.pardir, "resources", "create-project-import-media", "create-project-import-media-step1.prproj"))
 wait(2)
 type(Key.ENTER)
