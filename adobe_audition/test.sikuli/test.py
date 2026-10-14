@@ -9,6 +9,18 @@ resources = os.path.join(script_path, os.pardir, "resources")
 
 setAutoWaitTimeout(20)
 
+# VALIDATION ONLY (not for merge): the chronic CEPHtmlEngine D3AD crash after
+# "Close Panel" leaves a hard-error box that eats every later keystroke, so the
+# teardown under test is never reached. Dismiss it so the run gets that far.
+def dismiss_cep_error():
+    wait(5)
+    for attempt in range(3):
+        if not App().focus("Application Error").isValid():
+            return
+        Debug.user("VALIDATION: dismissing CEPHtmlEngine Application Error box (attempt %d)" % (attempt + 1))
+        type(Key.ENTER)
+        wait(3)
+
 util.pre_test()
 
 # Read credentials from the secrets file.
@@ -31,6 +43,7 @@ if exists("hardware-warning.png",90):
 if exists("learn-panel.png",20):
     click(Pattern("learn-panel.png").targetOffset(8,-28))
     click("close-panel.png")
+    dismiss_cep_error()
 if exists("adobe_login_signout_others.png",10):
     click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
     click(Pattern("adobe_login_continue.png").similar(0.80))
@@ -51,6 +64,7 @@ if exists("hardware-warning.png",90):
 if exists("learn-panel.png",20):
     click(Pattern("learn-panel.png").targetOffset(8,-28))
     click("close-panel.png")
+    dismiss_cep_error()
 wait("audition-title-bar.png",15)
 
 # Basic operations.
