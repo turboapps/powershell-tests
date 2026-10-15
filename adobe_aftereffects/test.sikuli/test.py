@@ -71,7 +71,7 @@ doubleClick(Pattern("sample-mp4.png").targetOffset(-6,7))
 # The old crop read "https://helpx.adobe.com/support/after-effects", a URL the
 # page no longer uses. It matched only on the shared prefix, close to the 0.7
 # threshold, so it could miss a page that had loaded.
-type(Key.F1)
+Debug.user("PROBE: F1 not sent")
 wait(Pattern("help_url.png").similar(0.80), 180)
 util.close_app("Edge")
 type("q",Key.CTRL)
