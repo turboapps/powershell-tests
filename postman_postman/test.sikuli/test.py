@@ -33,9 +33,7 @@ click("get-url.png")
 paste("https://jsonplaceholder.typicode.com/todos/1")
 wait(1)
 type(Key.ENTER)
-# The request has been seen sitting on "Sending request..." for over 30 s
-# (App Tests 38775916015).
-wait("json-output.png", 90)
+wait("json-output.png")
 type(Key.F4, Key.ALT)
 wait(10)
 
