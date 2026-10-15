@@ -262,16 +262,29 @@ def _cc_password_page(timeout):
 # in every suite run that reached it - identically, six for six, since
 # 2026-09-16. Those callers pass reload_page=False and sign in on the page that
 # is already up.
+#
+# The email page is found by its "Email address" label, at similar(0.80), and
+# the click goes 29 px below the label, into the box. The old reference (label
+# plus the box's left edge, matched at similar(0.40)) was stale: it scored only
+# 0.42-0.62 on the real page, the same as on anything else, and in Premiere
+# Rush it matched the splash screen (0.40-0.43) and the empty sign-in window
+# before the page rendered (0.41, its title bar). So the wait returned while
+# the splash was still up and the click landed on the title bar: applab run
+# 38808757196 died at find() when the splash repainted under it, run
+# 38498033095 pasted the email address into a page that had not rendered yet
+# (empty box, three unanswered submits), and passes only passed because the
+# page focused the box by itself. The label scores 0.94 in Rush and 0.86 in
+# Creative Cloud Desktop, and at most 0.73 on the splash, the empty window, a
+# half-drawn page or the password page.
 def adobe_cc_login(username, password, reload_page=True):
-    login = Pattern("adobe_login.png").similar(0.40)
+    login = Pattern("adobe_login_email.png").similar(0.80).targetOffset(0,29)
     wait(login,60)
     if reload_page:
         click("cancel-button.png")
         wait(20)
         wait(login,10)
     # Keep the box this run matched: a retry clicks the box that was found,
-    # rather than running the loose 0.40 pattern again on a page that may
-    # have moved on under it.
+    # rather than searching again on a page that may have moved on under it.
     email_box = find(login).getTarget()
     click(email_box)
     wait(6)
