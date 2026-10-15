@@ -88,10 +88,20 @@ def ensure_reader_front(attempts=3):
 # The two buttons are right-aligned at fixed positions in every locale, so the
 # capture is the boundary between the outlined "remind me later" button and
 # the blue "yes" button; "remind me later" is 74 px to the left of it.
+#
+# The capture also matches the tools rail at the left edge of Reader's window
+# (its outlined border next to the blue Select tool), and with the window near
+# the left of the screen the offset then lands off the screen: App Tests
+# 38684125927 (-de) logged "[error] Location: outside any screen (-29, 158)"
+# there, which failed a run that passed every step. A target off the screen
+# cannot be the prompt's button, so skip it.
 def dismiss_upgrade_prompt(timeout=1):
     m = exists("upgrade-to-64.png", timeout)
     if m:
-        click(m.getTarget().offset(-74, 0))
+        target = m.getTarget().offset(-74, 0)
+        if not SCREEN.contains(target):
+            return
+        click(target)
         wait(2)
 
 # Reader's window can take a long time to come up when the shell association
@@ -158,8 +168,15 @@ run("explorer " + os.path.join(util.start_menu, "Acrobat Reader.lnk"))
 wait("pdf_example.png",90)
 
 # Basic operations.
-type("o", Key.CTRL)
-wait("open-file.png",60)
+# Reader's home view keeps rendering for a while after pdf_example.png shows,
+# and a Ctrl+O sent then is dropped: App Tests 38775114983 (-x64) sat on the
+# home view for the whole 60 s wait with no Open dialog. Send it again until
+# the dialog comes up.
+for _ in range(4):
+    type("o", Key.CTRL)
+    if exists("open-file.png", 15):
+        break
+wait("open-file.png", 5)
 click("open-file.png")
 document = os.path.join(script_path, os.pardir, "resources", "homeacrordrunified18_2025.pdf")
 paste(document)

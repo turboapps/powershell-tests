@@ -27,7 +27,11 @@ wait("open-api-client.png")
 click("open-api-client.png")
 wait("get-url.png")
 click("get-url.png")
-type("https://jsonplaceholder.typicode.com/todos/1")
+# Paste rather than type: the "Enter a URL or cURL command" tip opens under the
+# field while it is being typed into and swallows the rest of the keystrokes
+# (App Tests 38526316134 and 38684125927 sent "https://jsonp").
+paste("https://jsonplaceholder.typicode.com/todos/1")
+wait(1)
 type(Key.ENTER)
 wait("json-output.png")
 type(Key.F4, Key.ALT)

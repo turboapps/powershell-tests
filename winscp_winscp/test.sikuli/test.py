@@ -41,7 +41,15 @@ assert(util.file_exists(os.path.join(docs, "readme.txt"), 10))
 
 # Check "help".
 type(Key.F1)
-wait("help_url.png")
+# Edge draws the address bar's domain darker than the rest of the URL on some
+# runs and in one grey on others (App Tests 38684125927 failed on the plain
+# rendering, 38775141090 passed on the dark one), so accept either capture.
+help_page = None
+for _ in range(15):
+    help_page = exists("help_url.png", 1) or exists("help_url_plain.png", 1)
+    if help_page:
+        break
+assert help_page, "WinSCP help page did not open in Edge"
 wait(5)
 util.close_app("Edge")
 click(Pattern("winscp_menu.png").targetOffset(170,-15)) # To gain focus.
