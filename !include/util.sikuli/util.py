@@ -277,7 +277,7 @@ def _cc_password_page(timeout):
 # Creative Cloud Desktop, and at most 0.73 on the splash, the empty window, a
 # half-drawn page or the password page.
 def adobe_cc_login(username, password, reload_page=True):
-    login = Pattern("adobe_login_email.png").similar(0.80).targetOffset(0,29)
+    login = Pattern("adobe_login.png").similar(0.80).targetOffset(0,29)  # PROBE: stale ref
     wait(login,60)
     if reload_page:
         click("cancel-button.png")
