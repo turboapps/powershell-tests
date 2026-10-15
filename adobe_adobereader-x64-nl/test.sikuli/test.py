@@ -146,8 +146,15 @@ run("explorer " + os.path.join(util.start_menu, "Adobe Acrobat.lnk"))
 wait("pdf_example.png",90)
 
 # Basic operations.
-type("o", Key.CTRL)
-wait("open-file.png",60)
+# Reader's home view keeps rendering for a while after pdf_example.png shows,
+# and a Ctrl+O sent then is dropped: App Tests 38775114983 (-x64) sat on the
+# home view for the whole 60 s wait with no Open dialog. Send it again until
+# the dialog comes up.
+for _ in range(4):
+    type("o", Key.CTRL)
+    if exists("open-file.png", 15):
+        break
+wait("open-file.png", 5)
 click("open-file.png")
 document = os.path.join(script_path, os.pardir, "resources", "homeacrordrunified18_2025.pdf")
 paste(document)
