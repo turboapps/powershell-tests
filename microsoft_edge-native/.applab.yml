@@ -1,3 +1,4 @@
-# Native-app test: no build behind it, so a pass has nothing to publish.
+# PROBE: deliberately malformed to exercise the fail-closed publish gate (applab PR #141).
+# Throwaway branch - never merge.
 os: win11
-publish: false
+publish: [false
