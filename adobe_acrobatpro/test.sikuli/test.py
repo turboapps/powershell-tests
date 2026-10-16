@@ -164,7 +164,20 @@ wait(2)
 type("x")            # maximize
 wait(3)
 wait("see-all-tools.png")
-click("see-all-tools.png")
+# Run 38808757196 lost this click: Acrobat went "Not Responding" just after the
+# maximize, the click landed on the ghost window Windows paints over a hung app,
+# and ghost windows drop clicks. The step frame right after the click shows the
+# "(Not Responding)" caption. Acrobat came back within the 30 s wait, but on the
+# Home page with no All tools pane, so create-a-pdf.png never appeared.
+# So check that the pane opened, and click again if it did not. create-a-pdf.png
+# does not match the Home page tile (0.30), so it only matches the open pane.
+for attempt in range(3):
+    if attempt and exists("create-a-pdf.png", 0):
+        break
+    click("see-all-tools.png")
+    if exists("create-a-pdf.png", 20):
+        break
+    Debug.user("See all tools: the All tools pane did not open on attempt %d of 3" % (attempt + 1))
 click("create-a-pdf.png")
 wait("create-pdf-doc-icon.png")
 click("create-pdf-doc-icon.png")
