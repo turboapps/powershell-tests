@@ -174,7 +174,7 @@ wait("see-all-tools.png")
 for attempt in range(3):
     if attempt and exists("create-a-pdf.png", 0):
         break
-    click("see-all-tools.png")
+    click(Location(900, 800))  # PROBE: every See all tools click lost
     if exists("create-a-pdf.png", 20):
         break
     Debug.user("See all tools: the All tools pane did not open on attempt %d of 3" % (attempt + 1))
