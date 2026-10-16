@@ -25,7 +25,10 @@ util.pre_test(no_min=True)
 # prefixes the timings with "print_timing: id N | task N |", and the old
 # ready.png passed on conhost only as a 0.717 near miss on different words.
 READY = ["ready.png", "ready_wt.png"]
-SUCCESS = ["success.png", "success_wt.png"]
+# conhost restores the server console after Win+D at either of two font sizes
+# (14.4 px line pitch in run 38808757196, 16 px in run 38857253431), hence two
+# conhost crops of the timing line.
+SUCCESS = ["success.png", "success_conhost.png", "success_wt.png"]
 SERVER_WINDOWS = ["@test#", "system32"]
 
 # Poll for any of images; on timeout fail with a FindFailed on the first one.
