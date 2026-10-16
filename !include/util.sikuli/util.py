@@ -695,7 +695,7 @@ def collect_vm_logs():
 # Assert that no DLL of a natively installed app was faulted into the named
 # container's sandbox.
 #
-# The native-app tests (microsoft_edge-native and its siblings) run an app installed
+# The native-app tests (microsoft_edge-x64-native and its siblings) run an app installed
 # on the VM in a base container, and its DLLs should load from the native install. A
 # faulted-in DLL is a copy under <sandbox>\local or roaming\modified\, eg
 # local\modified\@PROGRAMFILESX86@\Microsoft\Edge\Application\<version>\oneauth.dll.

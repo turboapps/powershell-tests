@@ -1,4 +1,4 @@
-# Helpers for native-app tests: tests with no build behind them (microsoft_edge-native
+# Helpers for native-app tests: tests with no build behind them (microsoft_edge-x64-native
 # and its siblings). The app is installed natively on the test VM from the vendor's
 # latest installer, downloaded the way the corresponding powershell-builds
 # BuildTurboImage.ps1 downloads it, and then launched in a base container with
@@ -78,35 +78,53 @@ function Get-EdgeEnterpriseRelease {
         Where-Object { $_.Architecture -eq $Architecture -and $_.Platform -eq $Platform -and $_.ProductVersion -eq $selectedVersion }
 }
 
-# Install the latest Edge enterprise MSI of a channel natively and return the installed
-# msedge.exe path. The VM image already carries Stable Edge: when it is already at (or,
-# from Windows Update, ahead of) the channel's latest, the MSI is skipped, because
-# msiexec fails a downgrade with 1603.
-function Install-NativeEdge {
+# The installed msedge.exe of a channel, or $null. Edge installs under Program Files (x86)
+# on x64; on Windows on ARM it can be either, so both are checked (as applab's
+# images/shared/UpdateEdge.ps1 does).
+function Get-NativeEdgeExe {
     param (
-        [ValidateSet("Stable", "Beta")]
         [string]$Channel
     )
 
     $folder = if ($Channel -eq "Beta") { "Edge Beta" } else { "Edge" }
-    $exe = "C:\Program Files (x86)\Microsoft\$folder\Application\msedge.exe"
+    foreach ($root in @("C:\Program Files (x86)", "C:\Program Files")) {
+        $exe = "$root\Microsoft\$folder\Application\msedge.exe"
+        if (Test-Path $exe) { return $exe }
+    }
+    return $null
+}
 
-    $release = Get-EdgeEnterpriseRelease -Channel $Channel
+# Install the latest Edge enterprise MSI of a channel and architecture natively and
+# return the installed msedge.exe path. The VM image already carries Stable Edge: when
+# it is already at (or, from Windows Update, ahead of) the channel's latest, the MSI is
+# skipped, because msiexec fails a downgrade with 1603.
+function Install-NativeEdge {
+    param (
+        [ValidateSet("Stable", "Beta")]
+        [string]$Channel,
+        [ValidateSet("x64", "arm64")]
+        [string]$Architecture = "x64"
+    )
+
+    $release = Get-EdgeEnterpriseRelease -Channel $Channel -Architecture $Architecture
     $latest = $release.ProductVersion
-    Write-Host "Latest Edge $Channel enterprise release: $latest"
+    Write-Host "Latest Edge $Channel $Architecture enterprise release: $latest"
 
-    $installed = if (Test-Path $exe) { (Get-Item $exe).VersionInfo.ProductVersion } else { $null }
+    $exe = Get-NativeEdgeExe -Channel $Channel
+    $installed = if ($exe) { (Get-Item $exe).VersionInfo.ProductVersion } else { $null }
     if ($installed -and [version]$installed -ge [version]$latest) {
         Write-Host "Installed Edge $Channel $installed is current - not reinstalling"
     } else {
         if ($installed) { Write-Host "Installed Edge $Channel $installed is older - upgrading" }
 
         $msi = @($release.Artifacts | Where-Object { $_.ArtifactName -eq "msi" })[0]
-        $installerName = if ($Channel -eq "Beta") { "MicrosoftEdgeBetaEnterpriseX64.msi" } else { "MicrosoftEdgeEnterpriseX64.msi" }
+        # The artifact's own file name, eg MicrosoftEdgeBetaEnterpriseARM64.msi.
+        $installerName = Split-Path ([uri]$msi.Location).AbsolutePath -Leaf
         $installer = Save-NativeInstaller -DownloadLink $msi.Location -InstallerName $installerName
         Invoke-NativeInstaller -Path "msiexec.exe" -Arguments "/I `"$installer`" /qn /L*V `"$env:USERPROFILE\Desktop\Installers\$installerName.log`""
 
-        $installed = if (Test-Path $exe) { (Get-Item $exe).VersionInfo.ProductVersion } else { $null }
+        $exe = Get-NativeEdgeExe -Channel $Channel
+        $installed = if ($exe) { (Get-Item $exe).VersionInfo.ProductVersion } else { $null }
         if ($installed -ne $latest) {
             throw "Edge $Channel is '$installed' after the install, expected $latest"
         }

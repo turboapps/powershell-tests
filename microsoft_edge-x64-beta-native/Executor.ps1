@@ -9,14 +9,14 @@ $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 
 # Native-app test: no build behind it. The latest Edge Beta is installed natively and
 # launched in a base container; no Edge image is pulled.
-$image = "microsoft/edge-beta-native"
+$image = "microsoft/edge-x64-beta-native"
 $userDataDir = "$env:USERPROFILE\Edge Beta"
 
 PrepareTest -image $image -localLogsDir $localLogsDir -extra $extra
 
 Invoke-NativeSetup -image $image -localLogsDir $localLogsDir -Setup {
     Remove-EdgeUpdateBlock
-    $script:exe = Install-NativeEdge -Channel Beta
+    $script:exe = Install-NativeEdge -Channel Beta -Architecture x64
     Set-NativeEdgePolicies
     Initialize-NativeEdgeProfile -Exe $script:exe -SetupSwitches "--msedge-beta --channel=beta" -UserDataDir $userDataDir -LocalState "$PSScriptRoot\resources\Local State"
 }
