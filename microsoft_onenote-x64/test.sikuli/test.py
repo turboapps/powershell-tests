@@ -348,7 +348,7 @@ if exists("sign-in-email-address.png",10):
     paste(username)
     wait(2)
     type(Key.ENTER)
-if exists("continue.png",10):
+if exists("continue.png",0):  # PROBE: Continue paints after the budget
     click("continue.png")
 if exists("office-sign-in.png",10):
     click("office-sign-in.png")
