@@ -343,10 +343,10 @@ Add-Type @"
 # booted VM the Defender WMI provider can still be starting and answer
 # 0x800106ba. Under a caller's $ErrorActionPreference = 'Stop' (the CI
 # harness) that error used to abort the executor before SikuliX ever started.
-# Retry for up to ~60 s, then warn and carry on.
+# Retry every 30 s for up to ~300 s, then warn and carry on.
 function ConfigureDefender {
 
-    $deadline = (Get-Date).AddSeconds(60)
+    $deadline = (Get-Date).AddSeconds(300)
     while ($true) {
         try {
             # Disable Cloud-delivered protection
@@ -359,8 +359,8 @@ function ConfigureDefender {
                 Write-Warning "ConfigureDefender: giving up, Defender settings left unchanged: $($_.Exception.Message)"
                 return
             }
-            Write-Warning "ConfigureDefender: Defender not ready ($($_.Exception.Message)); retrying in 5 s"
-            Start-Sleep -Seconds 5
+            Write-Warning "ConfigureDefender: Defender not ready ($($_.Exception.Message)); retrying in 30 s"
+            Start-Sleep -Seconds 30
         }
     }
 
