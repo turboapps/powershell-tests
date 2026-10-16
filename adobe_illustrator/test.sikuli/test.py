@@ -65,11 +65,8 @@ def open_template(path, attempts=3):
         type("a", Key.CTRL)
         paste(path)
         type(Key.ENTER)
+        # The template opens within ~5 s when the dialog took the path.
         if exists("tshirt.png", 60):
-            return
-        if not SCREEN.exists("open_location.png", 0):
-            # The dialog took the path; the document is just slow to load.
-            wait("tshirt.png", 120)
             return
     wait("tshirt.png", 1)
 
