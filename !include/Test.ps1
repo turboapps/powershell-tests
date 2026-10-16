@@ -338,13 +338,31 @@ Add-Type @"
     ConfigureDefender
 }
 
-# Configure Windows Defender settings
+# Configure Windows Defender settings.
+# Best effort: the test does not depend on these settings, and on a freshly
+# booted VM the Defender WMI provider can still be starting and answer
+# 0x800106ba. Under a caller's $ErrorActionPreference = 'Stop' (the CI
+# harness) that error used to abort the executor before SikuliX ever started.
+# Retry for up to ~60 s, then warn and carry on.
 function ConfigureDefender {
 
-    # Disable Cloud-delivered protection
-    Set-MpPreference -MAPSReporting Disabled
-    # Disable Automatic sample submission
-    Set-MpPreference -SubmitSamplesConsent NeverSend
+    $deadline = (Get-Date).AddSeconds(60)
+    while ($true) {
+        try {
+            # Disable Cloud-delivered protection
+            Set-MpPreference -MAPSReporting Disabled -ErrorAction Stop
+            # Disable Automatic sample submission
+            Set-MpPreference -SubmitSamplesConsent NeverSend -ErrorAction Stop
+            return
+        } catch {
+            if ((Get-Date) -ge $deadline) {
+                Write-Warning "ConfigureDefender: giving up, Defender settings left unchanged: $($_.Exception.Message)"
+                return
+            }
+            Write-Warning "ConfigureDefender: Defender not ready ($($_.Exception.Message)); retrying in 5 s"
+            Start-Sleep -Seconds 5
+        }
+    }
 
 }
 
