@@ -62,6 +62,8 @@ def open_template(path, attempts=3):
             continue
         click(Pattern("open_location.png").targetOffset(24,0))
         wait(3)
+        type(Key.ESC)  # PROBE: lose the dialog before the paste
+        wait(3)
         type("a", Key.CTRL)
         paste(path)
         type(Key.ENTER)
