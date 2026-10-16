@@ -349,6 +349,7 @@ function ConfigureDefender {
     $deadline = (Get-Date).AddSeconds(300)
     while ($true) {
         try {
+            Write-Error "probe: simulated Defender 0x800106ba" -ErrorAction Stop
             # Disable Cloud-delivered protection
             Set-MpPreference -MAPSReporting Disabled -ErrorAction Stop
             # Disable Automatic sample submission
