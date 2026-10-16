@@ -132,6 +132,20 @@ type(Key.ENTER)
 if not util.vscode_grant_workspace_trust(30):
     raise FindFailed("workspace trust was never granted - the C# run cannot "
                      "produce output in Restricted Mode")
+# Let the C# Dev Kit finish loading the solution before anything else. Until it
+# has, the editor Run button takes the click and only queues it: in run
+# 38808757196 the folder opened at 15:37:23, Run was clicked at 15:38:26 while the
+# C# output channel was still streaming its first-run activation, and the program
+# printed at ~15:44 - past the 240 s result wait. Passing runs clicked Run after
+# the load (10-13: loaded 13:04:25, clicked 13:04:44, printed within 36 s). The
+# status bar shows "Solution: Hello World.sln" once the load is done, and absent
+# that it scores at most 0.55 on any earlier frame.
+if not exists(Pattern("csharp_solution_loaded.png").similar(0.85), 600):
+    raise FindFailed("the C# Dev Kit never loaded Hello World.sln (600 s) - "
+                     "a C# run cannot start before it does")
+# The release announcement (below) opens as the load completes; let it land
+# before closing it.
+wait(5)
 # The C# Dev Kit opens its release-announcement markdown preview as the active
 # tab the first time it activates, and it sits in front of the code. Its title
 # carries the release name, so it cannot be matched reliably - close every
@@ -172,18 +186,20 @@ if not exists("result.png",60):
     mouseMove(Location(960,400))
     wait(2)
     type(Key.F5, Key.CTRL)
-    # "Select debugger" opens with NO active row, so a bare Enter is a no-op (two
-    # of them left it untouched for 300 s). DOWN activates the suggested C# entry.
+    # Pick each quick-pick row by typing its text, never by DOWN. "Select
+    # debugger" has opened both with NO active row (a bare Enter was a no-op) and
+    # with ".NET 5+ and .NET Core" already active (run 38808757196), where DOWN
+    # chose "More Node.js options..." and launched a JavaScript Debug Terminal.
+    # Typing filters the list and activates the first match in either case.
     if exists(Pattern("select-debugger.png").similar(0.70),60):
-        type(Key.DOWN)
+        paste(".NET 5+ and .NET Core")
         wait(2)
         type(Key.ENTER)
-    # "Select Launch Configuration" follows, and this one opens with its first row
-    # already active, so DOWN moves on to "C#: Hello World" - the entry observed
-    # to actually print. Keyed on its own reference: the debugger one cannot tell
-    # these two apart reliably, both being "Select ..." in the same box.
+    # "Select Launch Configuration" follows; "C#: Hello World" is the entry
+    # observed to actually print. Keyed on its own reference: the debugger one
+    # cannot tell these two apart reliably, both being "Select ..." in the same box.
     if exists(Pattern("select-launch-config.png").similar(0.70),60):
-        type(Key.DOWN)
+        paste("C#: Hello World")
         wait(2)
         type(Key.ENTER)
 # The C# run needs a first dotnet restore and build; 20 s is the odd one out
