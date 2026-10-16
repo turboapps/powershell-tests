@@ -1,0 +1,3 @@
+# Native-app test: no build behind it, so a pass has nothing to publish.
+os: win11
+publish: false
