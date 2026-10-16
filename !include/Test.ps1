@@ -342,6 +342,7 @@ Add-Type @"
 function ConfigureDefender {
 
     # Disable Cloud-delivered protection
+    Write-Error "probe: simulated Defender 0x800106ba"
     Set-MpPreference -MAPSReporting Disabled
     # Disable Automatic sample submission
     Set-MpPreference -SubmitSamplesConsent NeverSend
