@@ -713,6 +713,8 @@ def assert_no_faulted_dlls(native_dirs, name="test"):
     faulted = []
     for cid in ids:
         sandbox = os.path.join(_vm_logs_sandbox_root(), cid)
+        # A sandbox that is not where we look would pass with nothing scanned.
+        assert os.path.isdir(sandbox), "sandbox of %s not found at %s" % (name, sandbox)
         for dirpath, dirnames, filenames in os.walk(sandbox):
             for f in filenames:
                 if not f.lower().endswith(".dll"):
