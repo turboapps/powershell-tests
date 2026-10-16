@@ -77,7 +77,7 @@ def open_default_apps(attempts=3):
         type("i", Key.WIN)
         wait("windows_setting_window.png")
         type("Default apps")
-        click(util.find_settled("windows_setting_default.png"))
+        click(util.find_settled("windows_setting_default.png").getCenter().offset(0, 44))  # PROBE: always the row below
         wait(3)
         type(Key.UP, Key.WIN)
         browser_tile = exists("windows_setting_default_browser.png", 15)
