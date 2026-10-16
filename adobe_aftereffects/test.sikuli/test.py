@@ -64,8 +64,15 @@ wait("sample-mp4.png",90)
 doubleClick(Pattern("sample-mp4.png").targetOffset(-6,7))
 
 # Check "Help".
+# F1 opens Edge on an adobeid ims/jump page that redirects to
+# https://helpx.adobe.com/after-effects/desktop.html. On a pool VM the
+# redirect can take 30 s or more, so allow it time.
+# help_url.png is "https://helpx.adobe.com/after-effects" from the address bar.
+# The old crop read "https://helpx.adobe.com/support/after-effects", a URL the
+# page no longer uses. It matched only on the shared prefix, close to the 0.7
+# threshold, so it could miss a page that had loaded.
 type(Key.F1)
-wait("help_url.png",30)
+wait(Pattern("help_url.png").similar(0.80), 180)
 util.close_app("Edge")
 type("q",Key.CTRL)
 click("save_no.png")
