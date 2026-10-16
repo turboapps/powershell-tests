@@ -25,7 +25,7 @@ util.pre_test(no_min=True)
 # prefixes the timings with "print_timing: id N | task N |", and the old
 # ready.png passed on conhost only as a 0.717 near miss on different words.
 READY = ["ready.png", "ready_wt.png"]
-SUCCESS = ["success.png"]  # HARVEST: success_wt.png not captured yet
+SUCCESS = ["success.png", "success_wt.png"]
 SERVER_WINDOWS = ["@test#", "system32"]
 
 # Poll for any of images; on timeout fail with a FindFailed on the first one.
