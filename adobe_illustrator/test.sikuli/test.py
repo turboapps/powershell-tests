@@ -43,6 +43,36 @@ def wait_for_home(timeout):
         wait(5)
     wait("ai_window.png", 1)
 
+# Open a file through Home > Open, re-driving the dialog when the input is lost.
+# Two failure modes seen on 26.3.18.1214, 25.10.4.1215 and 26.10.130:
+# - the click on Open is swallowed and no dialog appears within 30 s
+#   (run 38828822003 line 44, run 38498033095 line 44);
+# - the dialog appears but stays INACTIVE (grey caption), so the click on the
+#   File name box, the paste and the ENTER all go nowhere, leaving an empty
+#   box (run 38808753015 line 48).
+# Retry the Open click / the paste while the dialog state says it did not take,
+# and fail at the cause if it never does.
+def open_template(path, attempts=3):
+    click(Pattern("ai_window.png").targetOffset(-2,-7))
+    for i in range(attempts):
+        if not exists("open_location.png", 60):
+            if SCREEN.exists("tshirt.png", 0):
+                return
+            click(Pattern("ai_window.png").targetOffset(-2,-7))
+            continue
+        click(Pattern("open_location.png").targetOffset(24,0))
+        wait(3)
+        type("a", Key.CTRL)
+        paste(path)
+        type(Key.ENTER)
+        if exists("tshirt.png", 60):
+            return
+        if not SCREEN.exists("open_location.png", 0):
+            # The dialog took the path; the document is just slow to load.
+            wait("tshirt.png", 120)
+            return
+    wait("tshirt.png", 1)
+
 # Test of `turbo run`.
 subprocess.Popen("turbo run illustrator --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --network=test --name=test" + util.read_extra())
 wait_for_home(300)
@@ -55,13 +85,7 @@ wait_for_home(240)
 
 # Basic operations.
 wait(10)
-click(Pattern("ai_window.png").targetOffset(-2,-7))
-wait(10)
-click(Pattern("open_location.png").targetOffset(24,0))
-wait(3)
-paste("C:\\Program Files\\Adobe\\Adobe Illustrator 2026\\Cool Extras\\en_US\\Templates\\Blank Templates\\Tshirt.ait")
-type(Key.ENTER)
-wait("tshirt.png")
+open_template("C:\\Program Files\\Adobe\\Adobe Illustrator 2026\\Cool Extras\\en_US\\Templates\\Blank Templates\\Tshirt.ait")
 click("tshirt.png")
 wait(10)
 type("s", Key.CTRL)
