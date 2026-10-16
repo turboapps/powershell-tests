@@ -43,3 +43,7 @@ wait(20)
 
 # Check if the session terminates.
 util.check_running()
+
+# The Edge DLLs (Edge, Edge Beta, EdgeWebView) must load from the native install, not
+# be faulted into the container's sandbox.
+util.assert_no_faulted_dlls([r"@PROGRAMFILESX86@\Microsoft\Edge", r"@PROGRAMFILES@\Microsoft\Edge"])

@@ -68,7 +68,7 @@ click("save_type_correct.png")
 type(Key.ENTER)
 wait(20)
 type(Key.ESC)
-assert(os.path.exists(os.path.join(util.desktop, "name with space.html")),60)
+assert util.file_exists(os.path.join(util.desktop, "name with space.html"), 6)
 if App("Edge").isRunning(10):
     util.close_app("Edge")
 
@@ -106,3 +106,7 @@ wait(20)
 
 # Check if the session terminates.
 util.check_running()
+
+# The Edge DLLs (Edge, Edge Beta, EdgeWebView) must load from the native install, not
+# be faulted into the container's sandbox.
+util.assert_no_faulted_dlls([r"@PROGRAMFILESX86@\Microsoft\Edge", r"@PROGRAMFILES@\Microsoft\Edge"])

@@ -692,6 +692,43 @@ def collect_vm_logs():
     except:
         Debug.user("vm logs: collection failed: %s" % sys.exc_info()[1])
 
+# Assert that no DLL of a natively installed app was faulted into the named
+# container's sandbox.
+#
+# The native-app tests (microsoft_edge-native and its siblings) run an app installed
+# on the VM in a base container, and its DLLs should load from the native install. A
+# faulted-in DLL is a copy under <sandbox>\local or roaming\modified\, eg
+# local\modified\@PROGRAMFILESX86@\Microsoft\Edge\Application\<version>\oneauth.dll.
+#
+# `native_dirs` are paths below a modified\ root, matched as prefixes, so
+# "@PROGRAMFILESX86@\Microsoft\Edge" also covers Edge Beta, EdgeWebView, EdgeCore and
+# EdgeUpdate. Call after check_running(), once the session has ended.
+def assert_no_faulted_dlls(native_dirs, name="test"):
+    import json
+    raw = run("turbo containers --format=json")
+    containers = json.loads(raw[raw.find("["):])[0]["result"]["containers"]
+    ids = [c["id"] for c in containers if c["name"] == name]
+    assert ids, "no container named %s" % name
+    prefixes = [d.lower().rstrip("\\") for d in native_dirs]
+    faulted = []
+    for cid in ids:
+        sandbox = os.path.join(_vm_logs_sandbox_root(), cid)
+        for dirpath, dirnames, filenames in os.walk(sandbox):
+            for f in filenames:
+                if not f.lower().endswith(".dll"):
+                    continue
+                rel = os.path.relpath(os.path.join(dirpath, f), sandbox)
+                parts = rel.split(os.sep)
+                if len(parts) < 3 or parts[1].lower() != "modified":
+                    continue
+                if [p for p in prefixes if os.sep.join(parts[2:]).lower().startswith(p)]:
+                    faulted.append(rel if len(ids) == 1 else os.path.join(cid[:8], rel))
+    faulted.sort()
+    if faulted:
+        Debug.user("assert_no_faulted_dlls: %d DLL(s) in the sandbox of %s:\n%s"
+                   % (len(faulted), name, "\n".join(faulted)))
+    assert not faulted, "%d native DLL(s) faulted into the sandbox of %s, eg %s" % (len(faulted), name, faulted[0] if faulted else "")
+
 # The sandbox root the client is using, resolved once per run. `turbo config
 # --reset` in PrepareTest leaves the default location; a relocated storage path
 # is honoured when the client reports one.
