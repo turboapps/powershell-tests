@@ -62,13 +62,34 @@ if App("Edge").isRunning(10):
     util.close_app("Edge")
 
 # Set default browser.
-type("i", Key.WIN)
-wait("windows_setting_window.png")
-type("Default apps")
-click("windows_setting_default.png")
-click(Pattern("maximize_default_window.png").targetOffset(-2,-4))
-wait(5)
-click("windows_setting_default_browser.png")
+#
+# The Settings search list fills in while it is typed into: in App Tests run
+# 38808753015 the "Default apps" row was found 2nd in a partial list (Display
+# settings / Default apps / Duplicate ...), the list was re-sorted before the
+# click landed, and the click opened row 2 of the final list, "Choose a default
+# app for each type of file". So find the row only once it holds still, prove
+# the Default apps page opened (its Web browser tile), and on a wrong page close
+# Settings and search again. Win+Up instead of clicking the maximize button: it
+# is a no-op on a window that is already maximized, where the button would
+# restore it.
+def open_default_apps(attempts=3):
+    for attempt in range(attempts):
+        type("i", Key.WIN)
+        wait("windows_setting_window.png")
+        type("Default apps")
+        click(util.find_settled("windows_setting_default.png"))
+        wait(3)
+        type(Key.UP, Key.WIN)
+        browser_tile = exists("windows_setting_default_browser.png", 15)
+        if browser_tile:
+            return browser_tile
+        Debug.user("open_default_apps: Default apps page did not open on attempt %d of %d"
+                   % (attempt + 1, attempts))
+        type(Key.F4, Key.ALT)
+        wait(3)
+    raise FindFailed("open_default_apps: Default apps page never opened in %d attempts" % attempts)
+
+click(open_default_apps())
 wait(2)
 click(Pattern("windows_setting_default_edge.png").similar(0.95))
 type(Key.F4, Key.ALT)
