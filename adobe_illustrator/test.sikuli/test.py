@@ -45,7 +45,7 @@ def wait_for_home(timeout):
 
 # Test of `turbo run`.
 subprocess.Popen("turbo run illustrator --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --network=test --name=test" + util.read_extra())
-wait_for_home(300)
+wait_for_home(60)
 run("turbo stop test")
 wait(10)
 
