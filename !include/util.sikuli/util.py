@@ -1051,12 +1051,13 @@ def list_processes(executable):
 # what closing the app by hand does and lets it save its state. A process that
 # has no window, or ignores the request, is still there after `grace` seconds
 # and is then terminated with /F. Returns list_processes() for whatever is left.
+# The image name is quoted, so names with a space ("Adobe Audition.exe") work.
 def stop_processes(executable, grace=20, force_grace=10, poll=2):
     running = list_processes(executable)
     if not running:
         return running
     Debug.user("stop_processes: stopping %s %s" % (executable, running))
-    run("taskkill /T /IM " + executable)
+    run('taskkill /T /IM "' + executable + '"')
     waited = 0
     while running and waited < grace:
         wait(poll)
@@ -1064,7 +1065,7 @@ def stop_processes(executable, grace=20, force_grace=10, poll=2):
         running = list_processes(executable)
     if running:
         Debug.user("stop_processes: %s %s did not close in %d s; terminating" % (executable, sorted(running), grace))
-        run("taskkill /F /T /IM " + executable)
+        run('taskkill /F /T /IM "' + executable + '"')
         waited = 0
         while running and waited < force_grace:
             wait(poll)
