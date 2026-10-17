@@ -338,6 +338,31 @@ def wait_onenote_start(timeout=120):
     Debug.user("wait_onenote_start: neither state after %d s" % (time.time() - started))
     return None
 
+# Submitting the email on the "Add a service" dialog swaps it for a "One
+# moment..." spinner, and OneNote's card then turns into "Sorry, we couldn't
+# connect" with a Continue button - the button everything below depends on.
+# How long that takes is up to Microsoft's account service: about 1 s in App
+# Tests run 38808757196 (pass), but in run 38808753015 the spinner was still up
+# 10 s after Enter and Continue painted between 10 and 20 s. The old
+# exists("continue.png",10) expired first, nothing else ever clicks Continue, so
+# every later check fell through and the run died at onenote-launched.png with
+# the card still waiting on screen. Wait for whichever next state arrives
+# instead: continue.png scores 0.92 on that card and <=0.35 on the dialog and
+# the spinner; the other states cover a flow that skips the card.
+def wait_add_service_done(timeout=90):
+    started = time.time()
+    states = (("continue.png", "continue"), ("office-sign-in.png", "office-sign-in"),
+              ("office_signin_password.png", "password"), ("onenote-launched.png", "launched"))
+    while True:
+        for image, state in states:
+            if exists(image, 0):
+                Debug.user("wait_add_service_done: %s after %d s" % (state, time.time() - started))
+                return state
+        if time.time() - started >= timeout:
+            Debug.user("wait_add_service_done: no next state after %d s" % (time.time() - started))
+            return None
+        wait(1)
+
 if wait_onenote_start() == "sign-in":
     click("sign-in.png")
 enter_signin_username(username, 20)
@@ -348,6 +373,7 @@ if exists("sign-in-email-address.png",10):
     paste(username)
     wait(2)
     type(Key.ENTER)
+    wait_add_service_done()
 if exists("continue.png",10):
     click("continue.png")
 if exists("office-sign-in.png",10):
