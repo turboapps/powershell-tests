@@ -191,16 +191,49 @@ function Set-NativeWebView2BetaPolicies {
     &reg.exe ADD "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v StartupBoostEnabled /t REG_DWORD /d 0 /f
 }
 
-# Install Power BI Desktop natively, as the WebView2 host app the microsoft_edgewebview2
-# tests drive. Same installer and switches as powershell-builds powerbi_powerbi; returns
-# the installed PBIDesktop.exe path.
-function Install-NativePowerBI {
-    $installer = Save-NativeInstaller -DownloadLink "https://download.microsoft.com/download/8/8/0/880BCA75-79DD-466A-927D-1ABF1F5454B0/PBIDesktopSetup_x64.exe" -InstallerName "PBIDesktopSetup_x64.exe"
-    Invoke-NativeInstaller -Path $installer -Arguments "-q ACCEPT_EULA=1 DISABLE_UPDATE_NOTIFICATION=1 ENABLECXP=0"
+# Install the new Outlook (a WebView2 app) natively, as the WebView2 host app the
+# native WebView2 tests drive, and return the installed olk.exe path. Same MSIX and
+# Add-AppxPackage as powershell-builds microsoft_outlook. Its link serves the x64 MSIX;
+# the arm64 one sits next to it on the CDN under the same name with _arm64.
+#
+# Windows 11 can already carry the new Outlook: an installed package at (or above) the
+# downloaded version is kept, because Add-AppxPackage refuses a downgrade.
+function Install-NativeOutlook {
+    param (
+        [ValidateSet("x64", "arm64")]
+        [string]$Architecture = "x64"
+    )
 
-    $exe = "C:\Program Files\Microsoft Power BI Desktop\bin\PBIDesktop.exe"
+    # Resolve the link without following it, for the MSIX URL (which names the version).
+    $request = [System.Net.HttpWebRequest]::Create("https://go.microsoft.com/fwlink/?linkid=2195164")
+    $request.AllowAutoRedirect = $false
+    $response = $request.GetResponse()
+    $location = $response.Headers["Location"]
+    $response.Close()
+    if ($location -notmatch '/(\d+(\.\d+){1,3})/Microsoft\.OutlookForWindows_x64\.msix$') {
+        throw "Unexpected Outlook download URL: '$location'"
+    }
+    $latest = $Matches[1]
+    $downloadLink = $location -replace '_x64\.msix$', "_$Architecture.msix"
+    Write-Host "Latest Outlook (new) $Architecture MSIX: $latest"
+
+    $package = Get-AppxPackage -Name "Microsoft.OutlookForWindows" | Sort-Object { [version]$_.Version } | Select-Object -Last 1
+    if ($package -and [version]$package.Version -ge [version]$latest) {
+        Write-Host "Installed Outlook (new) $($package.Version) is current - not reinstalling"
+    } else {
+        if ($package) { Write-Host "Installed Outlook (new) $($package.Version) is older - upgrading" }
+        $msix = Save-NativeInstaller -DownloadLink $downloadLink -InstallerName "Microsoft.OutlookForWindows_$Architecture.msix"
+        Write-Host "Add-AppxPackage -Path $msix -ForceApplicationShutdown"
+        Add-AppxPackage -Path $msix -ForceApplicationShutdown
+        $package = Get-AppxPackage -Name "Microsoft.OutlookForWindows" | Sort-Object { [version]$_.Version } | Select-Object -Last 1
+        if (-not $package -or [version]$package.Version -lt [version]$latest) {
+            throw "Outlook (new) is '$($package.Version)' after the install, expected $latest"
+        }
+    }
+
+    $exe = Join-Path $package.InstallLocation "olk.exe"
     if (-not (Test-Path $exe)) { throw "$exe not found after the install" }
-    Write-Host "Power BI Desktop $((Get-Item $exe).VersionInfo.ProductVersion) at $exe"
+    Write-Host "Outlook (new) $($package.Version) ($($package.Architecture)) at $exe"
 
     return $exe
 }
