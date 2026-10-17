@@ -5,8 +5,50 @@ import util
 reload(util)
 addImagePath(include_path)
 
+import time
+
 setAutoWaitTimeout(30)
 util.pre_test(no_min=True)
+
+# The server console is not always the same window. On xvm 26.x it is a classic
+# conhost window titled "...\conhost.exe @test#<id>" (or "...\cmd.exe @test#<id>"),
+# but on xvm 25.10.4 Windows Terminal hosts it, titled "C:\WINDOWS\system32\cmd.exe"
+# and drawn in WT's font (~1.13x wider glyphs), where no conhost crop can match
+# (run 38832388742: the server was listening at 34 s, ready.png scored 0.28).
+# So every image read off the server console has one crop per host, and the
+# window is focused by either title. "system32" is in both server titles but not
+# in the harness prompts ("Administrator: Command Prompt"); "cmd.exe" would be
+# read as a process name and could focus a harness cmd.exe instead.
+# Both crops are also NEW text: the old ready.png/success.png were cut from an
+# older llama.cpp ("main: server is listening on ...", a stacked timing block).
+# The current build (image 10537) logs "llama_server: listening on ..." and
+# prefixes the timings with "print_timing: id N | task N |", and the old
+# ready.png passed on conhost only as a 0.717 near miss on different words.
+READY = ["ready.png", "ready_wt.png"]
+# conhost restores the server console after Win+D at either of two font sizes
+# (14.4 px line pitch in run 38808757196, 16 px in run 38857253431), hence two
+# conhost crops of the timing line.
+SUCCESS = ["success.png", "success_conhost.png", "success_wt.png"]
+SERVER_WINDOWS = ["@test#", "system32"]
+
+# Poll for any of images; on timeout fail with a FindFailed on the first one.
+# SCREEN.exists bypasses util's step-frame hooks, so the poll does not flood the
+# step screenshots; the final wait() still records the FAILED frame.
+def wait_any(images, timeout, windows=None, poll=5):
+    deadline = time.time() + timeout
+    while True:
+        if windows:
+            for window in windows:
+                App(window).focus()
+            wait(1)
+        for image in images:
+            if SCREEN.exists(image, 0):
+                Debug.user("wait_any: matched %s" % image)
+                return image
+        if time.time() >= deadline:
+            break
+        wait(poll)
+    return wait(images[0], 0)
 
 # Test turbo run
 run("explorer " + os.path.join(util.start_menu,"System Tools","Command Prompt.lnk"))
@@ -16,7 +58,7 @@ wait(2)
 type(Key.ENTER)
 
 # Test of the app.
-wait("ready.png", 120) # It takes time for the model to warm up.
+wait_any(READY, 120) # It takes time for the model to warm up.
 # Win+D is load-bearing: the server console keeps the top of the z-order, so
 # without it the command prompt opened below lands underneath and cmd_window.png
 # is clipped out of existence (run 34091540254, which never got past the click).
@@ -57,9 +99,9 @@ type(Key.ENTER)
 # 26.9.x split in this test's history: 26.3.18.1034 and the 26.3.18 pool VM
 # passed (runs 33849047386, 33943398106) while 26.9.20.1047 and 26.9.26.1052
 # failed (33849072018, 33949816065, 33949826631). "@test#" comes from
-# --name=test above and is in both titles.
-if not util.focus_and_wait("@test#", "success.png", attempts=12, poll=5):
-    wait("success.png")  # still absent: fail with the usual FindFailed
+# --name=test above and is in both titles. A WT-hosted console has neither, so
+# SERVER_WINDOWS adds "system32" (see the top of the file).
+wait_any(SUCCESS, 90, windows=SERVER_WINDOWS)
 wait(5)
 run("turbo stop test")
 wait(10)
