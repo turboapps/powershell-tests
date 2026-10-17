@@ -157,7 +157,13 @@ run("explorer " + os.path.join(util.start_menu, "Adobe Acrobat Pro.lnk"))
 # 120 s was tried at the first launch and at both reopens too and changed nothing
 # there, because those failures are not slow launches (see runs 34420994008 and
 # 34421003089).
-click("pdf_window.png",120)
+# SikuliX's click() has no timeout argument: click(img, 120) passes 120 as the
+# key-modifier mask and searches with the 30 s ambient timeout, so this launch
+# never had 120 s. Runs 38442358723 and 38478061227 gave up ~30 s after the
+# Start-menu launch with Acrobat's Home screen up in the FAILED frame ("seen at
+# (6, 4) with 0.97"). Wait first, then click.
+wait("pdf_window.png", 120)
+click("pdf_window.png")
 wait(5)
 type(" ", Key.ALT)   # open system menu
 wait(2)
@@ -224,7 +230,39 @@ type(Key.F1)
 if not util.focus_and_wait("Edge", "help_url.png", attempts=9, poll=10):
     wait("help_url.png", 5)
 util.close_app("Edge")
-type(Key.F4, Key.ALT)
+# closeApp only asks Edge to close and returns before its window is gone, and
+# Edge is the foreground window until it is. In App Tests run 38432578750 the
+# step frame taken right before the Alt+F4 below still shows the help page in
+# front, so the Alt+F4 closed Edge instead of Acrobat, Acrobat stayed up with the
+# document open, and the run failed 90 s later in check_running ("still Running
+# after 60 s") with nothing pointing at the cause. Wait for the help page to be
+# gone - force it if Edge ignored the request.
+if not waitVanish("help_url.png", 20):
+    Debug.user("help page still up 20 s after closeApp('Edge'); killing msedge.exe")
+    run("taskkill /F /IM msedge.exe")
+    if not waitVanish("help_url.png", 20):
+        raise FindFailed("Edge help page still in front after closeApp and taskkill")
+
+# With Edge gone, Acrobat's document is on top but the keyboard does not
+# necessarily go back to its main window: validation run 38442347572 had the help
+# page gone and only Acrobat on screen in the frame before the Alt+F4 (after an
+# App("Acrobat").focus(), which can pick another of Acrobat's top-level windows),
+# and Acrobat still ignored the keystroke. Click the page to activate the main
+# window, then check the document actually went away, so a lost close fails here
+# instead of 90 s later in check_running.
+def close_acrobat(attempts=3):
+    for attempt in range(attempts):
+        click("point-2-point.png")
+        wait(2)
+        type(Key.F4, Key.ALT)
+        if waitVanish("point-2-point.png", 20):
+            if attempt:
+                Debug.user("close_acrobat: Acrobat closed on attempt %d" % (attempt + 1))
+            return
+        Debug.user("close_acrobat: document still up 20 s after Alt+F4 (attempt %d)" % (attempt + 1))
+    raise FindFailed("close_acrobat: Acrobat ignored Alt+F4 %d times" % attempts)
+
+close_acrobat()
 wait(30)
 
 # Check if the session terminates after closing the app.
