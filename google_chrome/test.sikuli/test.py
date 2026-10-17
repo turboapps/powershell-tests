@@ -116,6 +116,22 @@ type("p", Key.CTRL)
 # still painting its spinner - which is the "the dialog is up and ready" signal
 # this wait wanted, and the old reference only ever gave by accident.
 wait("print_window.png",60)
+# Print only once the preview has rendered. Clicking Print while the preview
+# still says "Loading preview" makes Chrome defer the job until the preview is
+# ready and then close the dialog, so a preview that never finishes leaves no
+# trace: the dialog just goes away and print_location.png FindFails 30 s later
+# on a bare page (App Tests run 38432578750, google_chrome-x64 155.0.8059.40:
+# the frames before and after the click both show "Loading preview", the
+# failure screenshot shows google.com with no dialog). In passing runs the
+# preview finishes within a few seconds of the dialog opening, so waiting for
+# it costs nothing and turns a stalled preview into a failure at this step,
+# with the dialog still on screen.
+loading_preview = Pattern("loading_preview.png").similar(0.85)
+loading = exists(loading_preview, 0)
+if loading:
+    Debug.user("print preview loading (score %.2f), waiting for it" % loading.getScore())
+if not waitVanish(loading_preview, 60):
+    raise Exception("print preview still 'Loading preview' after 60 s")
 click(Pattern("print_print.png").targetOffset(-28,8))
 wait("print_location.png")
 paste(save_location)
