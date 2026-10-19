@@ -16,7 +16,7 @@ run("turbo stop test")
 
 # Install the extensions
 extensions = "code --install-extension ms-python.python --install-extension ms-vscode.cpptools --install-extension ms-vscode.cpptools-extension-pack --install-extension vscjava.vscode-java-pack --install-extension ms-dotnettools.csdevkit --install-extension dbaeumer.vscode-eslint --install-extension golang.go --install-extension shopify.ruby-extensions-pack --force"
-turbocmd = "turbo run vscode-x64 --isolate=merge-user --using=python/python-x64,eclipse/temurin-lts,microsoft/dotnet-sdk-x64:8 --startup-file=cmd -- /C "
+turbocmd = "turbo run vscode-x64 --isolate=merge-user --using=python/python-x64,eclipse/temurin-lts,microsoft/dotnet-sdk-x64 --startup-file=cmd -- /C "
 # The install runs in a container whose cmd.exe crashes often enough to cost a
 # run: in run 34510865844 Turbo logged "Application exited: -1073741819"
 # (0xC0000005) 17 s in, and the dump in that artifact is an NX execute fault
@@ -26,11 +26,20 @@ turbocmd = "turbo run vscode-x64 --isolate=merge-user --using=python/python-x64,
 # Code still offering to install Python. merge-user puts container writes in the
 # real profile - the test already leans on that for hello_world.py below - so
 # the extension folders can be checked from here.
+#
+# The --using list matches Executor.ps1, which pre-pulls those images. It used
+# to name microsoft/dotnet-sdk-x64:8, left over from when the executor ran
+# .NET 8 (8ae7dd9 moved it to the untagged image). Nothing pulls :8, so this
+# run asked the hub for it, and Turbo Client 26.10 does that unsigned - the
+# harness's sign-in is a TURBO_ACCESS_TOKEN that this process does not
+# inherit - so the hub answered 403 and the client quit in under a second
+# with "Please login to complete this operation" (App Tests runs
+# 38988242019 etc., 5/5 on client 26.10.1552).
 
 if not util.vscode_install_extensions(turbocmd, extensions):
     raise FindFailed("the VS Code extensions never installed: the install "
-                     "container exits with 0xC0000005, an NX execute fault in "
-                     "cmd.exe at an address in no loaded module")
+                     "`turbo run` failed or its container crashed - see the "
+                     "Turbo client log for that run")
             
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Visual Studio Code", "Visual Studio Code.lnk"))
