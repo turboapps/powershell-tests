@@ -92,8 +92,10 @@ if util.wait_process_gone("dwgviewr.exe", 120) < 0:
         fg = App.focusedWindow()
     except:
         fg = sys.exc_info()[1]
-    Debug.user("dwgtrueview: Alt+F4 did not close DWG TrueView; foreground window %s" % fg)
-    sys.exit(1)
+    # raise, not sys.exit(1): this app's Executor.ps1 drops SikuliX's exit code,
+    # so only an error in the test log fails the job.
+    raise FindFailed("dwgtrueview: Alt+F4 did not close DWG TrueView within 120 s; "
+                     "foreground window %s" % fg)
 run("turbo stop test")
 
 # Launch the app.
