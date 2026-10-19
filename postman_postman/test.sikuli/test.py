@@ -34,7 +34,13 @@ click("get-url.png")
 # field while it is being typed into and swallows the rest of the keystrokes
 # (App Tests 38526316134 and 38684125927 sent "https://jsonp").
 paste("https://jsonplaceholder.typicode.com/todos/1")
-wait(1)
+# ENTER sends whatever URL the request model holds. On a busy start the pasted
+# text can take >1 s to reach the model; an ENTER sent before that sends
+# nothing ("Click Send to get a response", empty History) even though the URL
+# shows up in the field moments later (App Tests 38988960389, 38988953618).
+# The request header above the URL bar switches from "Untitled Request" to the
+# URL only once the model has it, so wait for that before pressing ENTER.
+wait("request-url.png", 30)
 type(Key.ENTER)
 wait("json-output.png")
 type(Key.F4, Key.ALT)
