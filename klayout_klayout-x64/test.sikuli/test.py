@@ -23,7 +23,17 @@ wait(10)
 # Run headless to create dirty
 certOutFile = os.path.join(util.desktop, "dirty.gds")
 genScript = os.path.join(resources, "generate_dirty.py")
-headlessCmd = "turbo run klayout --isolate=merge-user --working-dir=" + util.desktop + " -- -b -r " + genScript
+# Run the image under test, by its full name, from the local repository. The
+# bare name "klayout" only ever matched klayout/klayout, so the x64 test ran its
+# headless step in the 32-bit image, pulled from the hub on the fly - and on
+# Turbo Client 26.10.1552, which runs the test without a hub sign-in, the hub
+# search refuses it ("Please login to complete this operation"), no dirty.gds is
+# written and the assert below fails on every run. The image name is derived
+# from the test folder (klayout_klayout-x64 -> klayout/klayout-x64) the same way
+# the harness maps it, so the two tests stay identical; --offline makes a
+# missing image fail here instead of fetching something else.
+image = os.path.basename(os.path.dirname(script_path)).replace("_", "/", 1)
+headlessCmd = "turbo run " + image + " --offline --isolate=merge-user --working-dir=" + util.desktop + " -- -b -r " + genScript
 run(headlessCmd)
 wait(5)
 assert(util.file_exists(certOutFile, 10))
