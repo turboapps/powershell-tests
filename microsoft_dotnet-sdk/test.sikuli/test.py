@@ -12,7 +12,12 @@ util.pre_test(no_min=True)
 
 
 # Test.
-wait("sdk_ready.png")
+# The container console does not necessarily own the keyboard when the test
+# starts - see util.focus_console - so take it before pasting. Without this the
+# paste and ENTER can land on the taskbar (Start button focused) and open the
+# Start menu while the console sits at an empty prompt (App Tests run 38988960389
+# / 38988963564, arm64).
+util.focus_console("sdk_ready.png")
 paste('dotnet new console -n TestConsole -o "%USERPROFILE%\Desktop\dotnet\project"')
 wait(3)
 type(Key.ENTER)
