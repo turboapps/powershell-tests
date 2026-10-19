@@ -36,15 +36,25 @@ util.pre_test()
 # and then also clears and retries the TURBO.NET box if the race still wins,
 # which is the case a wait alone cannot cover.
 
+# Both launches below are cold starts: `turbo try` builds the temporary
+# "test" container, and the Start Menu shortcut then creates the installed
+# libreoffice#<id> container from scratch, so LibreOffice writes a brand-new
+# user profile behind its splash each time. Start Center paint after the
+# shortcut measured 46/63/67/89 s on the four passing x64 runs of the
+# 2026-10-17 sweep (client 26.10.1552, xvm 26.10.135) and >90 s on the fifth
+# (run 38988963564: splash still at ~75% when the old 90 s budget ran out,
+# Start Center up ~10 s later). 180 s covers that spread; wait() returns on
+# the first match, so passing runs are not slowed.
+
 # Test of `turbo run`.
-wait("office-launched.png",90)
+wait("office-launched.png",180)
 run("turbo stop test")
 wait(10)
 closeApp("Command Prompt")
 
 # Test Office.
 run("explorer " + os.path.join(util.start_menu, "LibreOffice", "LibreOffice.lnk"))
-wait("office-launched.png",90)
+wait("office-launched.png",180)
 
 # Test Writer.
 click("writer-document.png")
