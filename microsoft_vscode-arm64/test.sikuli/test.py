@@ -27,8 +27,8 @@ turbocmd = "turbo run vscode-arm64 --isolate=merge-user --using=python/python-ar
 
 if not util.vscode_install_extensions(turbocmd, extensions):
     raise FindFailed("the VS Code extensions never installed: the install "
-                     "container exits with 0xC0000005, an NX execute fault in "
-                     "cmd.exe at an address in no loaded module")
+                     "`turbo run` failed or its container crashed - see the "
+                     "Turbo client log for that run")
             
 # Launch the app.
 util.launch_shortcut(["Visual Studio Code", "Visual Studio Code.lnk"], "Microsoft VSCode ARM64.lnk")
