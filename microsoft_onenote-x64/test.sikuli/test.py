@@ -338,6 +338,38 @@ if card:
         type(Key.ENTER)
     if exists("privacy-close.png",10):
         click("privacy-close.png")
+
+# This first launch is where OneNote makes My Notebook, the local notebook every
+# section below goes in. It runs in the throwaway `turbo try` container. The
+# relaunch further down comes from the installed shortcut, a different container
+# with a fresh OneNote profile, so all it gets of My Notebook is what reached
+# the real Documents folder (merge-user isolation writes it there).
+#
+# OneNote shows My Notebook > Quick Notes at once but writes the section file
+# later. Diagnostic run 39310302331 stopped this launch with only
+# "Open Notebook.onetoc2" on disk and no "Quick Notes.one". The relaunch then
+# opened My Notebook with no sections at all - blue icon, "There aren't any
+# sections here", no expand arrow, no "+ New Section" - and the run died at
+# open_my_notebook(). The same happened in App Tests runs 38988956810,
+# 38988963564, 39300375418 and 39300381427. When the file was on disk
+# (39304934557, 39304941315, 39307633116, 39307639386, 39310297146), the
+# relaunch showed My Notebook with Quick Notes and the run passed. So do not
+# end this launch until the section file exists.
+QUICK_NOTES_FILE = os.path.join(os.environ["USERPROFILE"], "Documents", "OneNote Notebooks",
+                                "My Notebook", "Quick Notes.one")
+
+def wait_quick_notes_saved(timeout=180, poll=2):
+    started = time.time()
+    while time.time() - started < timeout:
+        if os.path.isfile(QUICK_NOTES_FILE):
+            Debug.user("first launch: Quick Notes.one on disk after %d s" % (time.time() - started))
+            return True
+        wait(poll)
+    return False
+
+if not wait_quick_notes_saved():
+    raise FindFailed("OneNote did not write My Notebook's Quick Notes section to disk on the first launch (%s)"
+                     % QUICK_NOTES_FILE)
 run("turbo stop test")
 
 # OneNote.
