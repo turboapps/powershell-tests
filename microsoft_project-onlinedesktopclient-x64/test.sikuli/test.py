@@ -85,7 +85,10 @@ wait("result_4.png")
 
 # Check "help".
 type(Key.F1)
-wait("help_window.png")
+# Match the LOADED Help pane (the "Search help" box), not its "Loading..." placeholder:
+# the old crop (title + back/home row) only matched the placeholder (0.78) and failed
+# (0.56) when the pane finished loading before the first scan.
+wait("help_window.png", 60)
 type(Key.F4, Key.ALT)
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 wait(45)
