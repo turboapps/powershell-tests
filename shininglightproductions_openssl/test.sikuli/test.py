@@ -46,7 +46,7 @@ wait(5)
 
 # Test headless trigger.
 certOutFile = os.path.join(util.desktop, "headless_cert.pem")
-headlessCmd = "turbo run openssl --isolate=merge-user --trigger headless -- pkcs12 -in " + certInFile + " -out " + certOutFile + " -nodes -password pass:thisismycertpassword"
+headlessCmd = "turbo run shininglightproductions/openssl --isolate=merge-user --trigger headless -- pkcs12 -in " + certInFile + " -out " + certOutFile + " -nodes -password pass:thisismycertpassword"
 run(headlessCmd)
 wait(5)
 assert(util.file_exists(certOutFile, 10))
