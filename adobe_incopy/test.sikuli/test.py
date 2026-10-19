@@ -121,7 +121,14 @@ type(Key.F1)
 wait(10)
 util.close_app("Edge")
 type(Key.F1)
-wait("help_url.png",30)
+# F1 opens Edge on an adobeid ims/jump page that redirects to
+# https://helpx.adobe.com/incopy/desktop.html. On a pool VM the redirect
+# can take well over 30 s, so allow it time.
+# help_url.png is "https://helpx.adobe.com/incopy" from the address bar.
+# The old crop read "https://helpx.adobe.com/support/lightroom-", a Lightroom
+# URL. It matched only on the shared prefix, close to the 0.7 threshold
+# (0.72-0.76 on a loaded InCopy page), so it missed pages that had loaded.
+wait(Pattern("help_url.png").similar(0.80), 180)
 util.close_app("Edge")
 wait(10)
 type("q", Key.CTRL)
