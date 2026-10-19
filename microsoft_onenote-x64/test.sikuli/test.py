@@ -273,6 +273,25 @@ def delete_section(row):
     wait(5)
     return True
 
+def foreground_window():
+    try:
+        return App.focusedWindow()
+    except:
+        return None
+
+# The card is a ~485x300 window. Containing the Sign In button is not enough on
+# its own: when the desktop has the focus, App.focusedWindow() is the whole
+# screen, which contains everything. So also require a window no bigger than the
+# card could be.
+def card_is_foreground(button):
+    win = foreground_window()
+    if win is None:
+        return False
+    return (win.getW() < 1000 and win.getH() < 800
+            and win.getX() <= button.getX() and win.getY() <= button.getY()
+            and win.getX() + win.getW() >= button.getX() + button.getW()
+            and win.getY() + win.getH() >= button.getY() + button.getH())
+
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resources", "secrets.txt"))
 username = credentials.get("username")
@@ -282,7 +301,23 @@ password = credentials.get("password")
 # that has signed in before comes up already authenticated and shows no Sign In
 # button at all - it goes straight to the notebook picker. Waiting for the
 # button unconditionally fails there, so only run the sign-in steps if it shows.
-if exists("sign-in.png",120):
+card = exists("sign-in.png",120)
+if card:
+    # Alt+F4 here closes OneNote's "Getting things ready for you!" card, and
+    # OneNote's own Sign in button then comes up behind it. The card is not
+    # always the foreground window when it paints. In App Tests runs 39286024146
+    # and 39293528950 it was on screen but the desktop had the focus, so the
+    # Alt+F4 opened "Shut Down Windows" and the run died at office-sign-in.png.
+    # Bring the card forward by clicking a blank part of it (left of Sign In,
+    # below its text) and check that it really is the foreground window before
+    # sending the key.
+    if not card_is_foreground(card):
+        Debug.user("sign-in card: not the foreground window (%s), clicking it" % foreground_window())
+        click(card.getTarget().offset(-240, -60))
+        wait(1)
+        if not card_is_foreground(card):
+            raise FindFailed("the OneNote sign-in card is not the foreground window after clicking it (foreground: %s)"
+                             % foreground_window())
     type(Key.F4, Key.ALT)
     click("office-sign-in.png")
     if not enter_signin_username(username, 60):
