@@ -26,7 +26,8 @@ genScript = os.path.join(resources, "generate_dirty.py")
 # Run the image under test, by its full name, from the local repository. The
 # bare name "klayout" only ever matched klayout/klayout, so the x64 test ran its
 # headless step in the 32-bit image, pulled from the hub on the fly - and on
-# Turbo Client 26.10.1552, which runs the test without a hub sign-in, the hub
+# Turbo Client 26.10.1552 (signed in only through the executor's
+# TURBO_ACCESS_TOKEN, which the test's own turbo commands do not inherit) the hub
 # search refuses it ("Please login to complete this operation"), no dirty.gds is
 # written and the assert below fails on every run. The image name is derived
 # from the test folder (klayout_klayout-x64 -> klayout/klayout-x64) the same way
