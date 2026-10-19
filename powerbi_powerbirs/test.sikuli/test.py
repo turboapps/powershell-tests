@@ -54,9 +54,13 @@ click("excel-data.png")
 if exists("dark-mode-prompt.png", 15):
     click(Pattern("dark-mode-prompt.png").targetOffset(247,-250))
 wait("import_file_name.png",20)
-paste("C:\\Program Files\\Microsoft Power BI Desktop RS\\bin\\SampleData\\Financial Sample.xlsx")
-wait(2)
-type(Key.ENTER)
+# A bare paste() can lose its Ctrl on the freshly opened Open dialog: in App
+# Tests run 38988963564 (powerbi_powerbi) it landed as a lone "v" while the
+# dialog was still populating its navigation pane, Enter raised "v - File not
+# found" and the test died later at import_financials.png. Click into the
+# field first (as vlc/Office/FileZilla do) and fail right here, naming the
+# rejected path, if the dialog still refuses it - no blind retry.
+util.open_file_in_dialog("import_file_name.png", "C:\\Program Files\\Microsoft Power BI Desktop RS\\bin\\SampleData\\Financial Sample.xlsx", attempts=1)
 click(Pattern("import_financials.png").targetOffset(-41,-2))
 click("import_load.png")
 # Load spawns the mashup engine and only then opens the Data pane; on a slow
