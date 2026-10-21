@@ -46,6 +46,16 @@ def wait_app_loaded(timeout=120):
 
 # Test of `turbo run`.
 wait_app_loaded()
+# Give the keyboard to DWG TrueView with a real click on its caption (the empty
+# title-bar strip between the title text and the minimize button) before Alt+F4.
+# activate_app_window() above ignores a failed SetForegroundWindow, and in App
+# Tests run 38988242019 (xvm 26.10.135) the Alt+F4 went to the desktop instead:
+# Windows opened its "Shut Down Windows" dialog, DWG TrueView stayed up, the wait
+# below ran out after 120 s, and the `turbo stop` that followed hit the live app
+# and produced the same double-free dump (dwgviewr.exe.2548.dmp). A mouse click
+# is real input, so the foreground lock cannot refuse it.
+click(Location(1400, 15))
+wait(1)
 type(Key.F4, Key.ALT) # Close app.
 # Let DWG TrueView finish its own exit before the session is stopped.
 #
@@ -73,7 +83,19 @@ type(Key.F4, Key.ALT) # Close app.
 # on the process and not on the session: Autodesk leaves AdskAccessService /
 # ADPClientService inside the container, which keeps the session Running well
 # past the application's own exit.
-util.wait_process_gone("dwgviewr.exe", 120)
+#
+# If it never exits, the Alt+F4 was lost: fail here, at the cause. Going on to
+# `turbo stop` would send the VM's WM_CLOSE broadcast into the live app and turn
+# a lost keystroke into a crash-dump verdict that points at the wrong thing.
+if util.wait_process_gone("dwgviewr.exe", 120) < 0:
+    try:
+        fg = App.focusedWindow()
+    except:
+        fg = sys.exc_info()[1]
+    # raise, not sys.exit(1): this app's Executor.ps1 drops SikuliX's exit code,
+    # so only an error in the test log fails the job.
+    raise FindFailed("dwgtrueview: Alt+F4 did not close DWG TrueView within 120 s; "
+                     "foreground window %s" % fg)
 run("turbo stop test")
 
 # Launch the app.
