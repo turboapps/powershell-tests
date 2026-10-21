@@ -39,6 +39,31 @@ def wait_pr_window(timeout, slice=10):
             click(compat_continue)
     wait("pr_window.png", 10)
 
+# Wait for the sequence timeline after the project opens, answering Premiere's
+# "No output device is available" prompt when it comes up first.
+#
+# A pool VM has no audio output device, so Premiere asks whether to open the
+# Audio Hardware preference while it loads the project. The prompt is modal and
+# the timeline is not drawn behind it until it is answered ("No"). It takes a
+# variable time to appear after the convert prompt's OK: 12.6 s, 21 s and 29.2 s
+# in the three passes of 2026-10-17 (runs 38988956810, 38988953618, 38988242019),
+# so the old fixed 30 s exists() missed it in 38988960389 and timeline.png then
+# failed behind the still-open prompt. The prompt and the "Essential Graphics
+# panel has been renamed" notice are probed with SCREEN.exists (unhooked, no step
+# frame per poll) between timeline polls; nothing is clicked when they are absent.
+def wait_timeline(timeout, slice=10):
+    waited = 0
+    while waited < timeout:
+        if exists("timeline.png", slice):
+            return
+        waited += slice
+        if SCREEN.exists("no_output_device.png", 0):
+            Debug.user("No output device prompt up at %d s; answering No" % waited)
+            click(Pattern("no_output_device.png").targetOffset(137,53))
+        if SCREEN.exists("panel_rename.png", 0):
+            click(Pattern("panel_rename_close.png").targetOffset(-2,-10))
+    wait("timeline.png", 10)
+
 # Login to Adobe Creative Cloud Desktop
 util.launch_adobe_cc(username, password)
 
@@ -76,11 +101,7 @@ wait(2)
 type(Key.ENTER)
 wait("convert_prompt.png")
 click("ok-button.png")
-if exists("no_output_device.png",30):
-    click(Pattern("no_output_device.png").targetOffset(137,53))
-if exists("panel_rename.png"):
-    click(Pattern("panel_rename_close.png").targetOffset(-2,-10))
-wait("timeline.png")
+wait_timeline(180)
 
 # Check "help".
 type(Key.F1)
