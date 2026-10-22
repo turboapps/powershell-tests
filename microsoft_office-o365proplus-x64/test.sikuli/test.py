@@ -218,8 +218,10 @@ type("w", Key.CTRL)
 run("explorer " + save_location)
 wait("excel_result.png", 60)
 type("w", Key.CTRL)
+# Same reopen into an empty Excel window as the workbook above (2026-10-17:
+# still empty at 20 s), so the same budget.
 run("explorer " +os.path.join(script_path, os.pardir, "resources", "csv.csv"))
-wait("excel_csv.png")
+wait("excel_csv.png", 60)
 
 type("p", Key.CTRL)
 wait("excel_print.png")
@@ -295,7 +297,14 @@ if not exists("outlook_new_email_2.png", 10):
 wait("outlook_new_email_2.png")
 type(Key.DELETE)
 wait(15)
-util.close_window("outlook_new_email_1.png", refocus="outlook_new_email_1.png")
+# Close on the status-bar "Items:" label, not on a mail row. After DELETE the
+# selection moves to the next-newest mail, and that is usually NOT a "subject"
+# mail: microsoft_outlook sends "sikulix test email" mails to the same mailbox
+# and never deletes them. With no "subject" row left on screen the refocus
+# click had nothing to hit (App Tests 2026-10-17, 9/10 jobs, line 298), and the
+# witness was absent before Alt+F4 was even sent.
+outlook_window = Pattern("outlook_items.png").similar(0.9)
+util.close_window(outlook_window, refocus=outlook_window)
 os.system('cmd /c taskkill /f /im "smartscreen.exe" /t')
 util.check_running(12, 5) # retry 12 times and delay 5s
 
