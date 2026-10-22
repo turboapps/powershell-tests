@@ -81,7 +81,13 @@ wait("import_done.png",20)
 type("d")
 wait(2) # Wait for Edit panel to load.
 click(Pattern("develop_mode.png").targetOffset(181,-96))
+# The tip closes asynchronously while LrC is still fetching previews; a key typed before it is
+# gone is eaten by the tip (crop tool never opens, then "x" rejects the photo instead of
+# swapping the crop aspect). Fail here if the tip stays, and confirm the crop tool opened.
+if not waitVanish("develop_mode.png",15):
+    raise Exception("Develop module tip did not close")
 type("r")
+wait("crop_tool.png",15)
 wait(2)
 type("x")
 wait(2)
