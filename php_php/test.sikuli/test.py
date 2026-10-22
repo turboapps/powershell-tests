@@ -2,6 +2,7 @@ script_path = os.path.dirname(os.path.abspath(sys.argv[0]))
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
 import util
+import subprocess
 import urllib2
 reload(util)
 addImagePath(include_path)
@@ -9,11 +10,20 @@ addImagePath(include_path)
 setAutoWaitTimeout(20)
 util.pre_test(no_min=True)
 
-# Executor.ps1 starts the container as `php -S 127.0.0.1:8000 -t resources\www`.
 # resources\www\index.php prints MARKER (it computes the 42 itself), so the text
 # appears only when PHP ran the page - a raw copy of the source does not contain it.
 URL = "http://localhost:8000"
 MARKER = "PHP Server Test 42"
+www = os.path.abspath(os.path.join(script_path, os.pardir, "resources", "www"))
+
+# Start php.exe (the image's default startup file) as the built-in web server.
+# This launch is made here rather than by Executor.ps1's StandardTest because
+# TryTurboApp always adds --network=test, which puts the container on a virtual
+# network that the native browser cannot reach at localhost:8000. Without
+# --network the server binds on the host's loopback.
+subprocess.Popen("turbo " + util.try_verb() + " php/php --name=test --enable=usedllinjection,cachefileinfo"
+                 " --disable-proxy-resolve-via-proxy -d" + util.read_extra() +
+                 ' -- -S 127.0.0.1:8000 -t "' + www + '"')
 
 # Test.
 # The built-in server prints its "Development Server ... started" banner, but the
