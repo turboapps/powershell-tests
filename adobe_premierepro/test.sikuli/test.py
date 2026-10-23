@@ -54,7 +54,7 @@ compat_continue = Pattern("compat_continue.png").similar(0.80)
 activation_limit = Pattern("activation_limit.png").similar(0.85)
 def answer_activation_limit(waited):
     Debug.user("Device activation limit dialog up at %d s; signing out another device" % waited)
-    click(Pattern("activation_signout.png").similar(0.85))
+    Debug.user("PROBE: skipping the Sign out click")
     wait(5)
     click(Pattern("activation_quit.png").similar(0.85).targetOffset(141, 0))
     assert waitVanish(activation_limit, 30), "activation limit dialog still up 30 s after Sign out + Continue"
