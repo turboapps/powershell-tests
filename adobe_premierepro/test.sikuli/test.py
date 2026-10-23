@@ -37,10 +37,15 @@ compat_continue = Pattern("compat_continue.png").similar(0.80)
 # System Compatibility Report is dismissed (run 39873520803 on w11-08, with
 # w11-03 and w11-01 holding the activations). Home is not drawn behind it, so
 # pr_window.png cannot match until a device is signed out and Continue is
-# clicked. The adobe_login_signout_others.png check after `turbo run` never sees
-# this dialog: it gives up while the compatibility report is still up, and its
-# 2024 crop holds that year's device names. Every premierepro pass from
+# clicked. The dialog can also come up over the report, before it is dismissed
+# (runs 39877024278, 39877033685, 39877052554). Every premierepro pass from
 # 2026-10-13 to 10-22 ran on w11-01, an activated device.
+#
+# This replaces the fixed 180 s adobe_login_signout_others.png wait after
+# `turbo run`. That crop is from 2024 (it holds that year's device names and
+# matched today's dialog only at the loose default similarity), and the wait
+# gave up before the dialog when it followed the report (run 39873520803). The
+# "team" prompt it was paired with is answered here too.
 #
 # The banner and the buttons are cropped without device names. Continue stays
 # disabled until a device is signed out, so it is clicked by its offset from
@@ -65,6 +70,9 @@ def wait_pr_window(timeout, slice=10):
             click(compat_continue)
         if SCREEN.exists(activation_limit, 0):
             answer_activation_limit(waited)
+        if SCREEN.exists("adobe_login_team.png", 0):
+            Debug.user("Adobe team prompt up at %d s; continuing" % waited)
+            click(Pattern("adobe_login_continue.png").similar(0.80))
     wait("pr_window.png", 10)
 
 # Wait for the sequence timeline after the project opens, answering Premiere's
@@ -107,13 +115,9 @@ cmd_prompt = App().focus("Command Prompt")
 if cmd_prompt.isValid():
     type(Key.DOWN, Key.WIN)
 
-if exists("adobe_login_signout_others.png",180):
-    click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
-    click(Pattern("adobe_login_continue.png").similar(0.80))
-if exists("adobe_login_team.png",10):
-    click(Pattern("adobe_login_continue.png").similar(0.80))
-
-wait_pr_window(60)
+# The first launch gets 240 s: the 180 s the old fixed sign-out wait gave
+# Premiere to start plus the 60 s pr_window wait that followed it.
+wait_pr_window(240)
 run("turbo stop test")
 
 # Launch the app.
