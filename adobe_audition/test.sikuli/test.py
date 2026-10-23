@@ -27,9 +27,6 @@ type(Key.ENTER)
 if exists("hardware-warning.png",90):
     click(Pattern("hardware-warning.png").targetOffset(-173,7))
     click(Pattern("hardware-warning.png").targetOffset(192,38))
-if exists("learn-panel.png",20):
-    click(Pattern("learn-panel.png").targetOffset(8,-28))
-    click("close-panel.png")
 if exists("adobe_login_signout_others.png",10):
     click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
     click(Pattern("adobe_login_continue.png").similar(0.80))
@@ -47,9 +44,6 @@ run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Audit
 if exists("hardware-warning.png",90):
     click(Pattern("hardware-warning.png").targetOffset(-173,7))
     click(Pattern("hardware-warning.png").targetOffset(192,38))
-if exists("learn-panel.png",20):
-    click(Pattern("learn-panel.png").targetOffset(8,-28))
-    click("close-panel.png")
 wait("audition-title-bar.png",15)
 
 # Basic operations.
@@ -70,8 +64,8 @@ if exists("export-warning.png"):
 wait(10)
 assert(util.file_exists(os.path.join(os.environ['USERPROFILE'], "Documents\\sample_01.mp3"), 5))
 type("q",Key.CTRL)
-wait(5)
-os.system('cmd /c taskkill /f /im "audition.exe" /t')  # adobe bug prevents process from ending
+wait(10)
+os.system('cmd /c taskkill /f /im "adobe audition.exe" /t')  # adobe bug prevents process from ending
 
 # Check if the session terminates.
 wait(30)
