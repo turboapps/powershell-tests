@@ -28,6 +28,37 @@ password = credentials.get("password")
 # The report is probed with SCREEN.exists, which the step-frame hooks do not
 # wrap, so polling it does not store a frame per poll; the click still does.
 compat_continue = Pattern("compat_continue.png").similar(0.80)
+
+# Premiere's own "You've reached your device activation limit" dialog.
+#
+# The shared Adobe account can be activated on two devices. On a runner that is
+# not one of them, Premiere shows "Sign out of another device to continue", with
+# a card and a "Sign out" button for each activated device, right after the
+# System Compatibility Report is dismissed (run 39873520803 on w11-08, with
+# w11-03 and w11-01 holding the activations). Home is not drawn behind it, so
+# pr_window.png cannot match until a device is signed out and Continue is
+# clicked. The dialog can also come up over the report, before it is dismissed
+# (runs 39877024278, 39877033685, 39877052554). Every premierepro pass from
+# 2026-10-13 to 10-22 ran on w11-01, an activated device.
+#
+# This replaces the fixed 180 s adobe_login_signout_others.png wait after
+# `turbo run`. That crop is from 2024 (it holds that year's device names and
+# matched today's dialog only at the loose default similarity), and the wait
+# gave up before the dialog when it followed the report (run 39873520803). The
+# "team" prompt it was paired with is answered here too.
+#
+# The banner and the buttons are cropped without device names. Continue stays
+# disabled until a device is signed out, so it is clicked by its offset from
+# "Quit Premiere Pro" on the same row. The banner must be gone after Continue;
+# if it is not, fail here instead of at the pr_window wait.
+activation_limit = Pattern("activation_limit.png").similar(0.85)
+def answer_activation_limit(waited):
+    Debug.user("Device activation limit dialog up at %d s; signing out another device" % waited)
+    click(Pattern("activation_signout.png").similar(0.85))
+    wait(5)
+    click(Pattern("activation_quit.png").similar(0.85).targetOffset(141, 0))
+    assert waitVanish(activation_limit, 30), "activation limit dialog still up 30 s after Sign out + Continue"
+
 def wait_pr_window(timeout, slice=10):
     waited = 0
     while waited < timeout:
@@ -37,6 +68,11 @@ def wait_pr_window(timeout, slice=10):
         if SCREEN.exists(compat_continue, 0):
             Debug.user("System Compatibility Report up at %d s; continuing with known issues" % waited)
             click(compat_continue)
+        if SCREEN.exists(activation_limit, 0):
+            answer_activation_limit(waited)
+        if SCREEN.exists("adobe_login_team.png", 0):
+            Debug.user("Adobe team prompt up at %d s; continuing" % waited)
+            click(Pattern("adobe_login_continue.png").similar(0.80))
     wait("pr_window.png", 10)
 
 # Wait for the sequence timeline after the project opens, answering Premiere's
@@ -79,13 +115,9 @@ cmd_prompt = App().focus("Command Prompt")
 if cmd_prompt.isValid():
     type(Key.DOWN, Key.WIN)
 
-if exists("adobe_login_signout_others.png",180):
-    click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
-    click(Pattern("adobe_login_continue.png").similar(0.80))
-if exists("adobe_login_team.png",10):
-    click(Pattern("adobe_login_continue.png").similar(0.80))
-
-wait_pr_window(60)
+# The first launch gets 240 s: the 180 s the old fixed sign-out wait gave
+# Premiere to start plus the 60 s pr_window wait that followed it.
+wait_pr_window(240)
 run("turbo stop test")
 
 # Launch the app.
