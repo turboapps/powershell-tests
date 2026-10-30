@@ -26,9 +26,20 @@ if exists("support_thanks.png"):
 # Basic operations.
 click("new.png")
 wait("tools.png")
-wait(2)
+# The new-document window paints its toolbox first and docks the default
+# "Fill and Stroke" panel afterwards. When the panel arrives the canvas narrows
+# and the page re-centres about 190 px to the left. The old fixed wait(2) was
+# usually enough, but in App Tests run 40980991791 the panel was still missing
+# 5 s after the toolbox appeared: the rectangle drag was aimed at the pre-dock
+# page, the relayout landed mid-drag, and Inkscape drew a 13.6 mm wide sliver
+# instead of the 55.6 mm rectangle, so results_1.png never matched. Wait for
+# the dock, then for the rectangle toolbar (Rx/Ry) to prove the tool switch was
+# processed, and aim the drag at a canvas match that has stopped moving.
+wait("dock_fill_stroke.png", 60)
 click(Pattern("tools.png").targetOffset(-87,-21))
-dragDrop(Pattern("empty_canvas.png").targetOffset(-90,-66), Pattern("empty_canvas.png").targetOffset(61,56))
+wait(Pattern("rect_toolbar.png").similar(0.85))
+canvas = util.find_settled("empty_canvas.png").getTarget()
+dragDrop(canvas.offset(-90,-66), canvas.offset(61,56))
 wait("results_1.png")
 type("s", Key.CTRL)
 wait("save_location.png")
