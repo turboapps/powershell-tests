@@ -12,6 +12,10 @@ $IncludePath = Join-Path -Path $PSScriptRoot -ChildPath "..\!include\Test.ps1"
 ## The test starts the base image (default startup file runs "ollama serve") with the addon
 ## and the gemma4:e4b model image merged in, waits for the HTTP API on localhost:11434,
 ## verifies the model is available and runs a chat completion.
+## This test runs serialized with the other two ollama tests (concurrency_group: ollama-model-load
+## in .applab.yml). All three load the same 9.6 GB gemma4:e4b model image; when they run at once on
+## a shared host their disk reads starve each other, llama-server misses ollama's 5-minute load
+## timeout and /api/chat returns 500 "timed out waiting for llama-server to start".
 ## Results are written to <image>-test.log which TestPS.ps1 scans for "error" lines.
 
 $image = "ollama/ollama-x64-mlx"
