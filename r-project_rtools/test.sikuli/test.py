@@ -23,7 +23,8 @@ click("whatsnew-close.png")
 App("RStudio").focus()
 type(Key.UP, Key.WIN) # Maximize cmd window.
 click("rstudio_window.png")
-type('install.packages("tidyverse")' + Key.ENTER)
+Debug.user("PROBE: forcing the gargle/googledrive/googlesheets4 source builds seen in runs 40980991791/40982308340/40982316528")
+type('install.packages("tidyverse"); install.packages(c("gargle", "googledrive", "googlesheets4"), type = "source")' + Key.ENTER)
 wait(10)
 
 # There might be a prompt.
