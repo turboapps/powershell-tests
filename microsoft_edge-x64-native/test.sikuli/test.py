@@ -87,7 +87,24 @@ click(wait_google().getTarget().offset(0, 200))
 wait(5)
 type("p", Key.CTRL)
 wait("print_window.png")
-click(Pattern("print_print.png").targetOffset(-64,1))
+# Edge 157 is rolling out a redesigned print preview: settings on the right,
+# a white Cancel set apart from Print, and Print in the accent colour (blue
+# on some VMs, black on others). The same build serves either layout per
+# profile, so look for both. print_print_new.png scores 0.88-1.00 on the new
+# layout, 0.79 on the old one and 0.65 while Print is still greyed out during
+# "Loading preview", so it is never clicked before the preview is ready.
+print_buttons = [Pattern("print_print.png").targetOffset(-64,1),
+                 Pattern("print_print_new.png").similar(0.80).targetOffset(-35,0)]
+def find_print_button(timeout=30):
+    end = time.time() + timeout
+    while time.time() < end:
+        for button in print_buttons:
+            match = exists(button, 0)
+            if match:
+                return match
+        wait(1)
+    return wait(print_buttons[1], 0)  # FindFailed names the new-layout button
+click(find_print_button())
 wait("print_location.png")
 wait(2)
 paste(save_location)
