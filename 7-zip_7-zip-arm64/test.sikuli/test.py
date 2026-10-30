@@ -77,7 +77,12 @@ click("zip_extract.png")
 # run failed at the file_exists assert below. Passing runs clicked L[1044,631]
 # and L[1039,626] - the second one also caught the zoom, just not far enough out
 # to miss. find_settled waits for the button to stop moving before clicking.
-click(util.find_settled("extract_ok.png"))
+# PROBE: log first-sight vs settled position, then click where CI clicked
+# (13 px up-left of the settled centre) to show the fail-at-cause message.
+first = wait("extract_ok.png")
+settled = util.find_settled("extract_ok.png")
+Debug.user("PROBE first-sight %s settled %s" % (first.getCenter(), settled.getCenter()))
+click(settled.getCenter().offset(-13, -13))
 # Fail at the cause, not at the file check, if the click still did not take.
 if not waitVanish("extract_ok.png", 10):
     raise FindFailed("7-Zip Copy dialog is still open 10 s after clicking OK")
