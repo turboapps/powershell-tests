@@ -103,8 +103,17 @@ click("word_window.png")
 # later) - so the wait below timed out on a document that was never opened.
 # Keep clearing the optional prompts until the new document is up, and repeat
 # the Blank document click whenever one of them was in the way of it.
+#
+# "New document is up" is the status bar's "Page 1 of 1  0 words", which Word
+# draws in the UI font. The old anchor was the "Normal" tile of the Styles
+# gallery, which Word draws in the document's body font - Aptos, a cloud font.
+# When Aptos is available the tile renders in it (tailed "l", wider "N") and
+# the old crop, taken from the fallback rendering, scores 0.58: App Tests runs
+# 40980991791 and 40982316528 (proplus) waited 60 s on a blank document that
+# had opened in ~5 s. Run 40982308340 got the fallback font and passed. The
+# status-bar crop scores 0.99 in both renderings and 0.34 on Word's Home page.
 for _ in range(12):
-    if exists("word_new_doc.png", 5):
+    if exists("word_new_doc_status.png", 5):
         break
     for prompt in ["yes-all-apps.png", "device-reg-done.png", "privacy-close.png"]:
         if exists(prompt, 0):
@@ -114,7 +123,7 @@ for _ in range(12):
                 click("word_window.png")
             break
 else:
-    wait("word_new_doc.png", 0)
+    wait("word_new_doc_status.png", 0)
 wait(3)
 type("First line")
 type(Key.ENTER)
@@ -211,6 +220,18 @@ util.enter_spreadsheet_column(["1", "2", "=sum(A1, A2)"], "excel_result.png")
 # classic dialog (F12) from either surface.
 util.save_as_path(save_location)
 type("w", Key.CTRL)
+# Prove the workbook actually closed. If Excel drops the Ctrl+W, nothing below
+# notices: the reopen's wait("excel_result.png") matches the window that never
+# closed, the csv opens in a second window, and the test fails 60 s later in
+# check_running with Book1 still on screen - App Tests run 40980991791
+# (business), where both Ctrl+W here were ignored (step frames 107-110 show
+# Book1 unchanged; in passing runs the sheet is gone 1 s after Ctrl+W, and
+# excel_result.png scores 0.93 on Book1 vs 0.25 on the empty window). A lost
+# Ctrl+W is a finding, not something to re-send: fail here, naming it.
+def assert_workbook_closed(where):
+    if not waitVanish("excel_result.png", 15):
+        raise FindFailed("Excel ignored Ctrl+W (%s): Book1.xlsx is still open 15 s later" % where)
+assert_workbook_closed("after Save As")
 
 # Reopening the saved workbook through the shell has to cover Excel loading
 # the file back into an empty window; the default 20 s has no slack for it
@@ -218,6 +239,7 @@ type("w", Key.CTRL)
 run("explorer " + save_location)
 wait("excel_result.png", 60)
 type("w", Key.CTRL)
+assert_workbook_closed("after the reopen")
 # Same reopen into an empty Excel window as the workbook above (2026-10-17:
 # still empty at 20 s), so the same budget.
 run("explorer " +os.path.join(script_path, os.pardir, "resources", "csv.csv"))
