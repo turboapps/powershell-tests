@@ -1,1 +1,6 @@
 labels: [mem-16gb]
+# All three ollama tests load the same 9.6 GB gemma4:e4b model image. On a shared
+# Hyper-V host, two or three of those loads at once starve each other's disk and
+# llama-server misses ollama's 5-minute load timeout (HTTP 500 "timed out waiting
+# for llama-server to start"). A shared group makes ApplabCI run them one at a time.
+concurrency_group: ollama-model-load
