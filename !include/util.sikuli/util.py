@@ -1042,6 +1042,13 @@ def save_page_as_html(field_image, type_image, path, result_path, attempts=3):
             type(Key.ENTER)  # commit the file type
             wait(2)
         type(Key.ENTER)      # Save
+        # PROBE (never merge): poll fast so the caller's next keystroke lands
+        # right after the save, while Firefox's Downloads panel is still opening.
+        for _ in range(200):
+            if os.path.exists(result_path):
+                Debug.user("save_page_as_html PROBE: file present, returning immediately")
+                return True
+            time.sleep(0.1)
         if file_exists(result_path, 2):
             return True
         Debug.user("save_page_as_html: '%s' was not written on attempt %d of %d" % (result_path, attempt + 1, attempts))
