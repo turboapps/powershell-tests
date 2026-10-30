@@ -88,6 +88,14 @@ def open_template(path, attempts=3):
 # Test of `turbo run`.
 subprocess.Popen("turbo run illustrator --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --network=test --name=test" + util.read_extra())
 wait_for_home(300)
+# PROBE: put a centred modal (Preferences) over Home with the sidebar still
+# visible, as the activation-limit modal does. The old sidebar check returns
+# here; the fixed wait_for_home must fail at its final wait("ai_home.png").
+type("k", Key.CTRL)
+wait(15)
+Debug.user("PROBE sidebar ai_window visible under modal: %s" % (SCREEN.exists("ai_window.png", 0) is not None))
+Debug.user("PROBE ai_home visible under modal: %s" % (SCREEN.exists("ai_home.png", 0) is not None))
+wait_for_home(30)
 run("turbo stop test")
 wait(10)
 
