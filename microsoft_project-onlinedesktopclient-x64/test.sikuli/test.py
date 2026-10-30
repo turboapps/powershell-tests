@@ -17,10 +17,10 @@ password = credentials.get("password")
 
 # Test of `turbo run`.
 click(Pattern("office_signin.png").targetOffset(-113,128))
-wait("office_signin_email.png")
-paste(username)
-wait(2)
-type(Key.ENTER)
+# Anchor on the sign-in page furniture, not the address placeholder: Microsoft
+# rotates that string per page load ("Email or phone", "... including Gmail and
+# iCloud", or none at all). See util.office_signin_address.
+util.office_signin_address(username, "office_signin_password.png")
 wait("office_signin_password.png")
 paste(password)
 wait(2)
@@ -44,8 +44,7 @@ run("turbo stop test")
 run("explorer " + os.path.join(util.start_menu, "Project.lnk"))
 if exists("office_signin.png"):
     click(Pattern("office_signin.png").targetOffset(-113,128))
-    wait("office_signin_email.png")
-    type(username + Key.ENTER)
+    util.office_signin_address(username, "office_signin_password.png")
 if exists("office_signin_password.png",10):
     type(password + Key.ENTER)
 if exists("privacy-close.png",10):
