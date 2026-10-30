@@ -38,7 +38,19 @@ if exists("install_from_sources.png"):
 wait("rstudio_package_installed.png", 300)
 click("rstudio_package_installed.png")
 type("library(tidyverse)" + Key.ENTER)
-wait("rstudio_package_imported.png",60)
+# That image does not mean the install is over. For R 4.6.1 install.packages()
+# takes gargle, googledrive and googlesheets4 as sources, so once "The downloaded
+# binary packages are in" is printed R goes on to build those three from
+# source, and the image already matches the binary line while it does (the
+# missing "> " under it is too small to sink the score). library(tidyverse)
+# then sits queued in the console behind the source builds, and this wait is
+# really the wait for them: 37-56 s in passing runs, and 60 s + 10-20 s in App
+# Tests runs 40980991791, 40982308340 and 40982316528, all four failures with
+# the build still running ("testing if installed package can be loaded") at
+# the deadline and the tidyverse banner printed seconds later. The image is
+# the banner's last lines plus the returned prompt, so a long budget costs
+# nothing when the build is quick.
+wait("rstudio_package_imported.png", 300)
 type("1 + 2" + Key.ENTER)
 wait("math.png")
 
