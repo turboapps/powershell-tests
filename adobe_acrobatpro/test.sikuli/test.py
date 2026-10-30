@@ -188,16 +188,28 @@ click("create-a-pdf.png")
 wait("create-pdf-doc-icon.png")
 click("create-pdf-doc-icon.png")
 wait("create_file_location.png")
-paste(os.path.join(script_path, os.pardir, "resources", "get-started-acrobat-dc", "Special_Offers_Deck.pptx"))
-wait(2)
-type(Key.ENTER)
+# App Tests run 40982316528 (2026-10-30) lost this paste's Ctrl: the step frame
+# before the paste shows the Open dialog still populating (blank navigation
+# pane), the frame before the Enter shows File name "v", and Enter raised
+# "v - File not found". The test then clicked Create behind that box and spent
+# two minutes in wait_page_rendered() failing on point-2-point.png with nothing
+# pointing at the dialog. Same race as powerbi in run 38988963564: a freshly
+# opened comdlg does not yet own the keyboard. open_file_in_dialog clicks into
+# the field, clears it and pastes; attempts=1 so a rejected name fails right here
+# at the dialog instead of being retried.
+util.open_file_in_dialog("create_file_location.png",
+                         os.path.join(script_path, os.pardir, "resources", "get-started-acrobat-dc", "Special_Offers_Deck.pptx"),
+                         attempts=1)
 wait(5)
 wait("create-button.png",120)
 click("create-button.png")
 wait_page_rendered()
 type("s", Key.CTRL + Key.SHIFT)
 wait("save_file_location.png")
-paste(save_location)
+# Same dropped-Ctrl race as the Open dialog above. Here it would be silent: a
+# bare "v" replaces the suggested name and Acrobat saves v.pdf wherever the
+# dialog points, so click into the field and clear it before pasting.
+util.paste_path_in_dialog("save_file_location.png", save_location)
 wait(2)
 type(Key.ENTER)
 wait(5)
