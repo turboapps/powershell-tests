@@ -50,7 +50,8 @@ type("library(tidyverse)" + Key.ENTER)
 # the deadline and the tidyverse banner printed seconds later. The image is
 # the banner's last lines plus the returned prompt, so a long budget costs
 # nothing when the build is quick.
-wait("rstudio_package_imported.png", 300)
+Debug.user("PROBE: import wait cut back to the old 60 s")
+wait("rstudio_package_imported.png", 60)
 type("1 + 2" + Key.ENTER)
 wait("math.png")
 
