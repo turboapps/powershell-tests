@@ -35,6 +35,9 @@ wait("tools.png")
 # instead of the 55.6 mm rectangle, so results_1.png never matched. Wait for
 # the dock, then for the rectangle toolbar (Rx/Ry) to prove the tool switch was
 # processed, and aim the drag at a canvas match that has stopped moving.
+# PROBE (do not merge): close the dock so the fixed test must fail at the dock wait.
+click(Pattern("dock_fill_stroke.png").targetOffset(49,0))
+wait(3)
 wait("dock_fill_stroke.png", 60)
 click(Pattern("tools.png").targetOffset(-87,-21))
 wait(Pattern("rect_toolbar.png").similar(0.85))
