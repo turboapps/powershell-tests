@@ -93,8 +93,7 @@ wait("print_window.png")
 # profile, so look for both. print_print_new.png scores 0.88-1.00 on the new
 # layout, 0.79 on the old one and 0.65 while Print is still greyed out during
 # "Loading preview", so it is never clicked before the preview is ready.
-print_buttons = [Pattern("print_print.png").targetOffset(-64,1),
-                 Pattern("print_print_new.png").similar(0.80).targetOffset(-35,0)]
+print_buttons = [Pattern("print_print.png").targetOffset(-64,1)]  # PROBE: new-layout crop removed
 def find_print_button(timeout=30):
     end = time.time() + timeout
     while time.time() < end:
@@ -103,7 +102,7 @@ def find_print_button(timeout=30):
             if match:
                 return match
         wait(1)
-    return wait(print_buttons[1], 0)  # FindFailed names the new-layout button
+    return wait(print_buttons[0], 0)  # FindFailed names the new-layout button
 click(find_print_button())
 wait("print_location.png")
 wait(2)
