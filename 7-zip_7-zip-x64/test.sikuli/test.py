@@ -68,7 +68,19 @@ click("open_with_7zip.png")
 wait("zip_extract.png")
 wait(2)
 click("zip_extract.png")
-click("extract_ok.png")
+# The Copy dialog that Extract opens zooms in from slightly smaller than its final
+# size, so a match taken during the entrance animation is offset up and to the
+# left of where OK comes to rest. In App Tests run 40982308340 (7-zip-arm64) the
+# OK button was matched mid-zoom and clicked at L[1030,617] while the settled
+# button is centred on L[1043,630] with its top edge at y=619: the click landed
+# 2 px above the button, the dialog stayed open, nothing was extracted and the
+# run failed at the file_exists assert below. Passing runs clicked L[1044,631]
+# and L[1039,626] - the second one also caught the zoom, just not far enough out
+# to miss. find_settled waits for the button to stop moving before clicking.
+click(util.find_settled("extract_ok.png"))
+# Fail at the cause, not at the file check, if the click still did not take.
+if not waitVanish("extract_ok.png", 10):
+    raise FindFailed("7-Zip Copy dialog is still open 10 s after clicking OK")
 assert(util.file_exists(os.path.join(zip_folder, "util.sikuli"), 3))
 type(Key.F4, Key.ALT)
 type(Key.F4, Key.ALT) # Close the Explorer window.
