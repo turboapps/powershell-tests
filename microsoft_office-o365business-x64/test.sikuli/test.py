@@ -124,6 +124,10 @@ for _ in range(12):
             break
 else:
     wait("word_new_doc_status.png", 0)
+# PROBE: record which Styles-gallery rendering this run got, and what each anchor scores.
+for _img in ["word_new_doc.png", "word_new_doc_status.png"]:
+    _m = exists(Pattern(_img).similar(0.3), 0)
+    Debug.user("PROBE %s score=%s" % (_img, _m.getScore() if _m else None))
 wait(3)
 type("First line")
 type(Key.ENTER)
@@ -178,7 +182,7 @@ wait("word_result_3.png")
 # saved somewhere else. save_as_path takes the classic dialog (F12) from
 # either state and proves the file landed.
 util.save_as_path(save_location)
-type("w", Key.CTRL)
+Debug.user("PROBE: Ctrl+W after Save As deliberately not sent")
 wait(5)
 run("explorer " + save_location)
 wait("word_result_3.png")
@@ -219,7 +223,7 @@ util.enter_spreadsheet_column(["1", "2", "=sum(A1, A2)"], "excel_result.png")
 # recent folders" - there is nothing for this to click. save_as_path takes the
 # classic dialog (F12) from either surface.
 util.save_as_path(save_location)
-type("w", Key.CTRL)
+Debug.user("PROBE: Ctrl+W after Save As deliberately not sent")
 # Prove the workbook actually closed. If Excel drops the Ctrl+W, nothing below
 # notices: the reopen's wait("excel_result.png") matches the window that never
 # closed, the csv opens in a second window, and the test fails 60 s later in
@@ -408,7 +412,7 @@ wait(Pattern("ppt_result_3.png").similar(0.60))
 # recent folders" - there is nothing for this to click. save_as_path takes the
 # classic dialog (F12) from either surface.
 util.save_as_path(save_location)
-type("w", Key.CTRL)
+Debug.user("PROBE: Ctrl+W after Save As deliberately not sent")
 run("explorer " + save_location)
 wait("ppt_result_4.png")
 
