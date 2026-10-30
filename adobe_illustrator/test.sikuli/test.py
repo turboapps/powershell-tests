@@ -30,18 +30,33 @@ util.launch_adobe_cc(username, password)
 # 38808757196 (10-15) still an empty skeleton at 123 s and painted at ~150 s,
 # 10 s past the old deadline. SCREEN.exists is used for the polls so they do
 # not flood the step-frame cap; the final wait() captures the FAILED frame.
+#
+# "Home is up" is the loaded Home content ("Start a new file fast"), NOT the
+# sidebar (ai_window.png = New file / Open). The sidebar paints with the empty
+# Home skeleton, and the Adobe "You've reached your device activation limit"
+# modal sits in the middle of the window with the sidebar still visible beside
+# it. Returning on the sidebar skipped the modal handler, so the test clicked
+# Home > Open 4 times behind the modal and failed at line 85 tshirt.png (run
+# 40980991791, W11-01, 2026-10-30). The modal covers the Home content, so the
+# Home crop only matches once it is gone. The modal is checked first.
 def wait_for_home(timeout):
     end = time.time() + timeout
     while time.time() < end:
-        if SCREEN.exists("ai_window.png", 0):
-            return
-        if SCREEN.exists("whats_new.png", 0):
-            type(Key.ESC)
-        elif SCREEN.exists("adobe_login_signout_others.png", 0):
+        if SCREEN.exists("adobe_login_signout_others.png", 0):
+            # Same handling as util.launch_adobe_cc and the other adobe tests:
+            # sign out the first other device, then Continue.
             click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
             click(Pattern("adobe_login_continue.png").similar(0.80))
+            if not waitVanish("adobe_login_signout_others.png", 60):
+                raise FindFailed("wait_for_home: the device activation limit dialog is still up after Sign out + Continue")
+        elif SCREEN.exists("whats_new.png", 0):
+            type(Key.ESC)
+        elif SCREEN.exists("ai_home.png", 0):
+            return
         wait(5)
-    wait("ai_window.png", 1)
+    if SCREEN.exists("adobe_login_signout_others.png", 0):
+        raise FindFailed("wait_for_home: the device activation limit dialog is covering the Home page")
+    wait("ai_home.png", 1)
 
 # Open a file through Home > Open, re-driving the dialog when the input is lost.
 # Two failure modes seen on 26.3.18.1214, 25.10.4.1215 and 26.10.130:
