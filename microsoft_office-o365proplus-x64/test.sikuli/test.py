@@ -564,6 +564,14 @@ type(Key.F4, Key.ALT)
 wait(5)
 run("explorer " + save_location)
 wait(Pattern("publisher_saved_file.png").targetOffset(-202,130))
+# Reopening the publication can raise an "Account Issue" licensing box
+# (0x80004005, shared computer activation) that swallows the Ctrl+P below.
+# Seen in microsoft_office-o365business-x64 (App Tests 41147655940,
+# 41147663573, 41489032012, 41489046995). Its focus starts on the "Get Help
+# Online" link, so dismiss it with Esc rather than Enter.
+if exists(Pattern("publisher_account_issue.png").similar(0.80), 10):
+    type(Key.ESC)
+    waitVanish(Pattern("publisher_account_issue.png").similar(0.80), 10)
 
 type("p", Key.CTRL)
 wait("publisher_print.png")
