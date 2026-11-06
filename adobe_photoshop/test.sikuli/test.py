@@ -71,7 +71,8 @@ assert(util.file_exists(os.path.join(util.desktop, "export.gif"), 5))
 if exists("try-later-button.png",10):
     click("try-later-button.png")
 type("q",Key.CTRL)
-wait(30)
+if exists(Pattern("save-changes.png").targetOffset(1,37)):
+    click(Pattern("save-changes.png").targetOffset(1,37))
 
 # Check if the session terminates.
 util.check_running()
