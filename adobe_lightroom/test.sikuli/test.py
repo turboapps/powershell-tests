@@ -23,7 +23,13 @@ wait(10)
 paste('turbo run lightroom --using=isolate-edge-wc,creativeclouddesktop --offline --enable=disablefontpreload --name=test' + util.read_extra())
 wait(5)
 type(Key.ENTER)
-wait("lightroom_window.png")
+# First launch of the freshly pulled 3.6 GB image. The 45 s ambient timeout is
+# not enough: in App Tests run 42303167629 (xvm 26.11.2) the FAILED frame scores
+# 0.93 against lightroom_window.png - the window painted just past the deadline,
+# with a "What's New" modal on top - and the passes in the same sweep spent up
+# to ~100 s between this launch and the following turbo stop. Same shape as the
+# keeper/libreoffice cold-launch budgets.
+wait("lightroom_window.png", 120)
 if exists("adobe_login_signout_others.png",60):
     click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
     click(Pattern("adobe_login_continue.png").similar(0.80))
