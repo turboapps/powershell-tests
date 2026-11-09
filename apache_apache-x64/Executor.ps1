@@ -12,4 +12,4 @@ Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 $image = "apache/apache-x64"
 $extra = $extra + ' -- -C "Listen 8080" -C "ServerName localhost:8080" -X -e debug '
 
-StandardTest -image $image -isolate $isolate -extra $extra -shouldInstall $False -localLogsDir $localLogsDir
+StandardTest -image $image -app "apache/apache-x64:2.4.69" -isolate $isolate -extra $extra -shouldInstall $False -localLogsDir $localLogsDir
