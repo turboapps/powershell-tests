@@ -30,7 +30,17 @@ click("url.png")
 type("https://github.com/octocat/Hello-World" + Key.TAB)
 type(repo_path + Key.ENTER)
 wait("current-repo.png")
-wait(10)
+# The toolbar names the new repository before the repository view has loaded:
+# after the clone GitHub Desktop briefly drops back to "Let's get started!"
+# and only then renders the repository ("No local changes"). Closing the app
+# in that window leaves some of its processes running, so the container never
+# stops and check_running() fails (App Tests run 42303177385, where the fixed
+# wait(10) ended on the "Let's get started!" screen). Wait for the loaded
+# repository view itself, and fail here rather than at check_running if it never comes.
+if not exists("no-local-changes.png", 120):
+    raise FindFailed("GitHub Desktop did not finish loading the cloned Hello-World repository "
+                     "(no 'No local changes' view within 120 s of the toolbar showing it)")
+wait(3)
 type(Key.F4, Key.ALT) # Close app.
 
 wait(60) # Wait for session to close.
