@@ -37,7 +37,7 @@ wait("current-repo.png")
 # stops and check_running() fails (App Tests run 42303177385, where the fixed
 # wait(10) ended on the "Let's get started!" screen). Wait for the loaded
 # repository view itself, and fail here rather than at check_running if it never comes.
-if not exists("no-local-changes.png", 120):
+if not exists(Pattern("no-local-changes.png").similar(0.99), 120):  # PROBE: unreachable
     raise FindFailed("GitHub Desktop did not finish loading the cloned Hello-World repository "
                      "(no 'No local changes' view within 120 s of the toolbar showing it)")
 wait(3)
