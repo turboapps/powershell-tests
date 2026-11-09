@@ -87,7 +87,7 @@ wait(5)
 paste(os.path.join(util.desktop, "export.gif"))
 type(Key.ENTER)
 wait(10)
-assert(util.file_exists(os.path.join(util.desktop, "export.gif"), 5))
+assert(util.file_exists(os.path.join(util.desktop, "export-SABOTAGE.gif"), 5))  # PROBE ONLY
 if exists("try-later-button.png",10):
     click("try-later-button.png")
 type("q",Key.CTRL)
