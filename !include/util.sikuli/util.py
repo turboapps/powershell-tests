@@ -778,7 +778,23 @@ def _vm_logs_copy(src, dst):
     d = os.path.dirname(dst)
     if not os.path.isdir(d):
         os.makedirs(d)
-    shutil.copyfile(src, dst)
+    # Never written in place: the copy goes to a side file that then replaces
+    # dst. Should dst be a link to src that _vm_logs_same_file failed to
+    # recognise, the replace drops that name (or, while the VM holds the log
+    # open without delete sharing, fails and leaves the link) - writing through
+    # it would truncate the log itself.
+    tmp = dst + ".partial"
+    try:
+        shutil.copyfile(src, tmp)
+        if os.path.exists(dst):
+            os.remove(dst)
+        os.rename(tmp, dst)
+    finally:
+        if os.path.exists(tmp):
+            try:
+                os.remove(tmp)
+            except:
+                pass
 
 # True when both paths name one file (a hard link). Jython: java.nio compares
 # the volume and file index on Windows.

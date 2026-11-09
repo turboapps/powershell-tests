@@ -454,6 +454,7 @@ function Initialize-VmLogLinker {
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 public static class VmLogLinker {
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
@@ -479,6 +480,7 @@ public static class VmLogLinker {
     static FileSystemWatcher watcher;
     static string root;
     static string dest;
+    static int generation;
     static int linked;
     static int failed;
     static string lastError;
@@ -487,43 +489,98 @@ public static class VmLogLinker {
     public static int Failed { get { return failed; } }
     public static string LastError { get { return lastError; } }
 
-    // Watches the sandbox root (or, before the client has created it, its
-    // nearest existing parent) for files created under <root>\<id>\logs and
-    // hard-links each into <dest>\<id>\. Create/rename notifications only: the
-    // app's own writes into its sandbox raise none.
+    // One watcher, on the sandbox root - a directory the client never deletes.
+    // No handle is ever held on a sandbox or its logs folder: the client
+    // deletes and recreates logs on every container start, and an open handle
+    // would leave the old folder delete-pending and fail the recreate.
+    // Before the client has created the root, its nearest existing parent is
+    // watched instead.
+    //
+    // Watching recursively means every file the app creates in its sandbox is
+    // reported too, and the kernel drops notifications if its buffer fills
+    // before the next read. So the handler does nothing but a string test and
+    // queues the real work, which keeps the buffer drained; a larger buffer
+    // (allowed on a local volume) gives headroom; and an overflow triggers a
+    // sweep that links whatever is there. FileSystemWatcher.Filter would not
+    // help: it is applied after the kernel buffer, not in it.
     public static void Start(string sandboxRoot, string destRoot) {
-        Stop();
-        root = Path.GetFullPath(sandboxRoot).TrimEnd('\\') + "\\";
-        dest = Path.GetFullPath(destRoot);
-        linked = 0;
-        failed = 0;
-        lastError = null;
-        string watch = root.TrimEnd('\\');
-        while (!Directory.Exists(watch)) {
-            string parent = Path.GetDirectoryName(watch);
-            if (string.IsNullOrEmpty(parent)) throw new DirectoryNotFoundException(sandboxRoot);
-            watch = parent;
+        lock (Gate) {
+            StopLocked();
+            root = Path.GetFullPath(sandboxRoot).TrimEnd('\\') + "\\";
+            dest = Path.GetFullPath(destRoot);
+            linked = 0;
+            failed = 0;
+            lastError = null;
+            ArmLocked();
         }
-        var w = new FileSystemWatcher(watch);
-        w.IncludeSubdirectories = true;
-        w.NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName;
-        w.InternalBufferSize = 64 * 1024;
-        w.Created += delegate(object s, FileSystemEventArgs e) { Consider(e.FullPath); };
-        w.Renamed += delegate(object s, RenamedEventArgs e) { Consider(e.FullPath); };
-        // Notifications were lost (buffer overflow): link whatever is there now.
-        w.Error += delegate(object s, ErrorEventArgs e) { Sweep(); };
-        w.EnableRaisingEvents = true;
-        watcher = w;
         Sweep();
     }
 
     public static void Stop() {
+        lock (Gate) StopLocked();
+    }
+
+    static void StopLocked() {
+        generation++;
         var w = watcher;
         watcher = null;
         if (w != null) {
             w.EnableRaisingEvents = false;
             w.Dispose();
         }
+    }
+
+    static void ArmLocked() {
+        int gen = ++generation;
+        string watch = root.TrimEnd('\\');
+        while (!Directory.Exists(watch)) {
+            string parent = Path.GetDirectoryName(watch);
+            if (string.IsNullOrEmpty(parent)) throw new DirectoryNotFoundException(root);
+            watch = parent;
+        }
+        var w = new FileSystemWatcher(watch);
+        w.IncludeSubdirectories = true;
+        w.NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName;
+        w.InternalBufferSize = 256 * 1024;
+        w.Created += delegate(object s, FileSystemEventArgs e) { Notified(e.FullPath); };
+        w.Renamed += delegate(object s, RenamedEventArgs e) { Notified(e.FullPath); };
+        w.Error += delegate(object s, ErrorEventArgs e) { Errored(gen, e.GetException()); };
+        w.EnableRaisingEvents = true;
+        watcher = w;
+    }
+
+    static void Notified(string path) {
+        if (IsLogsPath(path)) ThreadPool.QueueUserWorkItem(delegate { Consider(path); });
+    }
+
+    static void Errored(int gen, Exception error) {
+        string message = error == null ? "unknown" : error.Message;
+        if (!(error is InternalBufferOverflowException)) {
+            // Anything else may have stopped the watcher: replace it.
+            lock (Gate) {
+                if (gen != generation) return;
+                StopLocked();
+                try { ArmLocked(); } catch (Exception e) { Fail("re-arm: " + e.Message); }
+            }
+        }
+        lastError = "watcher: " + message;
+        ThreadPool.QueueUserWorkItem(delegate { Sweep(); });
+    }
+
+    static void Fail(string message) {
+        Interlocked.Increment(ref failed);
+        lastError = message;
+    }
+
+    // <root><id>\logs or anything below it.
+    static bool IsLogsPath(string path) {
+        string r = root;
+        if (r == null || path.Length <= r.Length || !path.StartsWith(r, StringComparison.OrdinalIgnoreCase)) return false;
+        int sep = path.IndexOf('\\', r.Length);
+        if (sep < 0) return false;
+        int end = path.IndexOf('\\', sep + 1);
+        string second = end < 0 ? path.Substring(sep + 1) : path.Substring(sep + 1, end - sep - 1);
+        return string.Equals(second, "logs", StringComparison.OrdinalIgnoreCase);
     }
 
     // True when both paths name the same file (one is a hard link of the other).
@@ -543,31 +600,31 @@ public static class VmLogLinker {
 
     static void Sweep() {
         try {
-            if (!Directory.Exists(root)) return;
-            foreach (string sandbox in Directory.GetDirectories(root)) {
+            string r = root;
+            if (r == null || !Directory.Exists(r)) return;
+            foreach (string sandbox in Directory.GetDirectories(r)) {
                 string logs = Path.Combine(sandbox, "logs");
                 if (Directory.Exists(logs)) Consider(logs);
             }
         } catch (Exception e) {
-            lastError = "sweep: " + e.Message;
+            Fail("sweep: " + e.Message);
         }
     }
 
     static void Consider(string path) {
         try {
-            if (!path.StartsWith(root, StringComparison.OrdinalIgnoreCase)) return;
-            string[] parts = path.Substring(root.Length).Split('\\');
-            if (parts.Length < 2 || !string.Equals(parts[1], "logs", StringComparison.OrdinalIgnoreCase)) return;
+            if (!IsLogsPath(path)) return;
             if (Directory.Exists(path)) {
                 // A logs folder (or a folder below it) that appeared whole: its
                 // files raise no notification of their own.
                 foreach (string f in Directory.GetFiles(path, "*", SearchOption.AllDirectories)) Consider(f);
                 return;
             }
+            string[] parts = path.Substring(root.Length).Split('\\');
             if (parts.Length < 3) return;
             Link(path, Path.Combine(dest, parts[0], string.Join("\\", parts, 2, parts.Length - 2)));
         } catch (Exception e) {
-            lastError = path + ": " + e.Message;
+            Fail(path + ": " + e.Message);
         }
     }
 
@@ -575,11 +632,17 @@ public static class VmLogLinker {
         lock (Gate) {
             if (File.Exists(dst)) {
                 if (SameFile(src, dst)) return;
-                // A different file under a name already taken: an earlier
-                // launch's log (pid reuse). Keep it, as CollectVmLogs does.
-                int n = 1;
-                while (File.Exists(dst + "." + n)) n++;
-                File.Move(dst, dst + "." + n);
+                if (IsCopyOf(dst, src)) {
+                    // A fallback copy (CollectVmLogs, check_running) of this
+                    // same log: the link supersedes it.
+                    File.Delete(dst);
+                } else {
+                    // A different file under a name already taken: an earlier
+                    // launch's log (pid reuse). Keep it, as CollectVmLogs does.
+                    int n = 1;
+                    while (File.Exists(dst + "." + n)) n++;
+                    File.Move(dst, dst + "." + n);
+                }
             }
             Directory.CreateDirectory(Path.GetDirectoryName(dst));
             if (CreateHardLink(dst, src, IntPtr.Zero)) {
@@ -587,11 +650,29 @@ public static class VmLogLinker {
             } else {
                 int error = Marshal.GetLastWin32Error();
                 // 2/3: the file was already gone again - nothing to keep.
-                if (error != 2 && error != 3) {
-                    failed++;
-                    lastError = "link " + src + ": Win32 error " + error;
-                }
+                if (error != 2 && error != 3) Fail("link " + src + ": Win32 error " + error);
             }
+        }
+    }
+
+    // CollectVmLogs' rule for "the same file, grown": the copy is no longer
+    // than the source and their first bytes match. Lengths come from the open
+    // files, not the directory: a hard link's directory entry is refreshed
+    // lazily and can report a stale size.
+    static bool IsCopyOf(string copy, string source) {
+        try {
+            using (var c = new FileStream(copy, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            using (var s = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) {
+                if (c.Length > s.Length) return false;
+                int n = (int)Math.Min(512, c.Length);
+                var bc = new byte[n];
+                var bs = new byte[n];
+                if (c.Read(bc, 0, n) != n || s.Read(bs, 0, n) != n) return false;
+                for (int i = 0; i < n; i++) if (bc[i] != bs[i]) return false;
+                return true;
+            }
+        } catch (Exception) {
+            return false;
         }
     }
 }
@@ -622,11 +703,17 @@ function CollectVmLogs {
     $name = $image -replace '[/]', '_'
     $destRoot = "$env:USERPROFILE\Desktop\$name-vm-logs"
 
-    Initialize-VmLogLinker
-    if ([VmLogLinker]::Linked -gt 0 -or [VmLogLinker]::Failed -gt 0) {
-        $line = "VM logs: $([VmLogLinker]::Linked) file(s) captured as created"
-        if ([VmLogLinker]::Failed -gt 0) { $line += ", $([VmLogLinker]::Failed) could not be linked (last: $([VmLogLinker]::LastError))" }
-        Write-Host $line
+    # The copies below do not depend on the linker: if its type cannot be
+    # loaded they still run, they just cannot recognise a link (see CopyVmLog).
+    try {
+        Initialize-VmLogLinker
+        if ([VmLogLinker]::Linked -gt 0 -or [VmLogLinker]::Failed -gt 0) {
+            $line = "VM logs: $([VmLogLinker]::Linked) file(s) captured as created"
+            if ([VmLogLinker]::Failed -gt 0) { $line += ", $([VmLogLinker]::Failed) capture failure(s) (last: $([VmLogLinker]::LastError))" }
+            Write-Host $line
+        }
+    } catch {
+        Write-Host "VM logs: live capture unavailable: $_"
     }
 
     $root = GetSandboxRoot
@@ -657,8 +744,10 @@ function CopyVmLog {
     $srcLen = (Get-Item -LiteralPath $src).Length
     if (Test-Path -LiteralPath $dst) {
         # Already captured: the destination is a hard link to this very file
-        # (Start-VmLogLinker). Copying onto it would truncate the log itself.
-        if ([VmLogLinker]::SameFile($src, $dst)) { return }
+        # (Start-VmLogLinker).
+        $same = $false
+        try { $same = [VmLogLinker]::SameFile($src, $dst) } catch { }
+        if ($same) { return }
         $dstLen = (Get-Item -LiteralPath $dst).Length
         if ($srcLen -lt $dstLen -or -not (SameVmLogHead -a $src -b $dst -len $dstLen)) {
             $n = 1
@@ -673,12 +762,25 @@ function CopyVmLog {
     # Shared-read open: after a failure the app's session is still running and the
     # VM holds the log open for writing, which fails File.Copy / Copy-Item with a
     # sharing violation.
-    $in = [IO.File]::Open($src, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete)
+    #
+    # Never written in place: the copy goes to a side file that then replaces
+    # $dst. Should $dst be a link to $src that SameFile failed to recognise, the
+    # replace drops that name (or, while the VM holds the log open without
+    # delete sharing, fails and leaves the link) - writing through it would
+    # truncate the log itself.
+    $tmp = "$dst.partial"
     try {
-        $out = [IO.File]::Create($dst)
-        try { $in.CopyTo($out) } finally { $out.Close() }
+        $in = [IO.File]::Open($src, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete)
+        try {
+            $out = [IO.File]::Create($tmp)
+            try { $in.CopyTo($out) } finally { $out.Close() }
+        } finally {
+            $in.Close()
+        }
+        if (Test-Path -LiteralPath $dst) { [IO.File]::Delete($dst) }
+        [IO.File]::Move($tmp, $dst)
     } finally {
-        $in.Close()
+        if (Test-Path -LiteralPath $tmp) { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue }
     }
 }
 
