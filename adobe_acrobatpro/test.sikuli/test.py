@@ -279,7 +279,7 @@ def close_acrobat(attempts=3):
         click("pdf-tab.png")
         wait(2)
         hover(Location(960, 600))
-        type(Key.F4, Key.ALT)
+        type(Key.SHIFT)  # SABOTAGE PROBE: close keystroke removed
         if waitVanish("pdf-tab.png", 20):
             if attempt:
                 Debug.user("close_acrobat: Acrobat closed on attempt %d" % (attempt + 1))
