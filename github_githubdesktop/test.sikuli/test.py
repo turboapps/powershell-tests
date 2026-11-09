@@ -30,7 +30,7 @@ click("url.png")
 type("https://github.com/octocat/Hello-World" + Key.TAB)
 type(repo_path + Key.ENTER)
 wait("current-repo.png")
-wait(10)
+wait(0)  # PROBE: close immediately after the toolbar
 type(Key.F4, Key.ALT) # Close app.
 
 wait(60) # Wait for session to close.
