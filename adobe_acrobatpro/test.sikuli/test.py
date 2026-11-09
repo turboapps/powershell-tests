@@ -262,12 +262,25 @@ if not waitVanish("help_url.png", 20):
 # and Acrobat still ignored the keystroke. Click the page to activate the main
 # window, then check the document actually went away, so a lost close fails here
 # instead of 90 s later in check_running.
+#
+# Anchor on the document's tab, not on the page. From 2026-11-06 Acrobat
+# sometimes opens its "Ask AI Assistant" side pane on this second view of the
+# document (3 of 4 App Tests passes: 42303157923, 42303167629, 42303187524). The
+# pane takes ~400 px on the right and Acrobat rescales the page to fit, so the
+# logo is drawn smaller than point-2-point.png and the click raised FindFailed -
+# "seen at (912, 153) with 1.00" is SikuliX' cached lastSeen from the earlier
+# view, not a live match. The tab title stays the same size wherever the panes
+# are (pdf-tab.png scores 1.00 with the pane open, 0.95 on the plain view, and
+# <= 0.41 once Acrobat is gone). The click is on the title, well clear of the
+# tab's close button. Move the mouse off the tab before Alt+F4 so the hover
+# highlight cannot change what waitVanish compares against.
 def close_acrobat(attempts=3):
     for attempt in range(attempts):
-        click("point-2-point.png")
+        click("pdf-tab.png")
         wait(2)
+        hover(Location(960, 600))
         type(Key.F4, Key.ALT)
-        if waitVanish("point-2-point.png", 20):
+        if waitVanish("pdf-tab.png", 20):
             if attempt:
                 Debug.user("close_acrobat: Acrobat closed on attempt %d" % (attempt + 1))
             return
