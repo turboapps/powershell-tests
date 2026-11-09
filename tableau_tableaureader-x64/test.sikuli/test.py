@@ -52,7 +52,12 @@ util.wait_process_gone("tabreader.exe", 120)
 run("turbo stop test")
 
 # Launch the app.
-run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Tableau Reader"))
+# PROBE: delay the relaunch 30 s on a background timer so the dialog lands ~67-76 s after the
+# wait below starts (past the old 60 s budget).
+import threading
+_lnk = util.get_shortcut_path_by_prefix(util.start_menu, "Tableau Reader")
+threading.Timer(30, lambda: run("explorer " + _lnk)).start()
+Debug.user("PROBE: relaunch delayed 30 s")
 # The Start Menu shortcut starts a NEW container (tableaureader-x64#..., not `test`), so this is a
 # second cold start. The registration dialog is the last thing Reader paints, after the main
 # window: 37-46 s in the passing runs of App Tests 42303167629 / 42303177385 / 42303187524, and
