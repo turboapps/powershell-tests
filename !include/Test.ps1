@@ -34,9 +34,6 @@ function PrepareTest {
     # the CI harness stages as this run's frames.
     Remove-Item "$env:USERPROFILE\Desktop\$name-steps" -Recurse -Force -ErrorAction SilentlyContinue
 
-    # Turbo VM logs from a previous run (see CollectVmLogs), for the same reason.
-    Remove-Item "$env:USERPROFILE\Desktop\$name-vm-logs" -Recurse -Force -ErrorAction SilentlyContinue
-
     # Extra turbo flags for tests that launch turbo themselves (from a Command
     # Prompt or a subprocess) rather than through TryTurboApp/RunTurboApp: the
     # test appends util.read_extra() to its command line. Written whenever the
@@ -58,6 +55,12 @@ function PrepareTest {
 
     # Remove all Turbo sessions.
     turbo rm -a
+
+    # Turbo VM logs from a previous run (see CollectVmLogs), for the same reason
+    # as the step frames. Removed only now that no session is left: a file there
+    # can be a hard link to a log a still-running container held open, and such
+    # a link cannot be deleted while the VM has it open.
+    Remove-Item "$env:USERPROFILE\Desktop\$name-vm-logs" -Recurse -Force -ErrorAction SilentlyContinue
 
     # Uninstall all the apps installed by Turbo Client.
     turbo uninstalli -a
@@ -98,6 +101,15 @@ function PrepareTest {
     # Pull test related images. There won't be test under full isolation, so no need to pull clean.
     turbo pull sikulix/sikulixide --format=json
     turbo pull oracle/jre-x64 --format=json
+
+    # From here on every container's VM logs are captured as they appear,
+    # including those of `try` sessions the client deletes when they end. See
+    # Start-VmLogLinker.
+    try {
+        Start-VmLogLinker -image $image
+    } catch {
+        Write-Host "VM logs: live capture not started: $_"
+    }
 }
 
 # Pull Turbo images (app image and images in the `--using` list).
@@ -212,6 +224,8 @@ function TryTurboApp {
     # `turbo rm -a`, and CollectVmLogs / util.check_running() can copy its logs
     # after it has stopped. Everything else about the command is identical.
     # util.try_verb() makes the same choice for launches a test issues itself.
+    # A `try` session's logs are not lost either way: Start-VmLogLinker links
+    # them out as they are created (see CollectVmLogs).
     $verb = if ($extra -match '(^|\s)--diagnostic(\s|$)') { "run" } else { "try" }
     $command = "$verb $image --name=test --enable=disablefontpreload,usedllinjection,cachefileinfo --network=test --disable-proxy-resolve-via-proxy"
 
@@ -391,24 +405,216 @@ public class Keyboard {
 
 # Turbo VM logs.
 #
-# A container started with --diagnostic (the CI harness's vm_diagnostics run
-# passes it in -extra) writes its VM diagnostic log to
-# <sandbox>\logs\xclog_0x<pid>.txt. The client deletes and recreates that
-# folder every time the same container starts again, so a launch's logs
-# survive only if they are copied out before the next launch. They are copied
-# at the two points where a session is known to have ended, not by polling:
-# util.check_running() after a session terminated mid-test, and here after the
-# sikulix test returned - which also covers a failure, where the app's session
-# is usually still running with its dialogs on screen.
+# Every container writes its VM logs to <sandbox>\logs: xcstream_0x<pid>.txt
+# (the process's command line and console streams) and xcnetwork_0x<pid>.txt
+# always, and xclog_0x<pid>.txt (the VM diagnostic log) when it was started with
+# --diagnostic (the CI harness's vm_diagnostics run passes it in -extra). The
+# whole folder is collected, whatever it holds, so a log a later VM adds is
+# picked up without a harness change.
+#
+# The client deletes and recreates that folder every time the same container
+# starts again, and deletes a `try` session's sandbox - logs included - the
+# moment the session ends. So the logs are captured while they exist, in two
+# ways, neither of which polls:
+#
+#  - Start-VmLogLinker (from PrepareTest) hard-links each log file into the
+#    Desktop folder as soon as the file is created. The link is the same file,
+#    not a copy: it sees every later write, costs nothing while the test runs,
+#    and outlives the client's delete of the sandbox, so a `try` launch's logs
+#    survive complete even though the session is gone by the end of the test.
+#  - CollectVmLogs copies whatever is still in a sandbox, after the sikulix
+#    test returned (which also covers a failure, where the app's session is
+#    usually still running with its dialogs on screen), and
+#    util.check_running() does the same after a session ended mid-test. This
+#    is the fallback for a file the linker missed or could not link.
 #
 # Layout: <Desktop>\<app>-vm-logs\<container id>\<logs tree>. The CI harness
 # (applab Invoke-AppTest.ps1) stages that folder as the <app>-vm-logs artifact.
-# Only sandboxes holding an xclog_* file are copied, so on a run without
-# --diagnostic this is one directory listing and nothing else. An existing copy
-# is overwritten when the source is the same file grown, and kept as
+# A copy is skipped when the destination already is that file (a link), is
+# overwritten when the source is the same file grown, and is kept as
 # <name>.1, .2, ... when a different file has reappeared under the same name
-# (pid reuse across launches). util.collect_vm_logs() implements the same rule.
-# Best-effort: never changes the test result.
+# (pid reuse across launches); the linker applies the same rotation.
+# util.collect_vm_logs() implements the same rule. Best-effort: never changes
+# the test result.
+# The sandbox root the client is using. `turbo config --reset` (PrepareTest)
+# leaves the default location; honour a relocated storage path anyway when the
+# client reports one.
+function GetSandboxRoot {
+    $root = "$env:LOCALAPPDATA\Turbo\Containers\sandboxes"
+    try {
+        $cfg = (turbo config --format=json 2>$null | Out-String | ConvertFrom-Json)[0].result.configuration
+        if ($cfg.containerStoragePath) { $root = [Environment]::ExpandEnvironmentVariables($cfg.containerStoragePath) }
+    } catch { }
+    return $root
+}
+
+function Initialize-VmLogLinker {
+    if (([System.Management.Automation.PSTypeName]'VmLogLinker').Type) { return }
+    $typeDef = @'
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+
+public static class VmLogLinker {
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    static extern bool CreateHardLink(string newName, string existing, IntPtr security);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    static extern IntPtr CreateFile(string name, uint access, uint share, IntPtr security, uint disposition, uint flags, IntPtr template);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool GetFileInformationByHandle(IntPtr h, out FileInfoByHandle info);
+
+    [DllImport("kernel32.dll")]
+    static extern bool CloseHandle(IntPtr h);
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct FileInfoByHandle {
+        public uint Attributes;
+        public System.Runtime.InteropServices.ComTypes.FILETIME Created, Accessed, Written;
+        public uint VolumeSerial, SizeHigh, SizeLow, Links, IndexHigh, IndexLow;
+    }
+
+    static readonly object Gate = new object();
+    static FileSystemWatcher watcher;
+    static string root;
+    static string dest;
+    static int linked;
+    static int failed;
+    static string lastError;
+
+    public static int Linked { get { return linked; } }
+    public static int Failed { get { return failed; } }
+    public static string LastError { get { return lastError; } }
+
+    // Watches the sandbox root (or, before the client has created it, its
+    // nearest existing parent) for files created under <root>\<id>\logs and
+    // hard-links each into <dest>\<id>\. Create/rename notifications only: the
+    // app's own writes into its sandbox raise none.
+    public static void Start(string sandboxRoot, string destRoot) {
+        Stop();
+        root = Path.GetFullPath(sandboxRoot).TrimEnd('\\') + "\\";
+        dest = Path.GetFullPath(destRoot);
+        linked = 0;
+        failed = 0;
+        lastError = null;
+        string watch = root.TrimEnd('\\');
+        while (!Directory.Exists(watch)) {
+            string parent = Path.GetDirectoryName(watch);
+            if (string.IsNullOrEmpty(parent)) throw new DirectoryNotFoundException(sandboxRoot);
+            watch = parent;
+        }
+        var w = new FileSystemWatcher(watch);
+        w.IncludeSubdirectories = true;
+        w.NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName;
+        w.InternalBufferSize = 64 * 1024;
+        w.Created += delegate(object s, FileSystemEventArgs e) { Consider(e.FullPath); };
+        w.Renamed += delegate(object s, RenamedEventArgs e) { Consider(e.FullPath); };
+        // Notifications were lost (buffer overflow): link whatever is there now.
+        w.Error += delegate(object s, ErrorEventArgs e) { Sweep(); };
+        w.EnableRaisingEvents = true;
+        watcher = w;
+        Sweep();
+    }
+
+    public static void Stop() {
+        var w = watcher;
+        watcher = null;
+        if (w != null) {
+            w.EnableRaisingEvents = false;
+            w.Dispose();
+        }
+    }
+
+    // True when both paths name the same file (one is a hard link of the other).
+    public static bool SameFile(string a, string b) {
+        FileInfoByHandle ia, ib;
+        if (!Identify(a, out ia) || !Identify(b, out ib)) return false;
+        return ia.VolumeSerial == ib.VolumeSerial && ia.IndexHigh == ib.IndexHigh && ia.IndexLow == ib.IndexLow;
+    }
+
+    static bool Identify(string path, out FileInfoByHandle info) {
+        info = new FileInfoByHandle();
+        // No data access, all sharing: never conflicts with the VM's open handle.
+        IntPtr h = CreateFile(path, 0, 7, IntPtr.Zero, 3, 0x02000000, IntPtr.Zero);
+        if (h == new IntPtr(-1)) return false;
+        try { return GetFileInformationByHandle(h, out info); } finally { CloseHandle(h); }
+    }
+
+    static void Sweep() {
+        try {
+            if (!Directory.Exists(root)) return;
+            foreach (string sandbox in Directory.GetDirectories(root)) {
+                string logs = Path.Combine(sandbox, "logs");
+                if (Directory.Exists(logs)) Consider(logs);
+            }
+        } catch (Exception e) {
+            lastError = "sweep: " + e.Message;
+        }
+    }
+
+    static void Consider(string path) {
+        try {
+            if (!path.StartsWith(root, StringComparison.OrdinalIgnoreCase)) return;
+            string[] parts = path.Substring(root.Length).Split('\\');
+            if (parts.Length < 2 || !string.Equals(parts[1], "logs", StringComparison.OrdinalIgnoreCase)) return;
+            if (Directory.Exists(path)) {
+                // A logs folder (or a folder below it) that appeared whole: its
+                // files raise no notification of their own.
+                foreach (string f in Directory.GetFiles(path, "*", SearchOption.AllDirectories)) Consider(f);
+                return;
+            }
+            if (parts.Length < 3) return;
+            Link(path, Path.Combine(dest, parts[0], string.Join("\\", parts, 2, parts.Length - 2)));
+        } catch (Exception e) {
+            lastError = path + ": " + e.Message;
+        }
+    }
+
+    static void Link(string src, string dst) {
+        lock (Gate) {
+            if (File.Exists(dst)) {
+                if (SameFile(src, dst)) return;
+                // A different file under a name already taken: an earlier
+                // launch's log (pid reuse). Keep it, as CollectVmLogs does.
+                int n = 1;
+                while (File.Exists(dst + "." + n)) n++;
+                File.Move(dst, dst + "." + n);
+            }
+            Directory.CreateDirectory(Path.GetDirectoryName(dst));
+            if (CreateHardLink(dst, src, IntPtr.Zero)) {
+                linked++;
+            } else {
+                int error = Marshal.GetLastWin32Error();
+                // 2/3: the file was already gone again - nothing to keep.
+                if (error != 2 && error != 3) {
+                    failed++;
+                    lastError = "link " + src + ": Win32 error " + error;
+                }
+            }
+        }
+    }
+}
+'@
+    Add-Type -TypeDefinition $typeDef
+}
+
+# Start capturing every container's VM logs as they are created (see above).
+# The watcher lives in this process - the executor's, which on CI is
+# Invoke-AppTest.ps1's - until it exits or the next PrepareTest restarts it.
+# A hard link needs the Desktop and the sandbox root on one volume; where they
+# are not, every link fails and CollectVmLogs' copies are all there is.
+function Start-VmLogLinker {
+    param (
+        [string]$image
+    )
+    $name = $image -replace '[/]', '_'
+    Initialize-VmLogLinker
+    $root = GetSandboxRoot
+    [VmLogLinker]::Start($root, "$env:USERPROFILE\Desktop\$name-vm-logs")
+    Write-Host "VM logs: capturing every container's logs under $root as they are created"
+}
+
 function CollectVmLogs {
     param (
         [string]$image
@@ -416,19 +622,19 @@ function CollectVmLogs {
     $name = $image -replace '[/]', '_'
     $destRoot = "$env:USERPROFILE\Desktop\$name-vm-logs"
 
-    # `turbo config --reset` (PrepareTest) leaves the default location; honour a
-    # relocated storage path anyway when the client reports one.
-    $root = "$env:LOCALAPPDATA\Turbo\Containers\sandboxes"
-    try {
-        $cfg = (turbo config --format=json 2>$null | Out-String | ConvertFrom-Json)[0].result.configuration
-        if ($cfg.containerStoragePath) { $root = [Environment]::ExpandEnvironmentVariables($cfg.containerStoragePath) }
-    } catch { }
+    Initialize-VmLogLinker
+    if ([VmLogLinker]::Linked -gt 0 -or [VmLogLinker]::Failed -gt 0) {
+        $line = "VM logs: $([VmLogLinker]::Linked) file(s) captured as created"
+        if ([VmLogLinker]::Failed -gt 0) { $line += ", $([VmLogLinker]::Failed) could not be linked (last: $([VmLogLinker]::LastError))" }
+        Write-Host $line
+    }
+
+    $root = GetSandboxRoot
     if (-not (Test-Path -LiteralPath $root)) { return }
 
     foreach ($sb in @(Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue)) {
         $logs = Join-Path $sb.FullName 'logs'
         if (-not (Test-Path -LiteralPath $logs)) { continue }
-        if (-not @(Get-ChildItem -LiteralPath $logs -Filter 'xclog_*' -File -ErrorAction SilentlyContinue)) { continue }
         foreach ($f in @(Get-ChildItem -LiteralPath $logs -File -Recurse -ErrorAction SilentlyContinue)) {
             $dst = Join-Path (Join-Path $destRoot $sb.Name) $f.FullName.Substring($logs.Length + 1)
             try {
@@ -450,6 +656,9 @@ function CopyVmLog {
     )
     $srcLen = (Get-Item -LiteralPath $src).Length
     if (Test-Path -LiteralPath $dst) {
+        # Already captured: the destination is a hard link to this very file
+        # (Start-VmLogLinker). Copying onto it would truncate the log itself.
+        if ([VmLogLinker]::SameFile($src, $dst)) { return }
         $dstLen = (Get-Item -LiteralPath $dst).Length
         if ($srcLen -lt $dstLen -or -not (SameVmLogHead -a $src -b $dst -len $dstLen)) {
             $n = 1

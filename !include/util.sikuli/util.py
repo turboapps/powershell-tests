@@ -661,22 +661,24 @@ def _latest_session_id():
 
 # Turbo VM logs.
 #
-# A container started with --diagnostic writes its VM diagnostic log to
-# <sandbox>\logs\xclog_0x<pid>.txt. The client deletes and recreates that folder
-# every time the same container starts again (a relaunch from the installed
-# shortcut, a file-association check), so a launch's logs survive only if they
-# are copied out before the next launch. They are copied at the points where a
-# session is known to have ended, not by polling: here from check_running(), and
-# by Test.ps1's CollectVmLogs after the sikulix test returned (which also covers
-# a failure, where the session is usually still running). Both write the same
-# layout, <Desktop>\<app>-vm-logs\<container id>\<logs tree>, which the CI
-# harness (applab Invoke-AppTest.ps1) stages as the <app>-vm-logs artifact.
+# Every container writes its VM logs to <sandbox>\logs: xcstream_0x<pid>.txt
+# and xcnetwork_0x<pid>.txt always, xclog_0x<pid>.txt (the VM diagnostic log)
+# when started with --diagnostic. The whole folder is collected, whatever it
+# holds. The client deletes and recreates that folder every time the same
+# container starts again (a relaunch from the installed shortcut, a
+# file-association check), and deletes a `try` session's sandbox when it ends.
+# Test.ps1's Start-VmLogLinker hard-links each log out as it is created, which
+# covers both; the copies made here, from check_running(), and by Test.ps1's
+# CollectVmLogs after the sikulix test returned are the fallback for a file it
+# missed. All of them write the same layout,
+# <Desktop>\<app>-vm-logs\<container id>\<logs tree>, which the CI harness
+# (applab Invoke-AppTest.ps1) stages as the <app>-vm-logs artifact.
 #
-# Only sandboxes holding an xclog_* file are copied, so on a run without
-# --diagnostic this costs one directory listing. An existing copy is overwritten
-# when the source is the same file grown (same first bytes, not smaller) and kept
-# as <name>.1, .2, ... when a different file has reappeared under the same name
-# (pid reuse across launches). Best-effort: never fails the test.
+# A copy is skipped when the destination already is that file (the linker's
+# hard link), is overwritten when the source is the same file grown (same first
+# bytes, not smaller) and kept as <name>.1, .2, ... when a different file has
+# reappeared under the same name (pid reuse across launches). Best-effort:
+# never fails the test.
 _vm_logs_state = {"root": None}
 
 def collect_vm_logs():
@@ -690,8 +692,6 @@ def collect_vm_logs():
         for cid in os.listdir(root):
             logs = os.path.join(root, cid, "logs")
             if not os.path.isdir(logs):
-                continue
-            if not [f for f in os.listdir(logs) if f.lower().startswith("xclog_")]:
                 continue
             for dirpath, dirnames, filenames in os.walk(logs):
                 rel = os.path.relpath(dirpath, logs)
@@ -762,6 +762,10 @@ def _vm_logs_sandbox_root():
 
 def _vm_logs_copy(src, dst):
     if os.path.exists(dst):
+        # Already captured: dst is Start-VmLogLinker's hard link to this very
+        # file. Copying onto it would truncate the log itself.
+        if _vm_logs_same_file(src, dst):
+            return
         src_len = os.path.getsize(src)
         dst_len = os.path.getsize(dst)
         if src_len < dst_len or not _vm_logs_same_head(src, dst, dst_len):
@@ -775,6 +779,15 @@ def _vm_logs_copy(src, dst):
     if not os.path.isdir(d):
         os.makedirs(d)
     shutil.copyfile(src, dst)
+
+# True when both paths name one file (a hard link). Jython: java.nio compares
+# the volume and file index on Windows.
+def _vm_logs_same_file(a, b):
+    try:
+        from java.nio.file import Files, Paths
+        return Files.isSameFile(Paths.get(a), Paths.get(b))
+    except:
+        return False
 
 # True when the first min(512, length) bytes of both files match: the same log
 # file (grown or unchanged) rather than a new launch's log under a reused name.
