@@ -428,6 +428,9 @@ public class Keyboard {
 #    util.check_running() does the same after a session ended mid-test. This
 #    is the fallback for a file the linker missed or could not link.
 #
+# The SikuliX harness's own container is left out (CollectVmLogs removes what
+# the linker took from it): see IsHarnessSandbox.
+#
 # Layout: <Desktop>\<app>-vm-logs\<container id>\<logs tree>. The CI harness
 # (applab Invoke-AppTest.ps1) stages that folder as the <app>-vm-logs artifact.
 # A copy is skipped when the destination already is that file (a link), is
@@ -720,6 +723,17 @@ function CollectVmLogs {
     if (-not (Test-Path -LiteralPath $root)) { return }
 
     foreach ($sb in @(Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue)) {
+        # The test harness's own container (StartTest's `turbo run sikulixide`)
+        # is not the app under test: its only log is the fixed java command
+        # line, and SikuliX's output is the test log. Drop it, including what
+        # the linker already captured from it.
+        if (IsHarnessSandbox -sandbox $sb.FullName) {
+            $harnessDst = Join-Path $destRoot $sb.Name
+            if (Test-Path -LiteralPath $harnessDst) {
+                Remove-Item -LiteralPath $harnessDst -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            continue
+        }
         $logs = Join-Path $sb.FullName 'logs'
         if (-not (Test-Path -LiteralPath $logs)) { continue }
         foreach ($f in @(Get-ChildItem -LiteralPath $logs -File -Recurse -ErrorAction SilentlyContinue)) {
@@ -734,6 +748,25 @@ function CollectVmLogs {
     if (Test-Path -LiteralPath $destRoot) {
         Write-Host "VM logs collected in $destRoot"
     }
+}
+
+# True when the sandbox is the SikuliX harness's container: its meta.json lists
+# the images it was started from, resolved ("inputImages", e.g.
+# "sikulix/sikulixide", "oracle/jre-x64", possibly with :tag or #hash).
+# Unreadable or missing metadata counts as not the harness, so an app container
+# is never dropped by mistake.
+function IsHarnessSandbox {
+    param (
+        [string]$sandbox
+    )
+    try {
+        $meta = Get-Content -LiteralPath (Join-Path $sandbox 'meta.json') -Raw -ErrorAction Stop | ConvertFrom-Json
+        foreach ($img in @($meta.inputImages)) {
+            $leaf = (($img -split '[:#]')[0] -split '/')[-1]
+            if ($leaf -ieq 'sikulixide') { return $true }
+        }
+    } catch { }
+    return $false
 }
 
 function CopyVmLog {
