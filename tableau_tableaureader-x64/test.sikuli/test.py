@@ -63,7 +63,7 @@ Debug.user("PROBE: relaunch delayed 30 s")
 # window: 37-46 s in the passing runs of App Tests 42303167629 / 42303177385 / 42303187524, and
 # just over 60 s in 42303157923, whose FAILED frame shows the main window still without the
 # dialog and whose fail.png, 15 s later, shows it fully painted. 60 s was the whole headroom.
-wait("tableau_reg.png", 180)
+wait("tableau_reg.png", 60)
 click(Pattern("tableau_reg.png").targetOffset(-289,0))
 paste("Sandy")
 type(Key.TAB)
