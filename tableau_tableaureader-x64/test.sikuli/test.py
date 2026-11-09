@@ -53,7 +53,12 @@ run("turbo stop test")
 
 # Launch the app.
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Tableau Reader"))
-wait("tableau_reg.png", 60)
+# The Start Menu shortcut starts a NEW container (tableaureader-x64#..., not `test`), so this is a
+# second cold start. The registration dialog is the last thing Reader paints, after the main
+# window: 37-46 s in the passing runs of App Tests 42303167629 / 42303177385 / 42303187524, and
+# just over 60 s in 42303157923, whose FAILED frame shows the main window still without the
+# dialog and whose fail.png, 15 s later, shows it fully painted. 60 s was the whole headroom.
+wait("tableau_reg.png", 180)
 click(Pattern("tableau_reg.png").targetOffset(-289,0))
 paste("Sandy")
 type(Key.TAB)
