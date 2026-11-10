@@ -10,6 +10,26 @@ setAutoWaitTimeout(20)
 
 util.pre_test()
 
+# PROBE (not for merge): reproduce the CEPHtmlEngine crash on the Learn panel's Close Panel that
+# 6622e31 stopped triggering, and capture a dump of it. The crash parks the process in a legacy
+# "Application Error" box, so WER never writes a dump; the helper dumps CEPHtmlEngine.exe itself
+# into the step-frames folder (uploaded with the diagnostics) and the test stops right there.
+steps_dir = os.path.join(os.environ['USERPROFILE'], "Desktop", "adobe_audition-steps")
+def close_learn_panel_and_check(where):
+    if not exists("learn-panel.png", 20):
+        Debug.user("PROBE %s: Learn panel not shown, nothing to close" % where)
+        return
+    click(Pattern("learn-panel.png").targetOffset(8,-28))
+    click("close-panel.png")
+    Debug.user("PROBE %s: clicked Close Panel" % where)
+    wait(8)
+    out = run('powershell -NoProfile -ExecutionPolicy Bypass -File "%s" -OutDir "%s"' %
+              (os.path.join(resources, "dump-on-app-error.ps1"), steps_dir))
+    for line in out.splitlines():
+        Debug.user("PROBE %s: %s" % (where, line))
+    if "APP_ERROR_FOUND" in out:
+        raise FindFailed("PROBE REPRO (%s): CEPHtmlEngine Application Error after Close Panel; dump in adobe_audition-steps" % where)
+
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resources", "secrets.txt"))
 username = credentials.get("username")
@@ -27,6 +47,7 @@ type(Key.ENTER)
 if exists("hardware-warning.png",90):
     click(Pattern("hardware-warning.png").targetOffset(-173,7))
     click(Pattern("hardware-warning.png").targetOffset(192,38))
+close_learn_panel_and_check("1st launch")
 if exists("adobe_login_signout_others.png",10):
     click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
     click(Pattern("adobe_login_continue.png").similar(0.80))
@@ -44,6 +65,7 @@ run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Audit
 if exists("hardware-warning.png",90):
     click(Pattern("hardware-warning.png").targetOffset(-173,7))
     click(Pattern("hardware-warning.png").targetOffset(192,38))
+close_learn_panel_and_check("2nd launch")
 wait("audition-title-bar.png",15)
 
 # Basic operations.
