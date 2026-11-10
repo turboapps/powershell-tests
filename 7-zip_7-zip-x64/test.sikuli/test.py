@@ -25,7 +25,7 @@ shutil.copytree(os.path.join(script_path, os.pardir, "vm2929"), work)
 
 extra = util.read_extra()
 Debug.user("PROBE extra:%s" % extra)
-cmd = ('turbo run clean --isolate=merge-user --name=vm2929 --startup-file=cmd.exe%s -- /c "%s"' %
+cmd = ('turbo run 7-zip/7-zip-x64 --offline --isolate=merge-user --name=vm2929 --startup-file=cmd.exe%s -- /c "%s"' %
        (extra, os.path.join(work, "vm2929.cmd")))
 Debug.user("PROBE cmd: %s" % cmd)
 out = run(cmd)
