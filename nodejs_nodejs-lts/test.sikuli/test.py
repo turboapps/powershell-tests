@@ -9,7 +9,7 @@ def defender_log(tag):
     if not os.path.exists(steps_dir):
         os.makedirs(steps_dir)
     out = os.path.join(steps_dir, "defender-%s.txt" % tag)
-    ps = ("$e = @(Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-Windows Defender/Operational'; Id=1116,1117} -ErrorAction SilentlyContinue); "
+    ps = ("$e = @(Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-Windows Defender/Operational'; Id=1116,1117} -EA 0); "
           "$e | Format-List TimeCreated,Id,Message | Out-File -Width 400 '%s'; "
           "'DEFENDER %s events=' + $e.Count + ' mzpe=' + @($e | Where-Object { $_.Message -match 'MZPEMemoryArtifacts' }).Count" % (out, tag))
     res = run('powershell -NoProfile -Command "%s"' % ps)

@@ -34,7 +34,9 @@ for line in out.splitlines():
 run("turbo stop vm2929")
 run('cmd /c "turbo vms > "%s""' % os.path.join(work, "turbo-vms.txt"))
 
-run('powershell -NoProfile -Command "Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-Windows Defender/Operational'; Id=1116,1117} -ErrorAction SilentlyContinue | Format-List TimeCreated,Id,Message | Out-File -Width 400 '%s'"' % os.path.join(work, "defender-1116-1117.txt"))
+defender_ps = ("$e = @(Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-Windows Defender/Operational'; Id=1116,1117} -EA 0); "
+               "$e | Format-List TimeCreated,Id,Message | Out-File -Width 400 '%s'" % os.path.join(work, "defender-1116-1117.txt"))
+run('powershell -NoProfile -Command "%s"' % defender_ps)
 for name in ["vm2929-result.txt", "vm2929-normal.txt", "vm2929-exitrounds.txt", "rwxscan.txt", "defender-1116-1117.txt"]:
     path = os.path.join(work, name)
     text = open(path).read() if os.path.exists(path) else "(missing)"
