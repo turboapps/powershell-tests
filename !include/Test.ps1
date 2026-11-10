@@ -455,6 +455,7 @@ function Initialize-VmLogLinker {
     if (([System.Management.Automation.PSTypeName]'VmLogLinker').Type) { return }
     $typeDef = @'
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -487,8 +488,14 @@ public static class VmLogLinker {
     static int linked;
     static int failed;
     static string lastError;
+    static readonly Dictionary<string, int> linkedBySandbox = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
     public static int Linked { get { return linked; } }
+    // Files linked out of one sandbox (by container id), so a caller that
+    // drops a container's logs can drop them from the count too.
+    public static int LinkedFrom(string sandboxId) {
+        lock (Gate) { int n; return linkedBySandbox.TryGetValue(sandboxId, out n) ? n : 0; }
+    }
     public static int Failed { get { return failed; } }
     public static string LastError { get { return lastError; } }
 
@@ -512,6 +519,7 @@ public static class VmLogLinker {
             root = Path.GetFullPath(sandboxRoot).TrimEnd('\\') + "\\";
             dest = Path.GetFullPath(destRoot);
             linked = 0;
+            linkedBySandbox.Clear();
             failed = 0;
             lastError = null;
             ArmLocked();
@@ -625,13 +633,13 @@ public static class VmLogLinker {
             }
             string[] parts = path.Substring(root.Length).Split('\\');
             if (parts.Length < 3) return;
-            Link(path, Path.Combine(dest, parts[0], string.Join("\\", parts, 2, parts.Length - 2)));
+            Link(parts[0], path, Path.Combine(dest, parts[0], string.Join("\\", parts, 2, parts.Length - 2)));
         } catch (Exception e) {
             Fail(path + ": " + e.Message);
         }
     }
 
-    static void Link(string src, string dst) {
+    static void Link(string sandboxId, string src, string dst) {
         lock (Gate) {
             if (File.Exists(dst)) {
                 if (SameFile(src, dst)) return;
@@ -650,6 +658,9 @@ public static class VmLogLinker {
             Directory.CreateDirectory(Path.GetDirectoryName(dst));
             if (CreateHardLink(dst, src, IntPtr.Zero)) {
                 linked++;
+                int n;
+                linkedBySandbox.TryGetValue(sandboxId, out n);
+                linkedBySandbox[sandboxId] = n + 1;
             } else {
                 int error = Marshal.GetLastWin32Error();
                 // 2/3: the file was already gone again - nothing to keep.
@@ -708,26 +719,23 @@ function CollectVmLogs {
 
     # The copies below do not depend on the linker: if its type cannot be
     # loaded they still run, they just cannot recognise a link (see CopyVmLog).
+    $linker = $false
     try {
         Initialize-VmLogLinker
-        if ([VmLogLinker]::Linked -gt 0 -or [VmLogLinker]::Failed -gt 0) {
-            $line = "VM logs: $([VmLogLinker]::Linked) file(s) captured as created"
-            if ([VmLogLinker]::Failed -gt 0) { $line += ", $([VmLogLinker]::Failed) capture failure(s) (last: $([VmLogLinker]::LastError))" }
-            Write-Host $line
-        }
+        $linker = $true
     } catch {
         Write-Host "VM logs: live capture unavailable: $_"
     }
 
     $root = GetSandboxRoot
-    if (-not (Test-Path -LiteralPath $root)) { return }
-
-    foreach ($sb in @(Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue)) {
+    $harnessLinked = 0
+    foreach ($sb in @(if (Test-Path -LiteralPath $root) { Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue })) {
         # The test harness's own container (StartTest's `turbo run sikulixide`)
         # is not the app under test: its only log is the fixed java command
         # line, and SikuliX's output is the test log. Drop it, including what
-        # the linker already captured from it.
+        # the linker already captured from it (and from the linker's count).
         if (IsHarnessSandbox -sandbox $sb.FullName) {
+            if ($linker) { $harnessLinked += [VmLogLinker]::LinkedFrom($sb.Name) }
             $harnessDst = Join-Path $destRoot $sb.Name
             if (Test-Path -LiteralPath $harnessDst) {
                 Remove-Item -LiteralPath $harnessDst -Recurse -Force -ErrorAction SilentlyContinue
@@ -743,6 +751,14 @@ function CollectVmLogs {
             } catch {
                 Write-Host "VM logs: $($f.FullName) not copied: $_"
             }
+        }
+    }
+    if ($linker) {
+        $captured = [VmLogLinker]::Linked - $harnessLinked
+        if ($captured -gt 0 -or [VmLogLinker]::Failed -gt 0) {
+            $line = "VM logs: $captured file(s) captured as created"
+            if ([VmLogLinker]::Failed -gt 0) { $line += ", $([VmLogLinker]::Failed) capture failure(s) (last: $([VmLogLinker]::LastError))" }
+            Write-Host $line
         }
     }
     if (Test-Path -LiteralPath $destRoot) {
