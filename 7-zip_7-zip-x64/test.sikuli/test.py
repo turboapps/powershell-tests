@@ -34,7 +34,8 @@ for line in out.splitlines():
 run("turbo stop vm2929")
 run('cmd /c "turbo vms > "%s""' % os.path.join(work, "turbo-vms.txt"))
 
-for name in ["vm2929-result.txt", "vm2929-normal.txt", "vm2929-exitrounds.txt"]:
+run('powershell -NoProfile -Command "Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-Windows Defender/Operational'; Id=1116,1117} -ErrorAction SilentlyContinue | Format-List TimeCreated,Id,Message | Out-File -Width 400 '%s'"' % os.path.join(work, "defender-1116-1117.txt"))
+for name in ["vm2929-result.txt", "vm2929-normal.txt", "vm2929-exitrounds.txt", "rwxscan.txt", "defender-1116-1117.txt"]:
     path = os.path.join(work, name)
     text = open(path).read() if os.path.exists(path) else "(missing)"
     for line in text.splitlines():
@@ -47,3 +48,7 @@ if "DONE" not in result:
 if "NORMAL_EXIT=0" not in result or "EXITROUNDS_EXIT=0" not in result:
     raise FindFailed("PROBE VM-2929 REPRO: a TestStdStreamsDump round failed: %s" % " | ".join(result.split()))
 Debug.user("PROBE VM-2929 NOT reproduced: all rounds exited 0")
+scan = open(os.path.join(work, "rwxscan.txt")).read() if os.path.exists(os.path.join(work, "rwxscan.txt")) else ""
+if "RWX_MZ_ALLOCS=0 " not in scan:
+    raise FindFailed("PROBE VM-2932: RWX private MZ image in the container process: %s" % scan.strip().splitlines()[-1:] )
+Debug.user("PROBE VM-2932: no RWX MZ allocation in the container process")

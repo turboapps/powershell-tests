@@ -6,4 +6,5 @@ rem ever longer text with no line break. Unfixed VMs crash a round with 0xC00004
 >> "%~dp0vm2929-result.txt" echo NORMAL_EXIT=%errorlevel%
 "%~dp0TestStdStreamsDump.exe" exit 20 > "%~dp0vm2929-exitrounds.txt" 2>&1
 >> "%~dp0vm2929-result.txt" echo EXITROUNDS_EXIT=%errorlevel%
+"%~dp0rwxscan.exe" > "%~dp0rwxscan.txt" 2>&1
 >> "%~dp0vm2929-result.txt" echo DONE
