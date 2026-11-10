@@ -2,6 +2,7 @@ script_path = os.path.dirname(os.path.abspath(sys.argv[0]))
 include_path = os.path.join(script_path, os.pardir, os.pardir, "!include", "util.sikuli")
 sys.path.append(include_path)
 import util
+import time
 reload(util)
 addImagePath(include_path)
 
@@ -45,7 +46,26 @@ run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Photo
 # window comes up with grey placeholder bars and the "Welcome to Photoshop"
 # heading lands later. Keep waiting while the Photoshop window is on screen,
 # and give up only if it goes away or Home never paints.
-util.wait_while_busy("Welcome.png", "photoshop-menu-bar.png", timeout=300, grace=180)
+#
+# The relaunch can also land on Adobe's "You've reached your device activation
+# limit - Sign out of another device to continue" modal, the same one handled
+# after the first launch above. Validation run 42567205032 sat on it for the
+# whole 300 s (adobe_login_signout_others.png scores 0.79 in every frame from
+# ~2 min in) because only the first launch looked for it. Watch for it during
+# the Home wait and clear it the same way.
+def wait_relaunch_home(timeout=300):
+    start = time.time()
+    while time.time() - start < timeout:
+        if exists("Welcome.png", 0):
+            return
+        if exists("adobe_login_signout_others.png", 0):
+            Debug.user("relaunch: device activation limit modal, signing out another device")
+            click(Pattern("adobe_login_signout_others.png").targetOffset(2,55))
+            click(Pattern("adobe_login_continue.png").similar(0.80))
+        wait(2)
+    wait("Welcome.png", 1)  # still not up: raise the usual FindFailed + FAILED frame
+
+wait_relaunch_home()
 wait("photoshop-menu-bar.png")
 if exists("grafx-warning.png",20):
     click(Pattern("grafx-warning.png").targetOffset(255,11))
