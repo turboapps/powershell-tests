@@ -14,7 +14,24 @@ run("turbo stop test")
 
 
 # Launch the app.
-run("explorer " + util.get_shortcut_path_by_prefix(util.desktop, "Apache NetBeans IDE"))
+# Apache's own installer (NetBeans <= 25) named the shortcut "Apache NetBeans IDE <ver>".
+# From NetBeans 26 the image is built from the Friends of Apache NetBeans installer,
+# which names it "Apache NetBeans <ver>", so match the common prefix. The desktop
+# shortcut is an Inno Setup task (on by default); fall back to the Start Menu one,
+# and list what is installed if neither is there.
+shortcut = None
+for folder in (util.desktop, util.start_menu):
+    if os.path.exists(folder):
+        matches = sorted(f for f in os.listdir(folder)
+                         if f.startswith("Apache NetBeans") and f.lower().endswith(".lnk"))
+        if matches:
+            shortcut = os.path.join(folder, matches[0])
+            break
+if shortcut is None:
+    raise AssertionError("No Apache NetBeans shortcut found.\nDesktop:\n  %s\nStart Menu:\n  %s"
+        % ("\n  ".join(util.list_shortcuts(util.desktop)) or "(nothing)",
+           "\n  ".join(util.list_shortcuts(util.start_menu)) or "(nothing)"))
+run("explorer " + shortcut)
 
 # Basic operations.
 wait("logo.png", 120)
