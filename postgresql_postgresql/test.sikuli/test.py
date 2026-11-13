@@ -49,16 +49,17 @@ paste("turbo pull xvm")
 wait(2)
 type(Key.ENTER)
 wait(10)
-paste('turbo try postgresql/postgresql:16 --using=pgvector/pgvector --startup-file=cmd --working-dir=C:\pgsql --mount C:\pg-data --name="test" ' + extra)
+paste('turbo try postgresql/postgresql --startup-file=cmd --working-dir=C:\pgsql --mount C:\pg-data --name="test" ' + extra)
 wait(2)
 type(Key.ENTER)
 wait(10)
 # Give the container prompt a budget that covers a cold image pull.
 #
-# The pipeline pre-pulls the tag under test (postgresql:18.6 today); this line
-# asks for :16, which resolves to postgresql:16.4 - 987 MB - and pulls
-# pgvector/pgvector on top of it, so on a VM whose cache holds neither, the
-# whole download happens inside this wait. In App Tests run 35063712843 the
+# The executor pre-pulls the image under test, but a pull it did not finish
+# still lands here. Before that, nothing pre-pulled: this line then asked for
+# postgresql:16 (16.4, 987 MB) plus pgvector/pgvector, so on a VM whose cache
+# held neither, the whole download happened inside this wait. In App Tests run
+# 35063712843 the
 # FAILED frame catches it at "Pulling image postgresql:16.4 ... (55%; 544MB of
 # 987MB)" when the 60 s expired; the run that passed on 2026-09-15 had the
 # images cached and reached the prompt in 14 s.
@@ -107,20 +108,18 @@ type("postgres")
 type(Key.ENTER)
 wait("pgsql_console.png")
 
-# pgsql commands and pgvector.
-paste("CREATE EXTENSION vector;")
-wait(2)
-type(Key.ENTER)
-wait("pgsql_result_1.png")
-paste("CREATE TABLE items (id bigserial PRIMARY KEY, embedding vector(3));")
+# pgsql commands. Extensions are pgvector_pgvector's to test; this test runs
+# the postgresql image under test on its own. A text column prints the rows the
+# same way the vector(3) column did, so pgsql_result_4.png still matches.
+paste("CREATE TABLE items (id bigserial PRIMARY KEY, val text);")
 wait(2)
 type(Key.ENTER)
 wait("pgsql_result_2.png")
-paste("INSERT INTO items (embedding) VALUES ('[1,2,3]'), ('[4,5,6]');")
+paste("INSERT INTO items (val) VALUES ('[1,2,3]'), ('[4,5,6]');")
 wait(2)
 type(Key.ENTER)
 wait("pgsql_result_3.png")
-paste("SELECT * FROM items ORDER BY embedding <-> '[3,1,2]' LIMIT 5;")
+paste("SELECT * FROM items ORDER BY id;")
 wait(2)
 type(Key.ENTER)
 wait("pgsql_result_4.png")
