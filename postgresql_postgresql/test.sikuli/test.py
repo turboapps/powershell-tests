@@ -49,17 +49,16 @@ paste("turbo pull xvm")
 wait(2)
 type(Key.ENTER)
 wait(10)
-paste('turbo try postgresql/postgresql --using=pgvector/pgvector --startup-file=cmd --working-dir=C:\pgsql --mount C:\pg-data --name="test" ' + extra)
+paste('turbo try postgresql/postgresql:16 --using=pgvector/pgvector --startup-file=cmd --working-dir=C:\pgsql --mount C:\pg-data --name="test" ' + extra)
 wait(2)
 type(Key.ENTER)
 wait(10)
 # Give the container prompt a budget that covers a cold image pull.
 #
-# The executor now pre-pulls both images, but a pull it did not finish still
-# lands here. Before that, nothing pre-pulled them: this line then asked for
-# postgresql:16 (16.4, 987 MB) and pgvector/pgvector, so on a VM whose cache
-# held neither, the whole download happened inside this wait. In App Tests run
-# 35063712843 the
+# The pipeline pre-pulls the tag under test (postgresql:18.6 today); this line
+# asks for :16, which resolves to postgresql:16.4 - 987 MB - and pulls
+# pgvector/pgvector on top of it, so on a VM whose cache holds neither, the
+# whole download happens inside this wait. In App Tests run 35063712843 the
 # FAILED frame catches it at "Pulling image postgresql:16.4 ... (55%; 544MB of
 # 987MB)" when the 60 s expired; the run that passed on 2026-09-15 had the
 # images cached and reached the prompt in 14 s.
