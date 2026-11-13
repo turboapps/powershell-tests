@@ -19,7 +19,10 @@ run("explorer " + os.path.join(util.start_menu, "RStudio.lnk"))
 
 # Basic operations.
 wait("rstudio_window.png",120)
-click("whatsnew-close.png")
+# Some releases open a "What's New" dialog on first launch; 2026.11 does not
+# (App Tests run 43365980596), so dismiss it only when it shows.
+if exists("whatsnew-close.png",20):
+    click("whatsnew-close.png")
 App("RStudio").focus()
 type(Key.UP, Key.WIN) # Maximize cmd window.
 click("rstudio_window.png")
