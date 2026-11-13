@@ -22,6 +22,18 @@ shutil.copytree(project_src, project_dir)
 
 util.pre_test()
 
+# Media Encoder 2027 checks the GPU at startup and, on a pool VM (no GPU), raises
+# a "System Compatibility Report" modal over the main window: "GPU-accelerated
+# rendering is required to run this application". Unlike Premiere's report it
+# has no "Continue with known issues" button - only Exit - and ENTER, ESC and
+# the Exit button all quit the app (verified 2026-11-11: ESC closed the report and
+# Media Encoder with it). The app cannot run on a GPU-less runner, so fail with a
+# message that says so instead of a bare me_window.png FindFailed.
+compat_report = Pattern("compat_report.png").similar(0.80)
+def fail_on_compat_report(timeout):
+    if exists(compat_report, timeout):
+        raise FindFailed("mediaencoder: GPU required - Media Encoder's System Compatibility Report blocks startup on this runner (no GPU); only Exit is offered")
+
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resources", "secrets.txt"))
 username = credentials.get("username")
@@ -45,6 +57,7 @@ if exists("adobe_login_signout_others.png",60):
         click(Pattern("adobe_login_continue.png").similar(0.80))
 if exists("GPUSniffer_error.png",30):
     click(Pattern("GPUSniffer_error_close.png").targetOffset(-49,4))
+fail_on_compat_report(30)
 wait("me_window.png",15)
 type("q", Key.CTRL)
 run("turbo stop test")
@@ -53,6 +66,7 @@ run("turbo stop test")
 run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Media Encoder"))
 if exists("GPUSniffer_error.png",60):
     click(Pattern("GPUSniffer_error_close.png").targetOffset(-49,4))
+fail_on_compat_report(30)
 
 # Basic operations.
 wait("me_window.png",15)
