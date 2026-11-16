@@ -51,6 +51,9 @@ wait(5)
 # Animate 2027 no longer opens the New Document dialog on Ctrl+Shift+N from the
 # home screen (App Tests 43971176065); use the home screen's "New file" button.
 click("new_file.png")
+# Animate 2027's New Document dialog is tabbed by use case; HTML5 Canvas is now a
+# choice in the Platform Type dropdown (default ActionScript 3.0), not a list item.
+click(Pattern("platform_type.png").targetOffset(-1,12))
 wait("html5-canvas.png")
 click("html5-canvas.png")
 type(Key.ENTER)
