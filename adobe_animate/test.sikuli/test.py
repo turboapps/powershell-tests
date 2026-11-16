@@ -33,7 +33,11 @@ run("turbo stop test")
 closeApp("Command Prompt")
 
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "Adobe Animate 2024.lnk"))
+# The shortcut carries the product year ("Adobe Animate 2024.lnk" up to the 2027
+# release, which made it "... 2027.lnk" and left explorer opening Documents on the
+# dead path - App Tests 43498892151 onward). Match by prefix so a version bump
+# doesn't break the launch again.
+run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Animate"))
 wait("animate-launched.png",120)
 if exists("new-to-animate.png"):
     click(Pattern("new-to-animate.png").targetOffset(-50,12))
