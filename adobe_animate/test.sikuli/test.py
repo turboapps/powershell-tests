@@ -62,28 +62,34 @@ wait(10)
 type("s",Key.CTRL+Key.ALT+Key.SHIFT)
 wait("save_location.png")
 wait(5)
-paste("%USERPROFILE%\\Desktop\\Test.gif")
+# Export Movie: name the file, pick "GIF Sequence (*.gif)" ("g" in the type
+# list), Save (ENTER), then OK the Export GIF options dialog (ENTER). Paste the
+# expanded Desktop path: Animate 2027's dialog was given the literal
+# "%USERPROFILE%\Desktop\Test.gif" and no GIF reached the Desktop (App Tests
+# 43980386958, whose frames show both dialogs completing).
+export_dir = os.path.join(os.environ['USERPROFILE'], "Desktop")
+paste(os.path.join(export_dir, "Test.gif"))
 wait(2)
 type(Key.TAB)
 wait(3)
-# TEMP diagnostics (Animate 2027 export): frame the type list and each ENTER.
-type(Key.DOWN, Key.ALT)
-wait(2)
-util._step_capture("diag-type-list")
-type(Key.ESC)
-wait(1)
 type("g")
 wait(1)
-util._step_capture("diag-after-g")
 type(Key.ENTER)
 wait(3)
-util._step_capture("diag-after-enter1")
 type(Key.ENTER)
-wait(3)
-util._step_capture("diag-after-enter2")
 wait(10)
-util._step_capture("diag-before-assert")
-assert(util.file_exists(os.path.join(os.environ['USERPROFILE'], "Desktop\\test0001.gif"), 30))
+# A one-frame sequence has been written as Test0001.gif; accept any Test*.gif so
+# the check proves the GIF export, not the numbering scheme.
+import glob, time
+def exported_gifs():
+    return glob.glob(os.path.join(export_dir, "[Tt]est*.gif"))
+for _ in range(30):
+    if exported_gifs():
+        break
+    time.sleep(1)
+if not exported_gifs():
+    Debug.user("animate: no Test*.gif on the Desktop; it holds: %s" % ", ".join(sorted(os.listdir(export_dir))))
+assert(exported_gifs())
 
 # Test video.
 click("test-movie-button.png")
