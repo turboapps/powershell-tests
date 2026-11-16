@@ -92,7 +92,7 @@ type(Key.ENTER)
 wait("local_photo.png")
 click("edit.png")
 wait(2) # Wait for Edit panel to load.
-click(Pattern("exposure.png").targetOffset(112,11))
+click(Pattern("exposure.png").targetOffset(100,11))
 wait(2)
 type("5" + Key.ENTER)
 wait("local_photo_edited.png")
