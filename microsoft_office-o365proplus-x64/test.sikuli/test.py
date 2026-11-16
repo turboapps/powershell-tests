@@ -380,7 +380,12 @@ type(Key.RIGHT)
 wait("ppt_result_1.png")
 
 type(Key.ENTER + Key.ENTER)
-click(Pattern("ppt_menu_1.png").targetOffset(50,0))
+# Open the Insert tab by keytip (Alt, N, Alt), as the Word block does. The
+# ribbon tab strip is restyled often (tab spacing, selected-tab underline), so
+# matching "File Home Insert" as an image breaks with Office updates.
+type(Key.ALT)
+type("N")
+type(Key.ALT)
 if exists("ppt_got_it.png",5):
     click("ppt_got_it.png")
 click("ppt_table.png")
@@ -390,7 +395,9 @@ wait("ppt_table_insert.png")
 type(Key.ENTER)
 wait("ppt_result_2.png")
 
-click(Pattern("ppt_menu_2.png").targetOffset(48,1))
+type(Key.ALT)
+type("N")
+type(Key.ALT)
 click("ppt_pictures.png")
 wait(2)
 click("ppt_pictures_menu.png")
