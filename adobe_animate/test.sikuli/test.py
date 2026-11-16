@@ -48,7 +48,9 @@ wait("home.png")
 wait(5)
 click("home.png")
 wait(5)
-type("n",Key.CTRL+Key.SHIFT)
+# Animate 2027 no longer opens the New Document dialog on Ctrl+Shift+N from the
+# home screen (App Tests 43971176065); use the home screen's "New file" button.
+click("new_file.png")
 wait("html5-canvas.png")
 click("html5-canvas.png")
 type(Key.ENTER)
