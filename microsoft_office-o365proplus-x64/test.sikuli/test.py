@@ -276,7 +276,10 @@ if exists("outlook_got_it.png",15):
 items_label = wait(Pattern("outlook_items.png").similar(0.9), 10)
 items_counter = Region(items_label.getX() - 2, items_label.getY() - 2, 64, items_label.getH() + 4)
 items_before = util.region_pixels(items_counter)
-click("outlook_new_email.png")
+# New message by shortcut, not the "New Email" button image: its icon-to-label
+# spacing differs between Outlook builds (the business VM's button only
+# matched 0.59 in App Tests run 43958416050).
+type("m", Key.CTRL + Key.SHIFT)
 if exists("outlook_got_it.png",15):
     click("outlook_got_it.png")
 wait("outlook_compose.png")
