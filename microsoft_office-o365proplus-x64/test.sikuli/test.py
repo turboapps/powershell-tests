@@ -547,13 +547,14 @@ wait("publisher_result_2.png")
 type(Key.ENTER + Key.ENTER)
 # Open Insert > Table by keytip rather than the tab-strip image, which breaks
 # whenever Office restyles the tabs. Publisher's Table keytip is "TA" ("TB" is
-# Draw Text Box), unlike PowerPoint's "T".
+# Draw Text Box), unlike PowerPoint's "T". "I" then picks Insert Table... (its
+# keytip badge covers the menu icon, so an image of the item does not match).
 type(Key.ALT)
 type("N")
 type("T")
 type("A")
 wait(2)
-click(Pattern("publisher_table_menu.png").similar(0.80))
+type("I")
 wait("publisher_table_insert.png")
 type(Key.ENTER)
 wait("insert-table-publisher.png")
