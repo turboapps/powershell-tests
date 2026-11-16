@@ -97,7 +97,7 @@ wait_for_home(240)
 
 # Basic operations.
 wait(10)
-open_template("C:\\Program Files\\Adobe\\Adobe Illustrator 2026\\Cool Extras\\en_US\\Templates\\Blank Templates\\Tshirt.ait")
+open_template("C:\\Program Files\\Adobe\\Adobe Illustrator 2027\\Cool Extras\\en_US\\Templates\\Blank Templates\\Tshirt.ait")
 click("tshirt.png")
 wait(10)
 type("s", Key.CTRL)
