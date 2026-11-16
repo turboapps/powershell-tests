@@ -112,9 +112,30 @@ click("word_window.png")
 # 40980991791 and 40982316528 (proplus) waited 60 s on a blank document that
 # had opened in ~5 s. Run 40982308340 got the fallback font and passed. The
 # status-bar crop scores 0.99 in both renderings and 0.34 on Word's Home page.
+#
+# Office can also put up a modal "Getting Office ready for you" (Microsoft
+# logo, spinner) over Word's Home page. In App Tests run 43812146021 (proplus)
+# it came up just after the Blank document click and was still spinning 2
+# minutes later, when this loop ran out, so the click never landed. Give it a
+# minute to finish on its own, then close it with its X and click Blank
+# document again.
+def clear_getting_office_ready():
+    if not exists("office_getting_ready.png", 0):
+        return False
+    if not waitVanish("office_getting_ready.png", 60):
+        Debug.user("Word launch: closing a stuck 'Getting Office ready for you' dialog")
+        click(Pattern("office_getting_ready.png").targetOffset(479,-252))
+        if not waitVanish("office_getting_ready.png", 10):
+            raise FindFailed("Word launch: 'Getting Office ready for you' did not close on its X")
+    return True
+
 for _ in range(12):
     if exists("word_new_doc_status.png", 5):
         break
+    if clear_getting_office_ready():
+        if exists("word_window.png", 10):
+            click("word_window.png")
+        continue
     for prompt in ["yes-all-apps.png", "device-reg-done.png", "privacy-close.png"]:
         if exists(prompt, 0):
             Debug.user("Word launch: closing a late %s" % prompt)
