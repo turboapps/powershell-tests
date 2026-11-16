@@ -545,15 +545,20 @@ type(Key.F9)
 wait("publisher_result_2.png")
 
 type(Key.ENTER + Key.ENTER)
-click(Pattern("publisher_menu.png").targetOffset(-117,0))
-click(Pattern("publisher_table.png").similar(0.80))
-wait(2)
-click(Pattern("publisher_table_menu.png").similar(0.80))
+# Insert > Table > Insert Table... by keytip (N, T, I), as in the PowerPoint
+# block: the tab-strip image breaks whenever Office restyles the tabs, and the
+# Table grid dropdown can commit a table before the menu item is clicked.
+type(Key.ALT)
+type("N")
+type("T")
+type("I")
 wait("publisher_table_insert.png")
 type(Key.ENTER)
 wait("insert-table-publisher.png")
 
-click(Pattern("publisher_menu.png").targetOffset(-117,0))
+type(Key.ALT)
+type("N")
+type(Key.ALT)
 click("publisher_pictures.png")
 wait(2)
 wait("publisher_file_name.png")
