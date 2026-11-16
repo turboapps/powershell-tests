@@ -8,7 +8,11 @@ addImagePath(include_path)
 setAutoWaitTimeout(60)
 project_path = os.path.join(util.desktop, "ghidra-test")
 project_path_headless = os.path.join(util.desktop, "ghidra-test-headless")
-import_path = os.path.join(script_path, os.pardir, "resources", "HelloWorld.exe")
+# Normalize away the "..": the current Ghidra file chooser does not resolve it in
+# a typed path and keeps only the base name, so "...\test.sikuli\..\resources\
+# HelloWorld.exe" became "File does not exist: C:\Users\admin\HelloWorld.exe"
+# (App Tests runs 43516590656, 43564803913, 43681518116, 43812146021).
+import_path = os.path.normpath(os.path.join(script_path, os.pardir, "resources", "HelloWorld.exe"))
 
 util.pre_test()
 
