@@ -9,6 +9,14 @@ setAutoWaitTimeout(45)
 
 util.pre_test()
 
+# Lightroom 2026-11 redesign: the first launch opens a "Personalize Your Lightroom"
+# workspace picker over the main window. Keep the Default workspace and close it
+# with "Done" (offset from the heading; the button label alone is too generic).
+def dismiss_personalize(timeout):
+    if exists("personalize.png", timeout):
+        click(Pattern("personalize.png").targetOffset(523,355))
+        waitVanish("personalize.png", 10)
+
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resources", "secrets.txt"))
 username = credentials.get("username")
@@ -39,6 +47,7 @@ if exists("new_feature.png",15):
     click(Pattern("new_feature.png").targetOffset(485,-3))
 if exists("got_it.png",10):
     click("got_it.png")
+dismiss_personalize(30)
 wait("lightroom_window.png")
 run("turbo stop test")
 closeApp("Command Prompt")
@@ -50,6 +59,7 @@ if exists("new_feature.png",15):
     click(Pattern("new_feature.png").targetOffset(485,-3))
 if exists("got_it.png",10):
     click("got_it.png")
+dismiss_personalize(15)
 wait("lightroom_window.png")
 click("local.png")
 if exists("got_it.png",10):
