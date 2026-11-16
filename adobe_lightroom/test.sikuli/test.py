@@ -7,7 +7,41 @@ addImagePath(include_path)
 
 setAutoWaitTimeout(45)
 
+import time
 util.pre_test()
+
+# Lightroom 2026-11 redesign: first-run modals open over the main window a few
+# seconds after it paints, in no fixed order and not on every launch (App Tests
+# 43960251725: "Personalize Your Lightroom" on both launches, the new-style
+# "What's New" only on the second, after Local had already been clicked). Close
+# whichever shows until none has appeared for `settle` seconds. Polls go through
+# SCREEN.exists, which the step-frame hooks don't wrap, so the loop doesn't flood
+# the frame cap; the clicks are hooked and each leaves a frame.
+#   personalize.png -> keep the Default workspace, "Done" (523,355) off the heading
+#   whats_new.png   -> the close X (893,-21) off the heading
+#   new_feature.png -> pre-redesign "What's New" close X, kept for older builds
+FIRST_RUN_MODALS = [
+    ("personalize.png", Pattern("personalize.png").targetOffset(523,355)),
+    ("whats_new.png",   Pattern("whats_new.png").targetOffset(893,-21)),
+    ("new_feature.png", Pattern("new_feature.png").targetOffset(485,-3)),
+    ("got_it.png",      Pattern("got_it.png")),
+]
+def dismiss_first_run_modals(settle=15, limit=120):
+    start = quiet_since = time.time()
+    while time.time() - start < limit:
+        hit = None
+        for image, target in FIRST_RUN_MODALS:
+            if SCREEN.exists(image, 0):
+                hit = (image, target)
+                break
+        if hit:
+            click(hit[1])
+            waitVanish(hit[0], 10)
+            quiet_since = time.time()
+        elif time.time() - quiet_since >= settle:
+            return
+        else:
+            time.sleep(1)
 
 # Read credentials from the secrets file.
 credentials = util.get_credentials(os.path.join(script_path, os.pardir, "resources", "secrets.txt"))
@@ -35,21 +69,15 @@ if exists("adobe_login_signout_others.png",60):
     click(Pattern("adobe_login_continue.png").similar(0.80))
 if exists("adobe_login_team.png",10):
     click(Pattern("adobe_login_continue.png").similar(0.80))
-if exists("new_feature.png",15):
-    click(Pattern("new_feature.png").targetOffset(485,-3))
-if exists("got_it.png",10):
-    click("got_it.png")
+dismiss_first_run_modals()
 wait("lightroom_window.png")
 run("turbo stop test")
 closeApp("Command Prompt")
 
 # Launch the app.
 run("explorer " + os.path.join(util.start_menu, "Adobe Lightroom.lnk"))
-wait("lightroom_window.png")
-if exists("new_feature.png",15):
-    click(Pattern("new_feature.png").targetOffset(485,-3))
-if exists("got_it.png",10):
-    click("got_it.png")
+wait("lightroom_window.png", 120)
+dismiss_first_run_modals()
 wait("lightroom_window.png")
 click("local.png")
 if exists("got_it.png",10):
@@ -64,7 +92,7 @@ type(Key.ENTER)
 wait("local_photo.png")
 click("edit.png")
 wait(2) # Wait for Edit panel to load.
-click(Pattern("exposure.png").targetOffset(112,11))
+click(Pattern("exposure.png").targetOffset(100,11))
 wait(2)
 type("5" + Key.ENTER)
 wait("local_photo_edited.png")
