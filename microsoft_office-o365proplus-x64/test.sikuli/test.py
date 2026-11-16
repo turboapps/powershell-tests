@@ -276,7 +276,10 @@ if exists("outlook_got_it.png",15):
 items_label = wait(Pattern("outlook_items.png").similar(0.9), 10)
 items_counter = Region(items_label.getX() - 2, items_label.getY() - 2, 64, items_label.getH() + 4)
 items_before = util.region_pixels(items_counter)
-click("outlook_new_email.png")
+# New message by shortcut, not the "New Email" button image: its icon-to-label
+# spacing differs between Outlook builds (the business VM's button only
+# matched 0.59 in App Tests run 43958416050).
+type("m", Key.CTRL + Key.SHIFT)
 if exists("outlook_got_it.png",15):
     click("outlook_got_it.png")
 wait("outlook_compose.png")
@@ -380,17 +383,28 @@ type(Key.RIGHT)
 wait("ppt_result_1.png")
 
 type(Key.ENTER + Key.ENTER)
-click(Pattern("ppt_menu_1.png").targetOffset(50,0))
+# Open the Insert tab by keytip (Alt, N, Alt), as the Word block does. The
+# ribbon tab strip is restyled often (tab spacing, selected-tab underline), so
+# matching "File Home Insert" as an image breaks with Office updates.
+type(Key.ALT)
+type("N")
+type(Key.ALT)
 if exists("ppt_got_it.png",5):
     click("ppt_got_it.png")
-click("ppt_table.png")
-wait(2)
-click(Pattern("ppt_table_menu.png").targetOffset(-11,-25))
+# Table > Insert Table... by keytip (N, T, I). Clicking the Table button and
+# then the menu item is unreliable: the grid dropdown can commit a table of
+# whatever size is under the cursor before "Insert Table..." is clicked.
+type(Key.ALT)
+type("N")
+type("T")
+type("I")
 wait("ppt_table_insert.png")
 type(Key.ENTER)
 wait("ppt_result_2.png")
 
-click(Pattern("ppt_menu_2.png").targetOffset(48,1))
+type(Key.ALT)
+type("N")
+type(Key.ALT)
 click("ppt_pictures.png")
 wait(2)
 click("ppt_pictures_menu.png")
@@ -534,15 +548,23 @@ type(Key.F9)
 wait("publisher_result_2.png")
 
 type(Key.ENTER + Key.ENTER)
-click(Pattern("publisher_menu.png").targetOffset(-117,0))
-click(Pattern("publisher_table.png").similar(0.80))
+# Open Insert > Table by keytip rather than the tab-strip image, which breaks
+# whenever Office restyles the tabs. Publisher's Table keytip is "TA" ("TB" is
+# Draw Text Box), unlike PowerPoint's "T". "I" then picks Insert Table... (its
+# keytip badge covers the menu icon, so an image of the item does not match).
+type(Key.ALT)
+type("N")
+type("T")
+type("A")
 wait(2)
-click(Pattern("publisher_table_menu.png").similar(0.80))
+type("I")
 wait("publisher_table_insert.png")
 type(Key.ENTER)
 wait("insert-table-publisher.png")
 
-click(Pattern("publisher_menu.png").targetOffset(-117,0))
+type(Key.ALT)
+type("N")
+type(Key.ALT)
 click("publisher_pictures.png")
 wait(2)
 wait("publisher_file_name.png")
