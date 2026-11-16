@@ -388,9 +388,13 @@ type("N")
 type(Key.ALT)
 if exists("ppt_got_it.png",5):
     click("ppt_got_it.png")
-click("ppt_table.png")
-wait(2)
-click(Pattern("ppt_table_menu.png").targetOffset(-11,-25))
+# Table > Insert Table... by keytip (N, T, I). Clicking the Table button and
+# then the menu item is unreliable: the grid dropdown can commit a table of
+# whatever size is under the cursor before "Insert Table..." is clicked.
+type(Key.ALT)
+type("N")
+type("T")
+type("I")
 wait("ppt_table_insert.png")
 type(Key.ENTER)
 wait("ppt_result_2.png")
