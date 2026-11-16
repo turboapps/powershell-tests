@@ -85,6 +85,28 @@ def open_template(path, attempts=3):
             return
     wait("tshirt.png", 1)
 
+# Confirm Illustrator Options (OK) after Save As, then wait for the file.
+# Run 43929986958 (2026-11-16, Illustrator 2027 / 31.0) clicked OK < 1 s after
+# the Save As ENTER, while the Save As dialog was still fading out and the
+# 4-CPU VM sat at 100% CPU. The tab then read "Untitled-1.ai" but nothing
+# reached the Desktop in the next 54 s and the assert failed. Run 43926435344
+# with the same image passed this step, so it is a race, not a path change.
+# Wait for the Options dialog to settle, re-click OK until it closes, give the
+# write up to 120 s, and fail with the Desktop listing if the file is missing.
+def confirm_save_options(path):
+    wait("save_options.png", 60)
+    wait(2)
+    for i in range(3):
+        if not SCREEN.exists("save_options.png", 0):
+            break
+        click(Pattern("save_options.png").targetOffset(-49,-1))
+        waitVanish("save_options.png", 20)
+    if SCREEN.exists("save_options.png", 0):
+        raise FindFailed("confirm_save_options: Illustrator Options dialog still up after 3 OK clicks")
+    if not util.file_exists(path, 12):
+        raise AssertionError("confirm_save_options: %s not written within 120 s; Desktop has: %s"
+                             % (path, sorted(os.listdir(os.path.dirname(path)))))
+
 # Test of `turbo run`.
 subprocess.Popen("turbo run illustrator --using=creativeclouddesktop,isolate-edge-wc --offline --enable=disablefontpreload --network=test --name=test" + util.read_extra())
 wait_for_home(300)
@@ -105,8 +127,7 @@ wait("save_location.png")
 wait(3)
 paste(save_location)
 type(Key.ENTER)
-click(Pattern("save_options.png").targetOffset(-49,-1))
-assert(util.file_exists(save_location, 5))
+confirm_save_options(save_location)
 type("w", Key.CTRL)
 wait(10)
 run("explorer " + save_location)
