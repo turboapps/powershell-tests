@@ -504,7 +504,17 @@ assert(util.file_exists(save_location, 5))
 # screen a second time.
 type(Key.F4, Key.ALT)
 run("explorer " + save_location)
-click(wait("access_open_enable.png", 60))
+# A click that lands while Access is still finishing the load can be lost:
+# the security bar stays up and Table1 keeps a focus outline, so the
+# doubleClick below cannot match it (App Tests run 43971403086, proplus).
+# Confirm the bar went away and click again if it did not.
+for attempt in range(3):
+    click(wait("access_open_enable.png", 60 if attempt == 0 else 10))
+    if waitVanish("access_open_enable.png", 15):
+        break
+    Debug.user("Access: 'Enable Content' still showing after click %d" % (attempt + 1))
+else:
+    raise FindFailed("Access: the security bar did not close after 3 'Enable Content' clicks")
 doubleClick("access_open_table1.png")
 wait("access_result_1.png")
 
