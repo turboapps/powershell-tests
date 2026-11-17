@@ -33,7 +33,11 @@ run("turbo stop test")
 closeApp("Command Prompt")
 
 # Launch the app.
-run("explorer " + os.path.join(util.start_menu, "Adobe Animate 2024.lnk"))
+# The shortcut carries the product year ("Adobe Animate 2024.lnk" up to the 2027
+# release, which made it "... 2027.lnk" and left explorer opening Documents on the
+# dead path - App Tests 43498892151 onward). Match by prefix so a version bump
+# doesn't break the launch again.
+run("explorer " + util.get_shortcut_path_by_prefix(util.start_menu, "Adobe Animate"))
 wait("animate-launched.png",120)
 if exists("new-to-animate.png"):
     click(Pattern("new-to-animate.png").targetOffset(-50,12))
@@ -44,23 +48,48 @@ wait("home.png")
 wait(5)
 click("home.png")
 wait(5)
-type("n",Key.CTRL+Key.SHIFT)
+# Animate 2027 no longer opens the New Document dialog on Ctrl+Shift+N from the
+# home screen (App Tests 43971176065); use the home screen's "New file" button.
+click("new_file.png")
+# Animate 2027's New Document dialog is tabbed by use case; HTML5 Canvas is now a
+# choice in the Platform Type dropdown (default ActionScript 3.0), not a list item.
+click(Pattern("platform_type.png").targetOffset(-1,12))
 wait("html5-canvas.png")
 click("html5-canvas.png")
-type(Key.ENTER)
+# Focus stays on the dropdown after the pick, so ENTER would reopen it; press Create.
+click("create.png")
 wait(10)
 type("s",Key.CTRL+Key.ALT+Key.SHIFT)
 wait("save_location.png")
 wait(5)
-paste("%USERPROFILE%\\Desktop\\Test.gif")
+# Export Movie: name the file, pick "GIF Sequence (*.gif)" ("g" in the type
+# list), Save (ENTER), then OK the Export GIF options dialog (ENTER). Paste the
+# expanded Desktop path: Animate 2027's dialog was given the literal
+# "%USERPROFILE%\Desktop\Test.gif" and no GIF reached the Desktop (App Tests
+# 43980386958, whose frames show both dialogs completing).
+export_dir = os.path.join(os.environ['USERPROFILE'], "Desktop")
+paste(os.path.join(export_dir, "Test.gif"))
 wait(2)
 type(Key.TAB)
 wait(3)
 type("g")
+wait(1)
 type(Key.ENTER)
+wait(3)
 type(Key.ENTER)
 wait(10)
-assert(util.file_exists(os.path.join(os.environ['USERPROFILE'], "Desktop\\test0001.gif"), 5))
+# A one-frame sequence has been written as Test0001.gif; accept any Test*.gif so
+# the check proves the GIF export, not the numbering scheme.
+import glob, time
+def exported_gifs():
+    return glob.glob(os.path.join(export_dir, "[Tt]est*.gif"))
+for _ in range(30):
+    if exported_gifs():
+        break
+    time.sleep(1)
+if not exported_gifs():
+    Debug.user("animate: no Test*.gif on the Desktop; it holds: %s" % ", ".join(sorted(os.listdir(export_dir))))
+assert(exported_gifs())
 
 # Test video.
 click("test-movie-button.png")
