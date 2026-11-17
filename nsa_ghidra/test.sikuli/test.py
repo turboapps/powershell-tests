@@ -68,7 +68,10 @@ wait("new_project_created.png")
 type("i")
 wait("import_location.png")
 type(import_path + Key.ENTER)
-click(Pattern("import_details.png").targetOffset(-37,94))
+# Ghidra 12.2 reworked this dialog ("Program Name" -> "Name", destination "/"
+# instead of "ghidra-test:/", new "Mirror Filesystem" row), so the image was
+# re-cropped and the OK offset moved (App Tests run 44019054739).
+click(Pattern("import_details.png").targetOffset(-37,86))
 wait("import_summary.png",120)
 type(Key.ENTER)
 wait("import_imported.png")
