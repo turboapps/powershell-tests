@@ -43,10 +43,25 @@ type(Key.ENTER)
 wait(Pattern("webpage.png").similar(0.60))
 wait(3)
 util.save_page_as_html("save.png", "save_type.png", os.path.join(util.desktop, "name with space"), htm_location)
-type("h", Key.ALT)
-wait(2)
-type("h")
-wait("help_page.png",15)
+# Saving the page above pops Firefox's downloads panel open when the download
+# completes. If that lands between the menu shortcut and the item key, the panel
+# takes the keystroke and the Help menu is left open with nothing chosen (App
+# Tests run 44407050778: FindFailed help_page.png with the menu on screen; the
+# rerun, where the download was still in flight, passed). Dismiss the panel
+# first, and if the help page still does not come up, close whatever is open
+# and go through the menu once more. The final wait keeps the FindFailed (and
+# its screenshot) when both tries miss.
+type(Key.ESC)
+wait(1)
+for attempt in range(2):
+    type("h", Key.ALT)
+    wait(2)
+    type("h")
+    if exists("help_page.png", 15):
+        break
+    type(Key.ESC)
+    type(Key.ESC)
+wait("help_page.png", 1)
 wait(3)
 type("q", Key.CTRL + Key.SHIFT)
 util.wait_app_quiet("firefox.exe")
