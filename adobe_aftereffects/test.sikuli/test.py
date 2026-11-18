@@ -52,6 +52,9 @@ if exists("warning.png",60):
 
 # Basic operations.
 wait("new-file-button.png",20)
+wait(5)
+type(Key.F4, Key.ALT)
+wait(5)
 type("i",Key.CTRL)
 wait("import-file-box.png",90)
 wait(3)
