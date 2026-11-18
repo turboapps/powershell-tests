@@ -559,6 +559,28 @@ def account_icon(timeout):
         Debug.user("signed in: account icon %.2f at (%d,%d)" % (icon.getScore(), icon.getTarget().x, icon.getTarget().y))
     return icon
 
+# Adobe sometimes answers the email step with "Verify your identity" instead of
+# the password page: it wants a one-time code that it emails to the test
+# mailbox, and the page offers no way back to the password. App Tests
+# 44239792357 hit it on all four 32-bit locales (en, de, fr, es), while the five
+# x64 runs signed in with the same account minutes later. The test cannot read
+# that mailbox, so waiting only used up the sign-in budget and ended in "the
+# account icon never appeared", which reads like a Reader bug. Stop with the
+# real reason as soon as the page is on screen instead.
+#
+# The anchor is the envelope illustration above the heading: the same glyph in
+# every locale and in both the wide and the compact sign-in layout. It scores
+# 1.00 on the en, de, fr and es challenge screens of that run and at most 0.50
+# on the 310 step frames of it that do not show the page.
+IDENTITY_CHALLENGE = Pattern("identity_verify.png").similar(0.85)
+
+def check_identity_challenge():
+    if exists(IDENTITY_CHALLENGE, 0):
+        raise AssertionError("Adobe sign-in blocked: Adobe asked to verify the "
+            "account with a code emailed to the test mailbox ('Verify your "
+            "identity'). This is an Adobe account check the test cannot "
+            "complete, not a Reader failure.")
+
 def find_password_box():
     """Where to click to put the caret in the password field, or None."""
     eye = exists(LOGIN_PASSWORD_EYE, 0)
@@ -589,6 +611,7 @@ def open_signin(timeout=60):
     click(button)
     deadline = time.time() + timeout
     while time.time() < deadline:
+        check_identity_challenge()
         if signin_visible():
             return True
         wait(2)
@@ -601,6 +624,7 @@ def enter_email():
     # clicking somewhere else on the screen.
     target = None
     for _ in range(30):
+        check_identity_challenge()
         target = find_email_box()
         if target:
             break
@@ -626,6 +650,7 @@ def enter_password():
     # nothing at all, so locate the field again once the page has settled.
     target = None
     for _ in range(20):
+        check_identity_challenge()
         target = find_password_box()
         if target:
             break
@@ -660,6 +685,7 @@ def wait_signed_in(timeout=240):
     while time.time() < deadline:
         if account_icon(2):
             return True
+        check_identity_challenge()
         # Look for the Skip button before the wand: once the card has been
         # scrolled the wand can be off the top while the buttons are finally in
         # view, and the button is the thing worth clicking either way.
