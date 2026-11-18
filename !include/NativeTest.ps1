@@ -57,6 +57,9 @@ function Invoke-NativeInstaller {
 
 # The latest Edge enterprise release for a channel ("Stable" or "Beta"), selected from the
 # Edge product API as powershell-builds microsoft_edge-x64(-beta)/BuildTurboImage.ps1 does.
+# Returns $null when the channel lists no $Platform $Architecture release with an MSI. That
+# happens at a channel rollover: on 2026-11-17 the API swapped Beta to 159.0.4402.7 listing
+# only the Linux build, with the Windows Beta releases dropped until their MSIs were posted.
 function Get-EdgeEnterpriseRelease {
     param (
         [string]$Channel,
@@ -68,14 +71,44 @@ function Get-EdgeEnterpriseRelease {
     $response = Invoke-WebRequest -Uri $edgeEnterpriseMSIUri -Method Get -ContentType "application/json" -UseBasicParsing
     $jsonObj = ConvertFrom-Json $([String]::new($response.Content))
 
-    $selectedIndex = [array]::indexof($jsonObj.Product, "$Channel")
+    $product = @($jsonObj | Where-Object { $_.Product -eq $Channel })[0]
+    $releases = @($product.Releases | Where-Object {
+        $_.Architecture -eq $Architecture -and $_.Platform -eq $Platform -and
+        ($_.Artifacts | Where-Object { $_.ArtifactName -eq "msi" })
+    })
+    if ($releases.Count -eq 0) {
+        $listed = (@($product.Releases) | ForEach-Object { "$($_.Platform) $($_.Architecture) $($_.ProductVersion)" }) -join ", "
+        Write-Warning "Edge API lists no $Platform $Architecture $Channel MSI (the channel lists: $(if ($listed) { $listed } else { 'nothing' }))"
+        return $null
+    }
 
-    $selectedVersion = (([Version[]](($jsonObj[$selectedIndex].Releases |
-        Where-Object { $_.Architecture -eq $Architecture -and $_.Platform -eq $Platform }).ProductVersion) |
-        Sort-Object -Descending)[0]).ToString(4)
+    return $releases | Sort-Object { [version]$_.ProductVersion } -Descending | Select-Object -First 1
+}
 
-    return $jsonObj[$selectedIndex].Releases |
-        Where-Object { $_.Architecture -eq $Architecture -and $_.Platform -eq $Platform -and $_.ProductVersion -eq $selectedVersion }
+# The Edge Update bootstrapper of a channel (MicrosoftEdgeSetupBeta.exe for Beta), the
+# Edge Insider download page's installer. It installs the channel's current build for the
+# OS's architecture; there is no ARM64-specific link (platform=Win10ARM64 redirects to an
+# outage page).
+function Get-EdgeBootstrapperLink {
+    param (
+        [string]$Channel
+    )
+    return "https://c2rsetup.officeapps.live.com/c2r/downloadEdge.aspx?platform=Default&source=EdgeInsiderPage&Channel=$Channel&language=en"
+}
+
+# The machine architecture of a PE file ("x64", "arm64", "x86"), from its COFF header.
+function Get-PEArchitecture {
+    param (
+        [string]$Path
+    )
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    $peOffset = [BitConverter]::ToInt32($bytes, 0x3C)
+    switch ([BitConverter]::ToUInt16($bytes, $peOffset + 4)) {
+        0x8664 { return "x64" }
+        0xAA64 { return "arm64" }
+        0x014C { return "x86" }
+        default { return "unknown" }
+    }
 }
 
 # The installed msedge.exe of a channel, or $null. Edge installs under Program Files (x86)
@@ -107,26 +140,45 @@ function Install-NativeEdge {
     )
 
     $release = Get-EdgeEnterpriseRelease -Channel $Channel -Architecture $Architecture
-    $latest = $release.ProductVersion
-    Write-Host "Latest Edge $Channel $Architecture enterprise release: $latest"
-
     $exe = Get-NativeEdgeExe -Channel $Channel
     $installed = if ($exe) { (Get-Item $exe).VersionInfo.ProductVersion } else { $null }
-    if ($installed -and [version]$installed -ge [version]$latest) {
-        Write-Host "Installed Edge $Channel $installed is current - not reinstalling"
-    } else {
-        if ($installed) { Write-Host "Installed Edge $Channel $installed is older - upgrading" }
 
-        $msi = @($release.Artifacts | Where-Object { $_.ArtifactName -eq "msi" })[0]
-        # The artifact's own file name, eg MicrosoftEdgeBetaEnterpriseARM64.msi.
-        $installerName = Split-Path ([uri]$msi.Location).AbsolutePath -Leaf
-        $installer = Save-NativeInstaller -DownloadLink $msi.Location -InstallerName $installerName
-        Invoke-NativeInstaller -Path "msiexec.exe" -Arguments "/I `"$installer`" /qn /L*V `"$env:USERPROFILE\Desktop\Installers\$installerName.log`""
+    if (-not $release) {
+        # No enterprise MSI to pin to (channel rollover): install the channel's current
+        # build through Edge Update instead, and check the architecture, since nothing
+        # else ties the bootstrapper's install to $Architecture.
+        Write-Host "Installing Edge $Channel with the Edge Update bootstrapper instead of the enterprise MSI"
+        $installerName = "MicrosoftEdgeSetup$(if ($Channel -ne 'Stable') { $Channel }).exe"
+        $installer = Save-NativeInstaller -DownloadLink (Get-EdgeBootstrapperLink -Channel $Channel) -InstallerName $installerName
+        Invoke-NativeInstaller -Path $installer -Arguments "/silent /install"
 
         $exe = Get-NativeEdgeExe -Channel $Channel
-        $installed = if ($exe) { (Get-Item $exe).VersionInfo.ProductVersion } else { $null }
-        if ($installed -ne $latest) {
-            throw "Edge $Channel is '$installed' after the install, expected $latest"
+        if (-not $exe) { throw "Edge $Channel is not installed after the Edge Update bootstrapper ran" }
+        $installed = (Get-Item $exe).VersionInfo.ProductVersion
+        $arch = Get-PEArchitecture -Path $exe
+        if ($arch -ne $Architecture) {
+            throw "Edge $Channel $installed at $exe is $arch, expected $Architecture"
+        }
+    } else {
+        $latest = $release.ProductVersion
+        Write-Host "Latest Edge $Channel $Architecture enterprise release: $latest"
+
+        if ($installed -and [version]$installed -ge [version]$latest) {
+            Write-Host "Installed Edge $Channel $installed is current - not reinstalling"
+        } else {
+            if ($installed) { Write-Host "Installed Edge $Channel $installed is older - upgrading" }
+
+            $msi = @($release.Artifacts | Where-Object { $_.ArtifactName -eq "msi" })[0]
+            # The artifact's own file name, eg MicrosoftEdgeBetaEnterpriseARM64.msi.
+            $installerName = Split-Path ([uri]$msi.Location).AbsolutePath -Leaf
+            $installer = Save-NativeInstaller -DownloadLink $msi.Location -InstallerName $installerName
+            Invoke-NativeInstaller -Path "msiexec.exe" -Arguments "/I `"$installer`" /qn /L*V `"$env:USERPROFILE\Desktop\Installers\$installerName.log`""
+
+            $exe = Get-NativeEdgeExe -Channel $Channel
+            $installed = if ($exe) { (Get-Item $exe).VersionInfo.ProductVersion } else { $null }
+            if ($installed -ne $latest) {
+                throw "Edge $Channel is '$installed' after the install, expected $latest"
+            }
         }
     }
     Write-Host "Edge $Channel $installed at $exe"
