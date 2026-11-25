@@ -1752,8 +1752,20 @@ def save_as_path(path, attempts=3, polls=2):
 #
 # The successful path sends exactly the keystrokes it always did and leaves the
 # cursor in the same cell, so an existing result image keeps matching unchanged.
-def enter_spreadsheet_column(values, result_image, attempts=3, grace=10):
+# `focus`, when given, is a point inside the sheet grid that is clicked at the
+# start of every attempt. The keystrokes below go to whatever holds keyboard
+# focus, and Excel can hand that to a side pane it opens on its own a few
+# seconds after the new workbook is up: in App Tests run 45662232815
+# (o365business-x64) the Copilot pane plus a "Using multiple panes?" callout
+# slid in during attempt 1, and all three attempts typed into the pane (its text
+# shows selected by the Ctrl+A) while A1 stayed empty. The ESC before the click
+# cancels a cell left in edit mode, so the click cannot be taken as a cell
+# reference in a half-typed formula.
+def enter_spreadsheet_column(values, result_image, attempts=3, grace=10, focus=None):
     for attempt in range(attempts):
+        if focus is not None:
+            type(Key.ESC)
+            click(focus)          # take keyboard focus back from any side pane
         type(Key.ESC)             # leave cell-edit mode / dismiss a warning box
         type("a", Key.CTRL)
         type(Key.DELETE)

@@ -206,12 +206,15 @@ run("explorer " + os.path.join(util.start_menu, "Excel.lnk"))
 wait("excel_window.png",60)
 wait(5)
 doubleClick("excel_window.png")
-wait("excel_new_document.png")
+grid = wait("excel_new_document.png").getTarget()  # inside the grid, row 1
 # A dropped ENTER here leaves the cell in edit mode so the next paste
 # overwrites it, sliding the formula up into A2 where it refers to itself
 # ("Circular References: A2"). enter_spreadsheet_column re-enters the block
 # from a cleared sheet if the result row does not show up.
-util.enter_spreadsheet_column(["1", "2", "=sum(A1, A2)"], "excel_result.png")
+# Excel may open its Copilot pane mid-entry and take the keyboard with it, so
+# each attempt clicks back into the grid first (see enter_spreadsheet_column).
+util.enter_spreadsheet_column(["1", "2", "=sum(A1, A2)"], "excel_result.png",
+                              focus=grid)
 
 # more-options.png is a link that exists ONLY on the modern "Save this file"
 # mini-dialog. When Ctrl+S opens the Save As backstage instead - as it did in
