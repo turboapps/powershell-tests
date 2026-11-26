@@ -90,6 +90,9 @@ rightClick("furniture-selected.png")
 click("keep-only.png")
 wait("keep-only-result.png")
 type("p", Key.CTRL)
+# Reader 2026.3.2 re-laid out the Print dialog: Copies now sits beside a lower
+# Print Range group and the buttons are OK/Cancel (was Print/Cancel/Apply), so
+# the reference is the Print Range group plus those buttons.
 wait("print_window.png")
 type(Key.ESC)
 wait("keep-only-result.png")

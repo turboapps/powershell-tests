@@ -28,6 +28,13 @@ wait(3)
 paste("https://teams.microsoft.com/l/meetup-join/19%3ameeting_MWE2YzViZDItM2NjNi00MzJjLWI3YjAtMDlkYmRmNGYzN2Jl%40thread.v2/0?context=%7b%22Tid%22%3a%2247c7235b-376c-4598-a69c-3614fd25ceed%22%2c%22Oid%22%3a%22db4f93b1-ee86-47b7-993e-f1e338809450%22%7d")
 wait(2)
 type(Key.ENTER)
+# The meetup-join launcher page now stops on a "Continue on this browser" /
+# "Join on the Teams app" choice instead of handing the link to the app on its
+# own (seen with Teams 26304.1207.5384.858 in App Tests run 45756394388), so
+# pick the app when that choice is offered. Optional, so the older page that
+# goes straight to the handler prompt still works.
+if exists("join_teams_app.png", 30):
+    click("join_teams_app.png")
 click("url_handler.png")
 type(Key.TAB)
 wait(2)

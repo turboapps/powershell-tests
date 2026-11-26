@@ -86,10 +86,18 @@ if not util.click_until_gone("send-email-button.png"):
 wait(5)
 click("calendar-button.png")
 wait("today-icon.png")
-click("print-button.png")
-wait("blue-print-button.png")
+# The calendar ribbon is up while the view is still "Loading your events", and
+# Share is added in front of Print once it finishes - moving Print about 75 px
+# right. In App Tests run 45756394388 (arm64 beta) the Print click went in
+# during that load and its dialog only opened later, so the bare
+# wait("blue-print-button.png") matched the other blue button on screen - New
+# event - clicked that, and the dialog's own Print was never pressed. Click Print
+# once it has stopped moving and confirm the dialog opened, then look for the
+# blue Print only inside the dialog, just below its "Print detailed agenda" row.
+util.click_settled("print-button.png", "print-dialog.png")
+dialog = find("print-dialog.png")
 wait(10)
-click("blue-print-button.png")
+click(Region(dialog.x - 20, dialog.y, 300, 120).wait("blue-print-button.png", 10))
 wait("second-blue-print-button.png")
 wait(5)
 type(Key.ESC)
